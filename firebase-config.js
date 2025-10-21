@@ -12,7 +12,11 @@ import {
     getFirestore, 
     doc, 
     setDoc, 
-    getDoc 
+    getDoc,
+    collection,
+    getDocs,
+    orderBy,
+    query 
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
 // Your web app's Firebase configuration
@@ -37,3 +41,8 @@ const provider = new GoogleAuthProvider();
 window.firebaseAuth = auth;
 window.firebaseDb = db;
 window.googleProvider = provider;
+window.onAuthStateChanged = onAuthStateChanged;
+window.getDocs = getDocs;
+window.collection = collection;
+window.query = query;
+window.orderBy = orderBy;

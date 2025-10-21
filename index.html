@@ -6,6 +6,7 @@
     <title>Mathoween - Spooky Math Games</title>
     <link rel="stylesheet" href="index.css">
     <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Shadows+Into+Light&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎃</text></svg>">
 </head>
 <body>
     <div id="auth-container">
@@ -16,12 +17,19 @@
         <button id="sign-in-btn" class="hidden">Sign In</button>
     </div>
 
-    <div id="scary-toggle-container">
-        <label class="toggle">
-            <input type="checkbox" id="scary-toggle">
-            <span class="slider"></span>
-        </label>
-        <span id="toggle-label">Scary Mode</span>
+    <div id="header-controls">
+        <button id="leaderboard-btn" class="header-btn">🏆 Leaderboard</button>
+        <div id="countdown-container">
+            <span id="countdown-label">Event Ends:</span>
+            <span id="countdown">--:--:--</span>
+        </div>
+        <div id="scary-toggle-container">
+            <label class="toggle">
+                <input type="checkbox" id="scary-toggle">
+                <span class="slider"></span>
+            </label>
+            <span id="toggle-label">Scary Mode</span>
+        </div>
     </div>
 
     <div id="background">
@@ -66,6 +74,38 @@
             </div>
         </div>
     </div>
+
+    <!-- Leaderboard Modal -->
+    <div id="leaderboard-modal" class="modal hidden">
+        <div class="modal-content leaderboard-content">
+            <h2>🏆 Mathoween Leaderboard</h2>
+            <div class="leaderboard-container">
+                <table id="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Username</th>
+                            <th>Spooky Addition</th>
+                            <th>Ghostly Subtraction</th>
+                            <th>Witchy Multiplication</th>
+                            <th>Zombie Division</th>
+                            <th>Pumpkin Algebra</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <!-- Leaderboard rows will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-buttons">
+                <button id="leaderboard-close" class="btn-primary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lights Out Overlay -->
+    <div id="lights-out" class="hidden"></div>
 
     <!-- Jump scare overlay -->
     <div id="jumpscare" class="hidden">

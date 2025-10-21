@@ -19,9 +19,15 @@ const loginDeny = document.getElementById('login-deny');
 const usernameModal = document.getElementById('username-modal');
 const usernameInput = document.getElementById('username-input');
 const usernameSubmit = document.getElementById('username-submit');
+const leaderboardBtn = document.getElementById('leaderboard-btn');
+const leaderboardModal = document.getElementById('leaderboard-modal');
+const leaderboardBody = document.getElementById('leaderboard-body');
+const leaderboardClose = document.getElementById('leaderboard-close');
+const countdownElement = document.getElementById('countdown');
 const scaryToggle = document.getElementById('scary-toggle');
 const jumpscare = document.getElementById('jumpscare');
 const jumpscareImage = document.getElementById('jumpscare-image');
+const lightsOut = document.getElementById('lights-out');
 
 // State
 let currentUser = null;
@@ -30,9 +36,47 @@ let scaryMode = localStorage.getItem('scaryMode') === 'true';
 let askedForLogin = localStorage.getItem('askedForLogin') === 'true';
 let jumpscareInterval = null;
 let eyeInterval = null;
+let spiderInterval = null;
+let lightsOutInterval = null;
+let isTabFocused = true;
 
 // Initialize scary mode toggle
 scaryToggle.checked = scaryMode;
+
+// Tab focus detection
+document.addEventListener('visibilitychange', () => {
+    isTabFocused = !document.hidden;
+});
+
+// Countdown to Halloween end (Oct 31, 24:00 = Nov 1, 00:00)
+function updateCountdown() {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const halloweenEnd = new Date(currentYear, 9, 31, 24, 0, 0); // Oct 31, 24:00
+    
+    // If Halloween has passed this year, target next year
+    if (now > halloweenEnd) {
+        halloweenEnd.setFullYear(currentYear + 1);
+    }
+    
+    const diff = halloweenEnd - now;
+    
+    if (diff <= 0) {
+        countdownElement.textContent = "Event Ended!";
+        return;
+    }
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    if (days > 0) {
+        countdownElement.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    } else {
+        countdownElement.textContent = `${hours}h ${minutes}m ${seconds}s`;
+    }
+}
 
 // Authentication Functions
 async function signInWithGoogle() {
@@ -62,7 +106,15 @@ async function checkAndSetUsername(user) {
         userData = {
             email: user.email,
             username: user.email.split('@')[0], // Default to email prefix
-            createdAt: new Date()
+            createdAt: new Date(),
+            scores: {
+                day1: 0,
+                day2: 0,
+                day3: 0,
+                day4: 0,
+                day5: 0,
+                total: 0
+            }
         };
         showUsernameModal(user);
     }
@@ -116,6 +168,61 @@ function showUsernameModal(user) {
     usernameModal.classList.remove('hidden');
 }
 
+// Leaderboard Functions
+async function loadLeaderboard() {
+    try {
+        const usersQuery = query(collection(window.firebaseDb, 'users'), orderBy('scores.total', 'desc'));
+        const querySnapshot = await getDocs(usersQuery);
+        
+        const leaderboardData = [];
+        querySnapshot.forEach((doc) => {
+            const userData = doc.data();
+            if (userData.username && userData.scores) {
+                leaderboardData.push({
+                    username: userData.username,
+                    ...userData.scores
+                });
+            }
+        });
+        
+        displayLeaderboard(leaderboardData);
+    } catch (error) {
+        console.error('Error loading leaderboard:', error);
+        leaderboardBody.innerHTML = '<tr><td colspan="8">Error loading leaderboard</td></tr>';
+    }
+}
+
+function displayLeaderboard(data) {
+    leaderboardBody.innerHTML = '';
+    
+    if (data.length === 0) {
+        leaderboardBody.innerHTML = '<tr><td colspan="8">No scores yet! Be the first to play!</td></tr>';
+        return;
+    }
+    
+    data.forEach((user, index) => {
+        const row = document.createElement('tr');
+        
+        // Add ranking classes for top 3
+        if (index === 0) row.classList.add('rank-1');
+        if (index === 1) row.classList.add('rank-2');
+        if (index === 2) row.classList.add('rank-3');
+        
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${user.username}</td>
+            <td>${user.day1 || 0}</td>
+            <td>${user.day2 || 0}</td>
+            <td>${user.day3 || 0}</td>
+            <td>${user.day4 || 0}</td>
+            <td>${user.day5 || 0}</td>
+            <td><strong>${user.total || 0}</strong></td>
+        `;
+        
+        leaderboardBody.appendChild(row);
+    });
+}
+
 // Event Listeners for Auth
 signInBtn.addEventListener('click', signInWithGoogle);
 signOutBtn.addEventListener('click', signOutUser);
@@ -138,6 +245,16 @@ usernameInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         usernameSubmit.click();
     }
+});
+
+// Leaderboard Events
+leaderboardBtn.addEventListener('click', () => {
+    leaderboardModal.classList.remove('hidden');
+    loadLeaderboard();
+});
+
+leaderboardClose.addEventListener('click', () => {
+    leaderboardModal.classList.add('hidden');
 });
 
 // Auth State Observer
@@ -173,10 +290,12 @@ function startScaryMode() {
     addMoreSpookyElements();
     startRandomJumpscares();
     startEyeAppearances();
+    startSpiderCrawls();
+    startLightsOut();
 }
 
 function stopScaryMode() {
-    const extraElements = document.querySelectorAll('.ghost, .bat, .eye');
+    const extraElements = document.querySelectorAll('.ghost, .bat, .eye, .spider');
     extraElements.forEach(el => {
         if (el.classList.contains('scary-mode')) {
             el.remove();
@@ -192,6 +311,19 @@ function stopScaryMode() {
         clearInterval(eyeInterval);
         eyeInterval = null;
     }
+    
+    if (spiderInterval) {
+        clearInterval(spiderInterval);
+        spiderInterval = null;
+    }
+    
+    if (lightsOutInterval) {
+        clearInterval(lightsOutInterval);
+        lightsOutInterval = null;
+    }
+    
+    // Ensure lights are back on
+    lightsOut.style.opacity = '0';
 }
 
 // Background Elements
@@ -239,33 +371,92 @@ function addMoreSpookyElements() {
     }
 }
 
+function startSpiderCrawls() {
+    if (spiderInterval) {
+        clearInterval(spiderInterval);
+    }
+    
+    // Add initial spiders
+    addSpiders();
+    
+    spiderInterval = setInterval(() => {
+        if (Math.random() < 0.3) {
+            addSpiders();
+        }
+    }, 15000);
+}
+
+function addSpiders() {
+    const background = document.getElementById('background');
+    const spiderCount = 2 + Math.floor(Math.random() * 3);
+    
+    for (let i = 0; i < spiderCount; i++) {
+        const spider = document.createElement('div');
+        spider.classList.add('spider', 'scary-mode');
+        spider.style.left = `${Math.random() * 90}%`;
+        spider.style.top = `${Math.random() * 90}%`;
+        spider.style.animationDuration = `${20 + Math.random() * 10}s`;
+        background.appendChild(spider);
+        
+        setTimeout(() => {
+            if (spider.parentNode) {
+                spider.parentNode.removeChild(spider);
+            }
+        }, 20000);
+    }
+}
+
 function startRandomJumpscares() {
     if (jumpscareInterval) {
         clearInterval(jumpscareInterval);
     }
     
     jumpscareInterval = setInterval(() => {
-        if (Math.random() < 0.3) {
+        if (Math.random() < 0.2 && isTabFocused) { // Reduced chance, only when tab focused
             triggerJumpscare();
         }
-    }, 30000);
+    }, 45000); // 45 seconds
 }
 
 function triggerJumpscare() {
-    jumpscare.classList.remove('hidden');
-    jumpscareImage.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='black'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='40' fill='red' text-anchor='middle' dominant-baseline='middle'%3EBOO!%3C/text%3E%3C/svg%3E";
+    if (!isTabFocused) return;
     
+    jumpscare.classList.remove('hidden');
+    
+    // Different jump scare images
+    const scares = [
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='black'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='60' fill='red' text-anchor='middle' dominant-baseline='middle'%3E😱 BOO! 😱%3C/text%3E%3C/svg%3E",
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='black'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='50' fill='red' text-anchor='middle' dominant-baseline='middle'%3E💀 GOT YOU! 💀%3C/text%3E%3C/svg%3E",
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='black'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='45' fill='red' text-anchor='middle' dominant-baseline='middle'%3E👻 BEHIND YOU! 👻%3C/text%3E%3C/svg%3E"
+    ];
+    
+    jumpscareImage.src = scares[Math.floor(Math.random() * scares.length)];
+    
+    // Play loud scary sound
     try {
-        const audio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
-        audio.volume = 0.5;
-        audio.play();
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.8);
+        
+        gainNode.gain.setValueAtTime(0.7, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.8);
     } catch (e) {
-        // Sound not available
+        // Audio not supported
     }
     
     setTimeout(() => {
         jumpscare.classList.add('hidden');
-    }, 1000);
+    }, 800);
 }
 
 function startEyeAppearances() {
@@ -282,11 +473,12 @@ function startEyeAppearances() {
 
 function showEyes() {
     const background = document.getElementById('background');
+    const eyeCount = 2 + Math.floor(Math.random() * 3);
     
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < eyeCount; i++) {
         const eye = document.createElement('div');
         eye.classList.add('eye', 'scary-mode');
-        eye.style.left = `${10 + i * 40 + Math.random() * 80}%`;
+        eye.style.left = `${Math.random() * 90}%`;
         eye.style.top = `${Math.random() * 90}%`;
         background.appendChild(eye);
         
@@ -296,6 +488,28 @@ function showEyes() {
             }
         }, 3000);
     }
+}
+
+function startLightsOut() {
+    if (lightsOutInterval) {
+        clearInterval(lightsOutInterval);
+    }
+    
+    lightsOutInterval = setInterval(() => {
+        if (Math.random() < 0.1 && isTabFocused) { // 10% chance when tab focused
+            triggerLightsOut();
+        }
+    }, 60000); // Check every minute
+}
+
+function triggerLightsOut() {
+    if (!isTabFocused) return;
+    
+    lightsOut.style.opacity = '1';
+    
+    setTimeout(() => {
+        lightsOut.style.opacity = '0';
+    }, 2000); // Lights out for 2 seconds
 }
 
 // Game Logic
@@ -355,6 +569,8 @@ function createGameCards() {
 document.addEventListener('DOMContentLoaded', function() {
     addBackgroundElements();
     createGameCards();
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
     
     // Start scary mode if enabled
     if (scaryMode) {
