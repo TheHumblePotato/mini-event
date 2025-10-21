@@ -61,6 +61,62 @@ let isTabFocused = true;
 // Add an authInitialized flag to avoid showing the login modal before Firebase reports the auth state
 let authInitialized = false;
 
+// Keep track of unlocked days (persisted)
+let unlockedDays = {}; // keys: 1..5 -> boolean
+
+// load unlockedDays from localStorage
+function loadUnlockedDays() {
+    try {
+        const raw = localStorage.getItem('unlockedDays');
+        if (raw) {
+            unlockedDays = JSON.parse(raw);
+        } else {
+            unlockedDays = {};
+        }
+    } catch (e) {
+        unlockedDays = {};
+    }
+}
+
+function saveUnlockedDays() {
+    try {
+        localStorage.setItem('unlockedDays', JSON.stringify(unlockedDays));
+    } catch (e) {
+        // ignore
+    }
+}
+
+// check and set unlocks based on calendar dates Oct 27..31 inclusive
+function updateUnlocksByDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+
+    for (let day = 1; day <= 5; day++) {
+        // mapping: day 1 -> Oct 27 ... day 5 -> Oct 31
+        const unlockDate = new Date(year, 9, 26 + day, 0, 0, 0); // month index 9 = October
+        // If now is on/after the unlockDate, mark unlocked
+        if (now >= unlockDate) {
+            if (!unlockedDays[day]) {
+                unlockedDays[day] = true;
+            }
+        }
+        // keep any previously saved unlocks (persisted)
+    }
+
+    saveUnlockedDays();
+}
+
+// Replace previous isGameUnlocked behavior: use persisted calendar unlocks only
+function isGameUnlocked(day) {
+    // if persisted/unlocked previously, keep unlocked
+    if (unlockedDays[day]) return true;
+    // otherwise, check date now (in case the page loaded before updateUnlocksByDate)
+    const now = new Date();
+    const year = now.getFullYear();
+    const unlockDate = new Date(year, 9, 26 + day, 0, 0, 0);
+    return now >= unlockDate;
+}
+
 // Initialize scary mode toggle
 if (scaryToggle) {
     scaryToggle.checked = scaryMode;
@@ -519,6 +575,10 @@ function addBackgroundElements() {
     for (let i = 0; i < 5; i++) {
         const ghost = document.createElement('div');
         ghost.classList.add('ghost');
+        // add variety by occasional size class
+        if (Math.random() < 0.25) ghost.classList.add('small');
+        else if (Math.random() < 0.15) ghost.classList.add('large');
+
         ghost.style.left = `${Math.random() * 90}%`;
         ghost.style.top = `${Math.random() * 90}%`;
         ghost.style.animationDuration = `${15 + Math.random() * 10}s`;
@@ -700,13 +760,13 @@ function getCurrentDay() {
 }
 
 function isGameUnlocked(day) {
-    const currentDay = getCurrentDay();
-    
-    if (day <= currentDay && currentDay >= 1 && currentDay <= 5) {
-        return true;
-    }
-    
-    return false;
+    // if persisted/unlocked previously, keep unlocked
+    if (unlockedDays[day]) return true;
+    // otherwise, check date now (in case the page loaded before updateUnlocksByDate)
+    const now = new Date();
+    const year = now.getFullYear();
+    const unlockDate = new Date(year, 9, 26 + day, 0, 0, 0);
+    return now >= unlockDate;
 }
 
 function createGameCards() {
@@ -729,6 +789,11 @@ function createGameCards() {
             lockIcon.innerHTML = '🔒';
             gameCard.appendChild(lockIcon);
         } else {
+            // ensure persisted state is saved
+            if (!unlockedDays[game.day]) {
+                unlockedDays[game.day] = true;
+                saveUnlockedDays();
+            }
             gameCard.addEventListener('click', () => {
                 window.location.href = game.url;
             });
@@ -751,6 +816,10 @@ function createGameCards() {
 
 // Main initialization function
 function initApp() {
+    // load persisted unlocks and update based on today's date
+    loadUnlockedDays();
+    updateUnlocksByDate();
+
     addBackgroundElements();
     createGameCards();
     
