@@ -1,1 +1,108 @@
 
+
+
+/* Day 1 — Candy Gambling styles */
+
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+
+body {
+   font-family: 'Shadows Into Light', cursive;
+   background:
+       radial-gradient(1200px 600px at 20% 10%, rgba(40,10,10,0.15), transparent 20%),
+       linear-gradient(180deg, #0b0202 0%, #1a0a0a 45%, #0a0606 100%);
+   color: #ff6b35;
+   min-height: 100vh;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   padding: 30px;
+}
+
+
+#game-wrapper {
+   width: 100%;
+   max-width: 1100px;
+   background: linear-gradient(180deg, rgba(10,6,6,0.9), rgba(12,6,6,0.95));
+   border: 3px solid #ff6b35;
+   border-radius: 14px;
+   padding: 24px;
+   box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+}
+
+
+header { text-align: center; margin-bottom: 18px; }
+header h1 { font-family: 'Creepster', cursive; font-size: 2.8rem; color: #ff6b35; text-shadow: 0 0 8px #ff0000; }
+header p { color: #ffaa00; font-size: 1.1rem; }
+
+
+#controls { display: flex; gap: 20px; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; }
+
+
+#score-life { display: flex; gap: 16px; }
+.big-counter { background: rgba(0,0,0,0.6); border: 2px solid rgba(255,107,53,0.18); padding: 10px 18px; border-radius: 10px; text-align: center; min-width: 110px; }
+.big-counter span { display: block; font-size: 2.6rem; font-weight: 800; color: #fff; }
+.big-counter .label { color: #ffaa00; font-weight: bold; margin-top: 6px; }
+
+
+#countdown-container { background: rgba(0,0,0,0.6); padding: 10px 12px; border-radius: 12px; border: 2px solid rgba(255,107,53,0.12); text-align: center; }
+.countdown-label { color: #ffaa00; font-weight: bold; font-size: 0.9rem; }
+#countdown { font-family: monospace; color: #ff6b35; font-weight: bold; }
+
+
+#action-buttons { display: flex; gap: 10px; }
+.btn-primary, .btn-secondary { padding: 10px 16px; border-radius: 12px; cursor: pointer; font-family: 'Shadows Into Light', cursive; font-weight: bold; }
+.btn-primary { background: #ff6b35; border: none; color: #000; }
+.btn-secondary { background: transparent; border: 2px solid #ff6b35; color: #ff6b35; }
+
+
+main { display: flex; justify-content: center; }
+#game-area { display: flex; gap: 40px; align-items: center; justify-content: center; padding: 28px; }
+
+
+#deck, #discard-pile { width: 260px; height: 360px; border-radius: 12px; background: linear-gradient(180deg, #120707, #2b0b0b); border: 3px solid rgba(255,107,53,0.14); box-shadow: 0 14px 40px rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; position: relative; }
+
+
+#deck { cursor: pointer; }
+.deck-count { position: absolute; top: 10px; left: 12px; color: #ffd8a8; font-weight: bold; background: rgba(0,0,0,0.5); padding: 6px 10px; border-radius: 12px; }
+
+
+#discard-pile { opacity: 0.9; }
+.discard-label { position: absolute; top: 10px; left: 12px; color: #ffd8a8; font-weight: bold; background: rgba(0,0,0,0.5); padding: 6px 10px; border-radius: 12px; }
+
+
+.card { width: 220px; height: 320px; border-radius: 10px; background: linear-gradient(180deg,#fff6e6,#ffdcb3); display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 900; color: #2b0b0b; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
+
+
+#footer { text-align: center; margin-top: 12px; color: #e7b37a; }
+
+
+/* Jumpscare / Pumpkin overlay */
+#jumpscare-overlay { position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.85); z-index: 2000; }
+#jumpscare-content { width: 70vw; max-width: 900px; height: 70vh; background: #000; display:flex; align-items:center; justify-content:center; border-radius: 12px; border: 6px solid #ff6b35; color: #fff; font-size: 5rem; }
+
+
+/* Peek preview */
+#peek-preview { position: fixed; right: 20px; bottom: 20px; width: 320px; background: linear-gradient(180deg,#1a0a0a,#0a0a0a); border: 2px solid #ff6b35; padding: 12px; border-radius: 10px; z-index: 1500; }
+.peek-inner { min-height: 80px; color: #e7b37a; font-weight: bold; text-align: center; }
+#peek-close { margin-top: 8px; display:block; width:100%; }
+
+
+.hidden { display: none !important; }
+
+
+/* Visual hint when deck is dead */
+#deck.dead { opacity: 0.5; pointer-events: none; }
+
+
+/* small screens */
+@media (max-width: 720px) {
+   #game-area { gap: 16px; flex-direction: column; }
+   #deck, #discard-pile { width: 220px; height: 300px; }
+}
+
+
+
+
+

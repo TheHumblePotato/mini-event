@@ -1,1 +1,86 @@
 
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Candy Gambling — Mathoween Day 1</title>
+   <link rel="stylesheet" href="day_1.css">
+   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Shadows+Into+Light&display=swap" rel="stylesheet">
+   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍬</text></svg>">
+</head>
+<body>
+   <div id="game-wrapper">
+       <header>
+           <h1>Candy Gambling</h1>
+           <p>Pick candies from the deck — gamble for points. Stop to save your score.</p>
+       </header>
+
+
+       <div id="controls">
+           <div id="score-life">
+               <div class="big-counter">
+                   <span id="score">0</span>
+                   <div class="label">Score</div>
+               </div>
+               <div class="big-counter">
+                   <span id="lives">1</span>
+                   <div class="label">Lives</div>
+               </div>
+           </div>
+
+
+           <div id="countdown-container">
+               <div class="countdown-label">Event Ends:</div>
+               <div id="countdown">--:--:--</div>
+           </div>
+
+
+           <div id="action-buttons">
+               <button id="stop-btn" class="btn-primary">Stop</button>
+               <button id="restart-btn" class="btn-secondary">Restart</button>
+           </div>
+       </div>
+
+
+       <main>
+           <div id="game-area">
+               <div id="deck" title="Click to draw a card">
+                   <div class="deck-count">256</div>
+               </div>
+               <div id="discard-pile" title="Discard pile">
+                   <div class="discard-label">Discard</div>
+               </div>
+           </div>
+       </main>
+
+
+       <footer>
+           <p>Collect candies, but beware — some take your lives!</p>
+       </footer>
+   </div>
+
+
+   <!-- Jumpscare / Pumpkin overlay -->
+   <div id="jumpscare-overlay" class="hidden">
+       <div id="jumpscare-content"></div>
+   </div>
+
+
+   <!-- Peek preview container -->
+   <div id="peek-preview" class="hidden">
+       <div class="peek-inner"></div>
+       <button id="peek-close" class="btn-secondary">Close</button>
+   </div>
+
+
+   <script src="day_1.js"></script>
+</body>
+</html>
+
+
+
+
+
