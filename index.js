@@ -41,7 +41,9 @@ let lightsOutInterval = null;
 let isTabFocused = true;
 
 // Initialize scary mode toggle
-scaryToggle.checked = scaryMode;
+if (scaryToggle) {
+    scaryToggle.checked = scaryMode;
+}
 
 // Tab focus detection
 document.addEventListener('visibilitychange', () => {
@@ -121,6 +123,12 @@ async function checkAndSetUsername(user) {
 }
 
 async function saveUsername(user, username) {
+    if (!user || !user.uid) {
+        console.error('No user found when trying to save username');
+        alert('Error: No user session. Please try signing in again.');
+        return;
+    }
+    
     const userDoc = window.firebaseDoc(window.firebaseDb, 'users', user.uid);
     userData.username = username.trim();
     
@@ -136,27 +144,29 @@ async function saveUsername(user, username) {
 
 function updateUI(user, userData) {
     currentUser = user;
-    usernameDisplay.textContent = userData.username;
-    userInfo.classList.remove('hidden');
-    signInBtn.classList.add('hidden');
+    if (usernameDisplay) {
+        usernameDisplay.textContent = userData.username;
+    }
+    if (userInfo) userInfo.classList.remove('hidden');
+    if (signInBtn) signInBtn.classList.add('hidden');
     
     // Hide login modal if it's showing
-    loginModal.classList.add('hidden');
+    if (loginModal) loginModal.classList.add('hidden');
 }
 
 function signOutUser() {
     window.firebaseSignOut(window.firebaseAuth).then(() => {
         currentUser = null;
         userData = null;
-        userInfo.classList.add('hidden');
-        signInBtn.classList.remove('hidden');
+        if (userInfo) userInfo.classList.add('hidden');
+        if (signInBtn) signInBtn.classList.remove('hidden');
     }).catch((error) => {
         console.error('Error signing out:', error);
     });
 }
 
 function showLoginModal() {
-    if (!askedForLogin && !currentUser) {
+    if (!askedForLogin && !currentUser && loginModal) {
         setTimeout(() => {
             loginModal.classList.remove('hidden');
         }, 1000);
@@ -164,8 +174,10 @@ function showLoginModal() {
 }
 
 function showUsernameModal(user) {
-    usernameInput.value = userData.username; // Pre-fill with email prefix
-    usernameModal.classList.remove('hidden');
+    if (usernameInput && usernameModal) {
+        usernameInput.value = userData.username; // Pre-fill with email prefix
+        usernameModal.classList.remove('hidden');
+    }
 }
 
 // Leaderboard Functions
@@ -188,11 +200,15 @@ async function loadLeaderboard() {
         displayLeaderboard(leaderboardData);
     } catch (error) {
         console.error('Error loading leaderboard:', error);
-        leaderboardBody.innerHTML = '<tr><td colspan="8">Error loading leaderboard</td></tr>';
+        if (leaderboardBody) {
+            leaderboardBody.innerHTML = '<tr><td colspan="8">Error loading leaderboard</td></tr>';
+        }
     }
 }
 
 function displayLeaderboard(data) {
+    if (!leaderboardBody) return;
+    
     leaderboardBody.innerHTML = '';
     
     if (data.length === 0) {
@@ -224,38 +240,59 @@ function displayLeaderboard(data) {
 }
 
 // Event Listeners for Auth
-signInBtn.addEventListener('click', signInWithGoogle);
-signOutBtn.addEventListener('click', signOutUser);
-loginAccept.addEventListener('click', signInWithGoogle);
-loginDeny.addEventListener('click', () => {
-    loginModal.classList.add('hidden');
-    localStorage.setItem('askedForLogin', 'true');
-    askedForLogin = true;
-});
+if (signInBtn) {
+    signInBtn.addEventListener('click', signInWithGoogle);
+}
+if (signOutBtn) {
+    signOutBtn.addEventListener('click', signOutUser);
+}
+if (loginAccept) {
+    loginAccept.addEventListener('click', signInWithGoogle);
+}
+if (loginDeny) {
+    loginDeny.addEventListener('click', () => {
+        if (loginModal) loginModal.classList.add('hidden');
+        localStorage.setItem('askedForLogin', 'true');
+        askedForLogin = true;
+    });
+}
 
-usernameSubmit.addEventListener('click', () => {
-    if (usernameInput.value.trim()) {
-        saveUsername(currentUser, usernameInput.value);
-    } else {
-        alert('Please enter a username');
-    }
-});
+if (usernameSubmit) {
+    usernameSubmit.addEventListener('click', () => {
+        if (usernameInput && usernameInput.value.trim()) {
+            if (!currentUser) {
+                alert('No user session. Please try signing in again.');
+                return;
+            }
+            saveUsername(currentUser, usernameInput.value);
+        } else {
+            alert('Please enter a username');
+        }
+    });
+}
 
-usernameInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        usernameSubmit.click();
-    }
-});
+if (usernameInput) {
+    usernameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            if (usernameSubmit) usernameSubmit.click();
+        }
+    });
+}
 
 // Leaderboard Events
-leaderboardBtn.addEventListener('click', () => {
-    leaderboardModal.classList.remove('hidden');
-    loadLeaderboard();
-});
-
-leaderboardClose.addEventListener('click', () => {
-    leaderboardModal.classList.add('hidden');
-});
+if (leaderboardBtn) {
+    leaderboardBtn.addEventListener('click', () => {
+        if (leaderboardModal) {
+            leaderboardModal.classList.remove('hidden');
+            loadLeaderboard();
+        }
+    });
+}
+if (leaderboardClose) {
+    leaderboardClose.addEventListener('click', () => {
+        if (leaderboardModal) leaderboardModal.classList.add('hidden');
+    });
+}
 
 // Initialize Firebase Auth State Observer
 function initializeAuthObserver() {
@@ -265,8 +302,8 @@ function initializeAuthObserver() {
         } else {
             currentUser = null;
             userData = null;
-            userInfo.classList.add('hidden');
-            signInBtn.classList.remove('hidden');
+            if (userInfo) userInfo.classList.add('hidden');
+            if (signInBtn) signInBtn.classList.remove('hidden');
             
             // Show login modal if not asked before
             if (!askedForLogin) {
@@ -277,16 +314,18 @@ function initializeAuthObserver() {
 }
 
 // Scary Mode Functions
-scaryToggle.addEventListener('change', function() {
-    scaryMode = this.checked;
-    localStorage.setItem('scaryMode', scaryMode);
-    
-    if (scaryMode) {
-        startScaryMode();
-    } else {
-        stopScaryMode();
-    }
-});
+if (scaryToggle) {
+    scaryToggle.addEventListener('change', function() {
+        scaryMode = this.checked;
+        localStorage.setItem('scaryMode', scaryMode);
+        
+        if (scaryMode) {
+            startScaryMode();
+        } else {
+            stopScaryMode();
+        }
+    });
+}
 
 function startScaryMode() {
     addMoreSpookyElements();
@@ -325,12 +364,13 @@ function stopScaryMode() {
     }
     
     // Ensure lights are back on
-    lightsOut.style.opacity = '0';
+    if (lightsOut) lightsOut.style.opacity = '0';
 }
 
 // Background Elements
 function addBackgroundElements() {
     const background = document.getElementById('background');
+    if (!background) return;
     
     for (let i = 0; i < 3; i++) {
         const ghost = document.createElement('div');
@@ -353,6 +393,7 @@ function addBackgroundElements() {
 
 function addMoreSpookyElements() {
     const background = document.getElementById('background');
+    if (!background) return;
     
     for (let i = 0; i < 5; i++) {
         const ghost = document.createElement('div');
@@ -390,6 +431,8 @@ function startSpiderCrawls() {
 
 function addSpiders() {
     const background = document.getElementById('background');
+    if (!background) return;
+    
     const spiderCount = 2 + Math.floor(Math.random() * 3);
     
     for (let i = 0; i < spiderCount; i++) {
@@ -421,7 +464,7 @@ function startRandomJumpscares() {
 }
 
 function triggerJumpscare() {
-    if (!isTabFocused) return;
+    if (!isTabFocused || !jumpscare || !jumpscareImage) return;
     
     jumpscare.classList.remove('hidden');
     
@@ -457,7 +500,7 @@ function triggerJumpscare() {
     }
     
     setTimeout(() => {
-        jumpscare.classList.add('hidden');
+        if (jumpscare) jumpscare.classList.add('hidden');
     }, 800);
 }
 
@@ -475,6 +518,8 @@ function startEyeAppearances() {
 
 function showEyes() {
     const background = document.getElementById('background');
+    if (!background) return;
+    
     const eyeCount = 2 + Math.floor(Math.random() * 3);
     
     for (let i = 0; i < eyeCount; i++) {
@@ -505,12 +550,12 @@ function startLightsOut() {
 }
 
 function triggerLightsOut() {
-    if (!isTabFocused) return;
+    if (!isTabFocused || !lightsOut) return;
     
     lightsOut.style.opacity = '1';
     
     setTimeout(() => {
-        lightsOut.style.opacity = '0';
+        if (lightsOut) lightsOut.style.opacity = '0';
     }, 2000); // Lights out for 2 seconds
 }
 
@@ -532,6 +577,10 @@ function isGameUnlocked(day) {
 
 function createGameCards() {
     const gamesContainer = document.querySelector('.games-container');
+    if (!gamesContainer) return;
+    
+    // Clear existing game cards to prevent duplicates
+    gamesContainer.innerHTML = '';
     
     games.forEach(game => {
         const gameCard = document.createElement('div');
@@ -571,8 +620,11 @@ function createGameCards() {
 function initApp() {
     addBackgroundElements();
     createGameCards();
-    updateCountdown();
-    setInterval(updateCountdown, 1000);
+    
+    if (countdownElement) {
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    }
     
     // Initialize auth observer if Firebase is ready
     if (window.firebaseReady) {
