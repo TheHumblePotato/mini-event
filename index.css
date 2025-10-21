@@ -15,6 +15,7 @@ color: #ff6b35;
 min-height: 100vh;
 overflow-x: hidden;
 position: relative;
+padding-bottom: 80px;
 }
 
 /* Auth Container */
@@ -609,18 +610,26 @@ font-weight: bold;
 
 /* Footer */
 footer {
+position: fixed;
+left: 0;
+right: 0;
+bottom: 0;
+z-index: 60;
 text-align: center;
-padding: 30px 20px;
-margin-top: 50px;
-background-color: rgba(0, 0, 0, 0.9);
-border-top: 2px solid #ff6b35;
+padding: 10px 16px;
+background: linear-gradient(180deg, rgba(12,6,6,0.88), rgba(6,3,3,0.92));
+border-top: 1px solid rgba(255,107,53,0.08);
+color: #ffb86b;
+font-weight: bold;
+backdrop-filter: blur(4px);
+box-shadow: 0 -6px 24px rgba(0,0,0,0.6);
 }
 
 footer p {
-font-size: 1.2rem;
-color: #ffaa00;
-font-weight: bold;
+margin: 0;
+font-size: 0.95rem;
 }
+
 
 /* Jump Scare */
 #jumpscare {
