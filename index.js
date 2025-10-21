@@ -7,6 +7,24 @@ const games = [
     { day: 5, title: "Pumpkin Algebra", date: "Friday", url: "https://thehumblepotato.github.io/mini-event/day_5.html" }
 ];
 
+// Scary images for jumpscares (using scary SVG images)
+const scaryImages = [
+    // Creepy skull
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600'%3E%3Crect width='600' height='600' fill='%23000'/%3E%3Cellipse cx='300' cy='250' rx='150' ry='180' fill='%23fff'/%3E%3Cellipse cx='250' cy='200' rx='40' ry='60' fill='%23000'/%3E%3Cellipse cx='350' cy='200' rx='40' ry='60' fill='%23000'/%3E%3Cpath d='M 270 280 Q 300 300 330 280' stroke='%23000' stroke-width='3' fill='none'/%3E%3Crect x='285' y='300' width='30' height='50' fill='%23000'/%3E%3Crect x='260' y='340' width='20' height='30' fill='%23000'/%3E%3Crect x='320' y='340' width='20' height='30' fill='%23000'/%3E%3Ctext x='300' y='500' font-family='Arial' font-size='40' fill='%23f00' text-anchor='middle' font-weight='bold'%3ESCREAM!%3C/text%3E%3C/svg%3E",
+    
+    // Bloody eye
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600'%3E%3Crect width='600' height='600' fill='%23000'/%3E%3Cellipse cx='300' cy='300' rx='200' ry='140' fill='%23fff' stroke='%23f00' stroke-width='5'/%3E%3Ccircle cx='300' cy='300' rx='80' fill='%23000'/%3E%3Ccircle cx='300' cy='300' rx='50' fill='%23f00'/%3E%3Ccircle cx='310' cy='290' rx='20' fill='%23fff'/%3E%3Cpath d='M 100 250 Q 300 200 500 250' stroke='%23f00' stroke-width='10' fill='none'/%3E%3Cpath d='M 100 350 Q 300 400 500 350' stroke='%23f00' stroke-width='10' fill='none'/%3E%3Ctext x='300' y='500' font-family='Arial' font-size='50' fill='%23f00' text-anchor='middle' font-weight='bold'%3EI SEE YOU%3C/text%3E%3C/svg%3E",
+    
+    // Demon face
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600'%3E%3Crect width='600' height='600' fill='%23000'/%3E%3Ccircle cx='300' cy='300' r='200' fill='%23800'/%3E%3Cpolygon points='200,150 220,200 170,200' fill='%23f00'/%3E%3Cpolygon points='400,150 380,200 430,200' fill='%23f00'/%3E%3Cellipse cx='250' cy='280' rx='30' ry='50' fill='%23ff0' stroke='%23000' stroke-width='3'/%3E%3Ccircle cx='250' cy='280' r='15' fill='%23000'/%3E%3Cellipse cx='350' cy='280' rx='30' ry='50' fill='%23ff0' stroke='%23000' stroke-width='3'/%3E%3Ccircle cx='350' cy='280' r='15' fill='%23000'/%3E%3Cpath d='M 220 370 Q 300 420 380 370' stroke='%23000' stroke-width='5' fill='%23f00'/%3E%3Crect x='240' y='380' width='15' height='30' fill='%23fff'/%3E%3Crect x='265' y='380' width='15' height='30' fill='%23fff'/%3E%3Crect x='290' y='380' width='15' height='30' fill='%23fff'/%3E%3Crect x='315' y='380' width='15' height='30' fill='%23fff'/%3E%3Crect x='340' y='380' width='15' height='30' fill='%23fff'/%3E%3C/svg%3E",
+    
+    // Screaming face
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600'%3E%3Crect width='600' height='600' fill='%23000'/%3E%3Cellipse cx='300' cy='320' rx='160' ry='200' fill='%23ccc'/%3E%3Ccircle cx='250' cy='280' r='25' fill='%23000'/%3E%3Ccircle cx='350' cy='280' r='25' fill='%23000'/%3E%3Cellipse cx='300' cy='400' rx='40' ry='80' fill='%23000'/%3E%3Cpath d='M 200 250 Q 210 220 220 250' stroke='%23000' stroke-width='8' fill='none'/%3E%3Cpath d='M 380 250 Q 390 220 400 250' stroke='%23000' stroke-width='8' fill='none'/%3E%3Ctext x='300' y='550' font-family='Arial' font-size='60' fill='%23f00' text-anchor='middle' font-weight='bold'%3EAAAHHH!%3C/text%3E%3C/svg%3E",
+    
+    // Glowing eyes in darkness
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600'%3E%3Crect width='600' height='600' fill='%23000'/%3E%3Cdefs%3E%3CradialGradient id='glow'%3E%3Cstop offset='0%25' stop-color='%23f00' stop-opacity='1'/%3E%3Cstop offset='100%25' stop-color='%23f00' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='220' cy='300' r='50' fill='url(%23glow)'/%3E%3Ccircle cx='380' cy='300' r='50' fill='url(%23glow)'/%3E%3Ccircle cx='220' cy='300' r='30' fill='%23f00'/%3E%3Ccircle cx='380' cy='300' r='30' fill='%23f00'/%3E%3Ctext x='300' y='500' font-family='Arial' font-size='50' fill='%23f00' text-anchor='middle' font-weight='bold'%3EBEHIND YOU%3C/text%3E%3C/svg%3E"
+];
+
 // DOM Elements
 const authContainer = document.getElementById('auth-container');
 const userInfo = document.getElementById('user-info');
@@ -38,6 +56,7 @@ let jumpscareInterval = null;
 let eyeInterval = null;
 let spiderInterval = null;
 let lightsOutInterval = null;
+let screamInterval = null;
 let isTabFocused = true;
 
 // Initialize scary mode toggle
@@ -50,13 +69,130 @@ document.addEventListener('visibilitychange', () => {
     isTabFocused = !document.hidden;
 });
 
+// Audio Context for scary sounds
+let audioContext = null;
+
+function getAudioContext() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioContext;
+}
+
+// Play scream sound
+function playScream() {
+    try {
+        const ctx = getAudioContext();
+        const oscillator1 = ctx.createOscillator();
+        const oscillator2 = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        
+        oscillator1.connect(filter);
+        oscillator2.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        filter.type = 'bandpass';
+        filter.frequency.value = 1000;
+        filter.Q.value = 5;
+        
+        oscillator1.type = 'sawtooth';
+        oscillator2.type = 'square';
+        
+        // Create scream effect
+        oscillator1.frequency.setValueAtTime(800, ctx.currentTime);
+        oscillator1.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.5);
+        oscillator1.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 1);
+        oscillator1.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 1.5);
+        
+        oscillator2.frequency.setValueAtTime(400, ctx.currentTime);
+        oscillator2.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.5);
+        oscillator2.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 1);
+        oscillator2.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 1.5);
+        
+        gainNode.gain.setValueAtTime(0.8, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+        
+        oscillator1.start(ctx.currentTime);
+        oscillator2.start(ctx.currentTime);
+        oscillator1.stop(ctx.currentTime + 1.5);
+        oscillator2.stop(ctx.currentTime + 1.5);
+    } catch (e) {
+        console.log('Audio not supported');
+    }
+}
+
+// Play whisper sound
+function playWhisper() {
+    try {
+        const ctx = getAudioContext();
+        const bufferSize = ctx.sampleRate * 2;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 1000;
+        
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 2);
+        
+        noise.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        noise.start(ctx.currentTime);
+        noise.stop(ctx.currentTime + 2);
+    } catch (e) {
+        console.log('Audio not supported');
+    }
+}
+
+// Play heartbeat sound
+function playHeartbeat() {
+    try {
+        const ctx = getAudioContext();
+        
+        for (let i = 0; i < 3; i++) {
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 60;
+            
+            const startTime = ctx.currentTime + (i * 0.8);
+            gainNode.gain.setValueAtTime(0, startTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
+            gainNode.gain.linearRampToValueAtTime(0, startTime + 0.15);
+            gainNode.gain.linearRampToValueAtTime(0.2, startTime + 0.25);
+            gainNode.gain.linearRampToValueAtTime(0, startTime + 0.35);
+            
+            oscillator.start(startTime);
+            oscillator.stop(startTime + 0.4);
+        }
+    } catch (e) {
+        console.log('Audio not supported');
+    }
+}
+
 // Countdown to Halloween end (Oct 31, 24:00 = Nov 1, 00:00)
 function updateCountdown() {
     const now = new Date();
     const currentYear = now.getFullYear();
-    const halloweenEnd = new Date(currentYear, 9, 31, 24, 0, 0); // Oct 31, 24:00
+    const halloweenEnd = new Date(currentYear, 9, 31, 24, 0, 0);
     
-    // If Halloween has passed this year, target next year
     if (now > halloweenEnd) {
         halloweenEnd.setFullYear(currentYear + 1);
     }
@@ -85,10 +221,7 @@ async function signInWithGoogle() {
     try {
         const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.googleProvider);
         const user = result.user;
-        
-        // Check if user has a username
         await checkAndSetUsername(user);
-        
     } catch (error) {
         console.error('Error signing in:', error);
         alert('Failed to sign in. Please try again.');
@@ -96,21 +229,18 @@ async function signInWithGoogle() {
 }
 
 async function checkAndSetUsername(user) {
-    // Set currentUser immediately when we have a user
     currentUser = user;
     
     const userDoc = window.firebaseDoc(window.firebaseDb, 'users', user.uid);
     const userSnapshot = await window.firebaseGetDoc(userDoc);
     
     if (userSnapshot.exists()) {
-        // User exists, get their data
         userData = userSnapshot.data();
         updateUI(user, userData);
     } else {
-        // New user, show username modal
         userData = {
             email: user.email,
-            username: user.email.split('@')[0], // Default to email prefix
+            username: user.email.split('@')[0],
             createdAt: new Date(),
             scores: {
                 day1: 0,
@@ -126,10 +256,8 @@ async function checkAndSetUsername(user) {
 }
 
 async function saveUsername(username) {
-    // Use the currentUser that should already be set from checkAndSetUsername
     if (!currentUser || !currentUser.uid) {
         console.error('No currentUser found when trying to save username');
-        console.log('currentUser:', currentUser);
         alert('Error: No user session. Please try signing in again.');
         return;
     }
@@ -154,8 +282,6 @@ function updateUI(user, userData) {
     }
     if (userInfo) userInfo.classList.remove('hidden');
     if (signInBtn) signInBtn.classList.add('hidden');
-    
-    // Hide login modal if it's showing
     if (loginModal) loginModal.classList.add('hidden');
 }
 
@@ -180,7 +306,7 @@ function showLoginModal() {
 
 function showUsernameModal() {
     if (usernameInput && usernameModal) {
-        usernameInput.value = userData.username; // Pre-fill with email prefix
+        usernameInput.value = userData.username;
         usernameModal.classList.remove('hidden');
     }
 }
@@ -224,7 +350,6 @@ function displayLeaderboard(data) {
     data.forEach((user, index) => {
         const row = document.createElement('tr');
         
-        // Add ranking classes for top 3
         if (index === 0) row.classList.add('rank-1');
         if (index === 1) row.classList.add('rank-2');
         if (index === 2) row.classList.add('rank-3');
@@ -245,15 +370,9 @@ function displayLeaderboard(data) {
 }
 
 // Event Listeners for Auth
-if (signInBtn) {
-    signInBtn.addEventListener('click', signInWithGoogle);
-}
-if (signOutBtn) {
-    signOutBtn.addEventListener('click', signOutUser);
-}
-if (loginAccept) {
-    loginAccept.addEventListener('click', signInWithGoogle);
-}
+if (signInBtn) signInBtn.addEventListener('click', signInWithGoogle);
+if (signOutBtn) signOutBtn.addEventListener('click', signOutUser);
+if (loginAccept) loginAccept.addEventListener('click', signInWithGoogle);
 if (loginDeny) {
     loginDeny.addEventListener('click', () => {
         if (loginModal) loginModal.classList.add('hidden');
@@ -265,7 +384,6 @@ if (loginDeny) {
 if (usernameSubmit) {
     usernameSubmit.addEventListener('click', () => {
         if (usernameInput && usernameInput.value.trim()) {
-            // Just pass the username, currentUser should already be set
             saveUsername(usernameInput.value);
         } else {
             alert('Please enter a username');
@@ -275,10 +393,8 @@ if (usernameSubmit) {
 
 if (usernameInput) {
     usernameInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            if (usernameInput.value.trim()) {
-                saveUsername(usernameInput.value);
-            }
+        if (e.key === 'Enter' && usernameInput.value.trim()) {
+            saveUsername(usernameInput.value);
         }
     });
 }
@@ -308,11 +424,7 @@ function initializeAuthObserver() {
             userData = null;
             if (userInfo) userInfo.classList.add('hidden');
             if (signInBtn) signInBtn.classList.remove('hidden');
-            
-            // Show login modal if not asked before
-            if (!askedForLogin) {
-                showLoginModal();
-            }
+            if (!askedForLogin) showLoginModal();
         }
     });
 }
@@ -337,10 +449,11 @@ function startScaryMode() {
     startEyeAppearances();
     startSpiderCrawls();
     startLightsOut();
+    startRandomScreams();
 }
 
 function stopScaryMode() {
-    const extraElements = document.querySelectorAll('.ghost, .bat, .eye, .spider');
+    const extraElements = document.querySelectorAll('.ghost, .bat, .eye, .spider, .fog');
     extraElements.forEach(el => {
         if (el.classList.contains('scary-mode')) {
             el.remove();
@@ -367,7 +480,11 @@ function stopScaryMode() {
         lightsOutInterval = null;
     }
     
-    // Ensure lights are back on
+    if (screamInterval) {
+        clearInterval(screamInterval);
+        screamInterval = null;
+    }
+    
     if (lightsOut) lightsOut.style.opacity = '0';
 }
 
@@ -376,21 +493,33 @@ function addBackgroundElements() {
     const background = document.getElementById('background');
     if (!background) return;
     
+    // Add fog layers
     for (let i = 0; i < 3; i++) {
+        const fog = document.createElement('div');
+        fog.classList.add('fog');
+        fog.style.top = `${20 + i * 30}%`;
+        fog.style.left = `${-100}px`;
+        fog.style.animationDelay = `${i * 10}s`;
+        background.appendChild(fog);
+    }
+    
+    for (let i = 0; i < 5; i++) {
         const ghost = document.createElement('div');
         ghost.classList.add('ghost');
         ghost.style.left = `${Math.random() * 90}%`;
         ghost.style.top = `${Math.random() * 90}%`;
         ghost.style.animationDuration = `${15 + Math.random() * 10}s`;
+        ghost.style.animationDelay = `${Math.random() * 5}s`;
         background.appendChild(ghost);
     }
     
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 4; i++) {
         const bat = document.createElement('div');
         bat.classList.add('bat');
         bat.style.left = `${Math.random() * 90}%`;
         bat.style.top = `${Math.random() * 90}%`;
         bat.style.animationDuration = `${20 + Math.random() * 10}s`;
+        bat.style.animationDelay = `${Math.random() * 5}s`;
         background.appendChild(bat);
     }
 }
@@ -399,38 +528,47 @@ function addMoreSpookyElements() {
     const background = document.getElementById('background');
     if (!background) return;
     
-    for (let i = 0; i < 5; i++) {
+    // More fog
+    for (let i = 0; i < 2; i++) {
+        const fog = document.createElement('div');
+        fog.classList.add('fog', 'scary-mode');
+        fog.style.top = `${40 + i * 20}%`;
+        fog.style.left = `${-100}px`;
+        fog.style.animationDelay = `${i * 15}s`;
+        background.appendChild(fog);
+    }
+    
+    for (let i = 0; i < 8; i++) {
         const ghost = document.createElement('div');
         ghost.classList.add('ghost', 'scary-mode');
         ghost.style.left = `${Math.random() * 90}%`;
         ghost.style.top = `${Math.random() * 90}%`;
         ghost.style.animationDuration = `${10 + Math.random() * 5}s`;
+        ghost.style.animationDelay = `${Math.random() * 3}s`;
         background.appendChild(ghost);
     }
     
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 6; i++) {
         const bat = document.createElement('div');
         bat.classList.add('bat', 'scary-mode');
         bat.style.left = `${Math.random() * 90}%`;
         bat.style.top = `${Math.random() * 90}%`;
         bat.style.animationDuration = `${15 + Math.random() * 5}s`;
+        bat.style.animationDelay = `${Math.random() * 3}s`;
         background.appendChild(bat);
     }
 }
 
 function startSpiderCrawls() {
-    if (spiderInterval) {
-        clearInterval(spiderInterval);
-    }
+    if (spiderInterval) clearInterval(spiderInterval);
     
-    // Add initial spiders
     addSpiders();
     
     spiderInterval = setInterval(() => {
-        if (Math.random() < 0.3) {
+        if (Math.random() < 0.4) {
             addSpiders();
         }
-    }, 15000);
+    }, 12000);
 }
 
 function addSpiders() {
@@ -451,80 +589,50 @@ function addSpiders() {
             if (spider.parentNode) {
                 spider.parentNode.removeChild(spider);
             }
-        }, 20000);
+        }, 25000);
     }
 }
 
 function startRandomJumpscares() {
-    if (jumpscareInterval) {
-        clearInterval(jumpscareInterval);
-    }
+    if (jumpscareInterval) clearInterval(jumpscareInterval);
     
     jumpscareInterval = setInterval(() => {
-        if (Math.random() < 0.2 && isTabFocused) { // Reduced chance, only when tab focused
+        if (Math.random() < 0.3 && isTabFocused) {
             triggerJumpscare();
         }
-    }, 45000); // 45 seconds
+    }, 40000);
 }
 
 function triggerJumpscare() {
     if (!isTabFocused || !jumpscare || !jumpscareImage) return;
     
     jumpscare.classList.remove('hidden');
+    jumpscareImage.src = scaryImages[Math.floor(Math.random() * scaryImages.length)];
     
-    // Different jump scare images
-    const scares = [
-        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='black'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='60' fill='red' text-anchor='middle' dominant-baseline='middle'%3E😱 BOO! 😱%3C/text%3E%3C/svg%3E",
-        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='black'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='50' fill='red' text-anchor='middle' dominant-baseline='middle'%3E💀 GOT YOU! 💀%3C/text%3E%3C/svg%3E",
-        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='black'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='45' fill='red' text-anchor='middle' dominant-baseline='middle'%3E👻 BEHIND YOU! 👻%3C/text%3E%3C/svg%3E"
-    ];
-    
-    jumpscareImage.src = scares[Math.floor(Math.random() * scares.length)];
-    
-    // Play loud scary sound
-    try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.type = 'sawtooth';
-        oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.8);
-        
-        gainNode.gain.setValueAtTime(0.7, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.8);
-    } catch (e) {
-        // Audio not supported
-    }
+    playScream();
     
     setTimeout(() => {
         if (jumpscare) jumpscare.classList.add('hidden');
-    }, 800);
+    }, 1200);
 }
 
 function startEyeAppearances() {
-    if (eyeInterval) {
-        clearInterval(eyeInterval);
-    }
+    if (eyeInterval) clearInterval(eyeInterval);
     
     eyeInterval = setInterval(() => {
-        if (Math.random() < 0.4) {
+        if (Math.random() < 0.5) {
             showEyes();
         }
-    }, 20000);
+    }, 18000);
 }
 
 function showEyes() {
     const background = document.getElementById('background');
     if (!background) return;
     
-    const eyeCount = 2 + Math.floor(Math.random() * 3);
+    const eyeCount = 3 + Math.floor(Math.random() * 4);
+    
+    playWhisper();
     
     for (let i = 0; i < eyeCount; i++) {
         const eye = document.createElement('div');
@@ -537,30 +645,39 @@ function showEyes() {
             if (eye.parentNode) {
                 eye.parentNode.removeChild(eye);
             }
-        }, 3000);
+        }, 4000);
     }
 }
 
 function startLightsOut() {
-    if (lightsOutInterval) {
-        clearInterval(lightsOutInterval);
-    }
+    if (lightsOutInterval) clearInterval(lightsOutInterval);
     
     lightsOutInterval = setInterval(() => {
-        if (Math.random() < 0.1 && isTabFocused) { // 10% chance when tab focused
+        if (Math.random() < 0.15 && isTabFocused) {
             triggerLightsOut();
         }
-    }, 60000); // Check every minute
+    }, 50000);
 }
 
 function triggerLightsOut() {
     if (!isTabFocused || !lightsOut) return;
     
-    lightsOut.style.opacity = '1';
+    lightsOut.style.opacity = '0.95';
+    playHeartbeat();
     
     setTimeout(() => {
         if (lightsOut) lightsOut.style.opacity = '0';
-    }, 2000); // Lights out for 2 seconds
+    }, 3000);
+}
+
+function startRandomScreams() {
+    if (screamInterval) clearInterval(screamInterval);
+    
+    screamInterval = setInterval(() => {
+        if (Math.random() < 0.2 && isTabFocused) {
+            playScream();
+        }
+    }, 70000);
 }
 
 // Game Logic
@@ -583,7 +700,6 @@ function createGameCards() {
     const gamesContainer = document.querySelector('.games-container');
     if (!gamesContainer) return;
     
-    // Clear existing game cards to prevent duplicates
     gamesContainer.innerHTML = '';
     
     games.forEach(game => {
@@ -630,29 +746,23 @@ function initApp() {
         setInterval(updateCountdown, 1000);
     }
     
-    // Initialize auth observer if Firebase is ready
     if (window.firebaseReady) {
         initializeAuthObserver();
     }
     
-    // Start scary mode if enabled
     if (scaryMode) {
         startScaryMode();
     }
     
-    // Show login modal if not logged in and not asked before
     if (!currentUser && !askedForLogin) {
         showLoginModal();
     }
 }
 
-// Make initApp available globally for the Firebase module to call
 window.initApp = initApp;
 
-// If Firebase is already ready when this script loads, initialize immediately
 if (window.firebaseReady) {
     initApp();
 } else {
-    // Otherwise, wait for DOMContentLoaded and hope Firebase is ready by then
     document.addEventListener('DOMContentLoaded', initApp);
 }
