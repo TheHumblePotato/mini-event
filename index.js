@@ -58,6 +58,8 @@ let spiderInterval = null;
 let lightsOutInterval = null;
 let screamInterval = null;
 let isTabFocused = true;
+// Add an authInitialized flag to avoid showing the login modal before Firebase reports the auth state
+let authInitialized = false;
 
 // Initialize scary mode toggle
 if (scaryToggle) {
@@ -416,6 +418,9 @@ if (leaderboardClose) {
 
 // Initialize Firebase Auth State Observer
 function initializeAuthObserver() {
+    // track first callback invocation
+    let firstCall = true;
+
     window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
         if (user) {
             checkAndSetUsername(user);
@@ -424,7 +429,15 @@ function initializeAuthObserver() {
             userData = null;
             if (userInfo) userInfo.classList.add('hidden');
             if (signInBtn) signInBtn.classList.remove('hidden');
-            if (!askedForLogin) showLoginModal();
+            // Only show login modal after we know auth has been initialized (so we don't flash it on page load)
+            if (!askedForLogin && authInitialized) {
+                showLoginModal();
+            }
+        }
+
+        if (firstCall) {
+            authInitialized = true;
+            firstCall = false;
         }
     });
 }
@@ -752,10 +765,6 @@ function initApp() {
     
     if (scaryMode) {
         startScaryMode();
-    }
-    
-    if (!currentUser && !askedForLogin) {
-        showLoginModal();
     }
 }
 
