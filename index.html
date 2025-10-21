@@ -8,6 +8,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Shadows+Into+Light&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div id="auth-container">
+        <div id="user-info" class="hidden">
+            <span id="username-display"></span>
+            <button id="sign-out-btn">Sign Out</button>
+        </div>
+        <button id="sign-in-btn" class="hidden">Sign In</button>
+    </div>
+
     <div id="scary-toggle-container">
         <label class="toggle">
             <input type="checkbox" id="scary-toggle">
@@ -35,11 +43,37 @@
         <p>New games unlock daily at midnight!</p>
     </footer>
 
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Join the Leaderboard!</h2>
+            <p>Sign in to save your scores and compete on the leaderboard!</p>
+            <div class="modal-buttons">
+                <button id="login-accept" class="btn-primary">Sign In with Google</button>
+                <button id="login-deny" class="btn-secondary">Maybe Later</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Username Modal -->
+    <div id="username-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Choose a Username</h2>
+            <p>This will be displayed on the leaderboard:</p>
+            <input type="text" id="username-input" placeholder="Enter your username" maxlength="20">
+            <div class="modal-buttons">
+                <button id="username-submit" class="btn-primary">Save Username</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Jump scare overlay -->
     <div id="jumpscare" class="hidden">
         <img src="" alt="Jump Scare" id="jumpscare-image">
     </div>
 
+    <!-- Firebase SDK -->
+    <script type="module" src="firebase-config.js"></script>
     <script src="index.js"></script>
 </body>
 </html>

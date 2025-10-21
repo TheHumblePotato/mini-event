@@ -7,16 +7,157 @@ const games = [
     { day: 5, title: "Pumpkin Algebra", date: "Friday", url: "https://thehumblepotato.github.io/mini-event/day_5.html" }
 ];
 
-// Scary mode toggle
+// DOM Elements
+const authContainer = document.getElementById('auth-container');
+const userInfo = document.getElementById('user-info');
+const usernameDisplay = document.getElementById('username-display');
+const signOutBtn = document.getElementById('sign-out-btn');
+const signInBtn = document.getElementById('sign-in-btn');
+const loginModal = document.getElementById('login-modal');
+const loginAccept = document.getElementById('login-accept');
+const loginDeny = document.getElementById('login-deny');
+const usernameModal = document.getElementById('username-modal');
+const usernameInput = document.getElementById('username-input');
+const usernameSubmit = document.getElementById('username-submit');
 const scaryToggle = document.getElementById('scary-toggle');
 const jumpscare = document.getElementById('jumpscare');
 const jumpscareImage = document.getElementById('jumpscare-image');
 
-// Initialize scary mode from localStorage
+// State
+let currentUser = null;
+let userData = null;
 let scaryMode = localStorage.getItem('scaryMode') === 'true';
+let askedForLogin = localStorage.getItem('askedForLogin') === 'true';
+let jumpscareInterval = null;
+let eyeInterval = null;
+
+// Initialize scary mode toggle
 scaryToggle.checked = scaryMode;
 
-// Set up scary mode toggle
+// Authentication Functions
+async function signInWithGoogle() {
+    try {
+        const result = await signInWithPopup(window.firebaseAuth, window.googleProvider);
+        const user = result.user;
+        
+        // Check if user has a username
+        await checkAndSetUsername(user);
+        
+    } catch (error) {
+        console.error('Error signing in:', error);
+        alert('Failed to sign in. Please try again.');
+    }
+}
+
+async function checkAndSetUsername(user) {
+    const userDoc = doc(window.firebaseDb, 'users', user.uid);
+    const userSnapshot = await getDoc(userDoc);
+    
+    if (userSnapshot.exists()) {
+        // User exists, get their data
+        userData = userSnapshot.data();
+        updateUI(user, userData);
+    } else {
+        // New user, show username modal
+        userData = {
+            email: user.email,
+            username: user.email.split('@')[0], // Default to email prefix
+            createdAt: new Date()
+        };
+        showUsernameModal(user);
+    }
+}
+
+async function saveUsername(user, username) {
+    const userDoc = doc(window.firebaseDb, 'users', user.uid);
+    userData.username = username.trim();
+    
+    try {
+        await setDoc(userDoc, userData);
+        updateUI(user, userData);
+        usernameModal.classList.add('hidden');
+    } catch (error) {
+        console.error('Error saving username:', error);
+        alert('Failed to save username. Please try again.');
+    }
+}
+
+function updateUI(user, userData) {
+    currentUser = user;
+    usernameDisplay.textContent = userData.username;
+    userInfo.classList.remove('hidden');
+    signInBtn.classList.add('hidden');
+    
+    // Hide login modal if it's showing
+    loginModal.classList.add('hidden');
+}
+
+function signOutUser() {
+    signOut(window.firebaseAuth).then(() => {
+        currentUser = null;
+        userData = null;
+        userInfo.classList.add('hidden');
+        signInBtn.classList.remove('hidden');
+    }).catch((error) => {
+        console.error('Error signing out:', error);
+    });
+}
+
+function showLoginModal() {
+    if (!askedForLogin && !currentUser) {
+        setTimeout(() => {
+            loginModal.classList.remove('hidden');
+        }, 1000);
+    }
+}
+
+function showUsernameModal(user) {
+    usernameInput.value = userData.username; // Pre-fill with email prefix
+    usernameModal.classList.remove('hidden');
+}
+
+// Event Listeners for Auth
+signInBtn.addEventListener('click', signInWithGoogle);
+signOutBtn.addEventListener('click', signOutUser);
+loginAccept.addEventListener('click', signInWithGoogle);
+loginDeny.addEventListener('click', () => {
+    loginModal.classList.add('hidden');
+    localStorage.setItem('askedForLogin', 'true');
+    askedForLogin = true;
+});
+
+usernameSubmit.addEventListener('click', () => {
+    if (usernameInput.value.trim()) {
+        saveUsername(currentUser, usernameInput.value);
+    } else {
+        alert('Please enter a username');
+    }
+});
+
+usernameInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        usernameSubmit.click();
+    }
+});
+
+// Auth State Observer
+onAuthStateChanged(window.firebaseAuth, (user) => {
+    if (user) {
+        checkAndSetUsername(user);
+    } else {
+        currentUser = null;
+        userData = null;
+        userInfo.classList.add('hidden');
+        signInBtn.classList.remove('hidden');
+        
+        // Show login modal if not asked before
+        if (!askedForLogin) {
+            showLoginModal();
+        }
+    }
+});
+
+// Scary Mode Functions
 scaryToggle.addEventListener('change', function() {
     scaryMode = this.checked;
     localStorage.setItem('scaryMode', scaryMode);
@@ -28,21 +169,13 @@ scaryToggle.addEventListener('change', function() {
     }
 });
 
-// Function to start scary mode effects
 function startScaryMode() {
-    // Add more background elements
     addMoreSpookyElements();
-    
-    // Start random jump scares
     startRandomJumpscares();
-    
-    // Start eye appearances
     startEyeAppearances();
 }
 
-// Function to stop scary mode effects
 function stopScaryMode() {
-    // Remove extra background elements
     const extraElements = document.querySelectorAll('.ghost, .bat, .eye');
     extraElements.forEach(el => {
         if (el.classList.contains('scary-mode')) {
@@ -50,24 +183,21 @@ function stopScaryMode() {
         }
     });
     
-    // Clear jump scare intervals
     if (jumpscareInterval) {
         clearInterval(jumpscareInterval);
         jumpscareInterval = null;
     }
     
-    // Clear eye appearance intervals
     if (eyeInterval) {
         clearInterval(eyeInterval);
         eyeInterval = null;
     }
 }
 
-// Add initial background elements
+// Background Elements
 function addBackgroundElements() {
     const background = document.getElementById('background');
     
-    // Add some ghosts
     for (let i = 0; i < 3; i++) {
         const ghost = document.createElement('div');
         ghost.classList.add('ghost');
@@ -77,7 +207,6 @@ function addBackgroundElements() {
         background.appendChild(ghost);
     }
     
-    // Add some bats
     for (let i = 0; i < 2; i++) {
         const bat = document.createElement('div');
         bat.classList.add('bat');
@@ -88,11 +217,9 @@ function addBackgroundElements() {
     }
 }
 
-// Add more spooky elements for scary mode
 function addMoreSpookyElements() {
     const background = document.getElementById('background');
     
-    // Add more ghosts
     for (let i = 0; i < 5; i++) {
         const ghost = document.createElement('div');
         ghost.classList.add('ghost', 'scary-mode');
@@ -102,7 +229,6 @@ function addMoreSpookyElements() {
         background.appendChild(ghost);
     }
     
-    // Add more bats
     for (let i = 0; i < 3; i++) {
         const bat = document.createElement('div');
         bat.classList.add('bat', 'scary-mode');
@@ -113,66 +239,50 @@ function addMoreSpookyElements() {
     }
 }
 
-// Random jump scares
-let jumpscareInterval;
-
 function startRandomJumpscares() {
-    // Clear any existing interval
     if (jumpscareInterval) {
         clearInterval(jumpscareInterval);
     }
     
-    // Set up random jump scares (between 30 seconds and 2 minutes)
     jumpscareInterval = setInterval(() => {
-        if (Math.random() < 0.3) { // 30% chance to trigger
+        if (Math.random() < 0.3) {
             triggerJumpscare();
         }
-    }, 30000); // Check every 30 seconds
+    }, 30000);
 }
 
 function triggerJumpscare() {
-    // Show jump scare
     jumpscare.classList.remove('hidden');
-    
-    // Use a placeholder image (in a real implementation, you'd use actual scary images)
     jumpscareImage.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='black'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='40' fill='red' text-anchor='middle' dominant-baseline='middle'%3EBOO!%3C/text%3E%3C/svg%3E";
     
-    // Play scary sound (if available)
     try {
         const audio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
         audio.volume = 0.5;
         audio.play();
     } catch (e) {
-        // Sound not available, continue silently
+        // Sound not available
     }
     
-    // Hide after a short time
     setTimeout(() => {
         jumpscare.classList.add('hidden');
     }, 1000);
 }
 
-// Eye appearances
-let eyeInterval;
-
 function startEyeAppearances() {
-    // Clear any existing interval
     if (eyeInterval) {
         clearInterval(eyeInterval);
     }
     
-    // Set up random eye appearances
     eyeInterval = setInterval(() => {
-        if (Math.random() < 0.4) { // 40% chance to trigger
+        if (Math.random() < 0.4) {
             showEyes();
         }
-    }, 20000); // Check every 20 seconds
+    }, 20000);
 }
 
 function showEyes() {
     const background = document.getElementById('background');
     
-    // Create a pair of eyes
     for (let i = 0; i < 2; i++) {
         const eye = document.createElement('div');
         eye.classList.add('eye', 'scary-mode');
@@ -180,7 +290,6 @@ function showEyes() {
         eye.style.top = `${Math.random() * 90}%`;
         background.appendChild(eye);
         
-        // Remove after a while
         setTimeout(() => {
             if (eye.parentNode) {
                 eye.parentNode.removeChild(eye);
@@ -189,17 +298,15 @@ function showEyes() {
     }
 }
 
-// Game logic
+// Game Logic
 function getCurrentDay() {
     const now = new Date();
-    return now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    return now.getDay();
 }
 
 function isGameUnlocked(day) {
     const currentDay = getCurrentDay();
     
-    // Mathoween runs Monday to Friday (days 1-5)
-    // Games unlock at midnight
     if (day <= currentDay && currentDay >= 1 && currentDay <= 5) {
         return true;
     }
@@ -252,5 +359,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Start scary mode if enabled
     if (scaryMode) {
         startScaryMode();
+    }
+    
+    // Show login modal if not logged in and not asked before
+    if (!currentUser && !askedForLogin) {
+        showLoginModal();
     }
 });
