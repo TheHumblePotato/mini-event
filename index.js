@@ -96,6 +96,9 @@ async function signInWithGoogle() {
 }
 
 async function checkAndSetUsername(user) {
+    // Set currentUser immediately when we have a user
+    currentUser = user;
+    
     const userDoc = window.firebaseDoc(window.firebaseDb, 'users', user.uid);
     const userSnapshot = await window.firebaseGetDoc(userDoc);
     
@@ -118,24 +121,26 @@ async function checkAndSetUsername(user) {
                 total: 0
             }
         };
-        showUsernameModal(user);
+        showUsernameModal();
     }
 }
 
-async function saveUsername(user, username) {
-    if (!user || !user.uid) {
-        console.error('No user found when trying to save username');
+async function saveUsername(username) {
+    // Use the currentUser that should already be set from checkAndSetUsername
+    if (!currentUser || !currentUser.uid) {
+        console.error('No currentUser found when trying to save username');
+        console.log('currentUser:', currentUser);
         alert('Error: No user session. Please try signing in again.');
         return;
     }
     
-    const userDoc = window.firebaseDoc(window.firebaseDb, 'users', user.uid);
+    const userDoc = window.firebaseDoc(window.firebaseDb, 'users', currentUser.uid);
     userData.username = username.trim();
     
     try {
         await window.firebaseSetDoc(userDoc, userData);
-        updateUI(user, userData);
-        usernameModal.classList.add('hidden');
+        updateUI(currentUser, userData);
+        if (usernameModal) usernameModal.classList.add('hidden');
     } catch (error) {
         console.error('Error saving username:', error);
         alert('Failed to save username. Please try again.');
@@ -173,7 +178,7 @@ function showLoginModal() {
     }
 }
 
-function showUsernameModal(user) {
+function showUsernameModal() {
     if (usernameInput && usernameModal) {
         usernameInput.value = userData.username; // Pre-fill with email prefix
         usernameModal.classList.remove('hidden');
@@ -260,11 +265,8 @@ if (loginDeny) {
 if (usernameSubmit) {
     usernameSubmit.addEventListener('click', () => {
         if (usernameInput && usernameInput.value.trim()) {
-            if (!currentUser) {
-                alert('No user session. Please try signing in again.');
-                return;
-            }
-            saveUsername(currentUser, usernameInput.value);
+            // Just pass the username, currentUser should already be set
+            saveUsername(usernameInput.value);
         } else {
             alert('Please enter a username');
         }
@@ -274,7 +276,9 @@ if (usernameSubmit) {
 if (usernameInput) {
     usernameInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-            if (usernameSubmit) usernameSubmit.click();
+            if (usernameInput.value.trim()) {
+                saveUsername(usernameInput.value);
+            }
         }
     });
 }
