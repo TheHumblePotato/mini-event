@@ -1,8 +1,5 @@
 
-
-
 // Candy Gambling — Day 1 game logic
-
 
 // Elements
 const deckEl = document.getElementById('deck');
