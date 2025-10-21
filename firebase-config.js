@@ -37,12 +37,22 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// Make auth and db available globally
+// Export everything needed for the main application
+window.firebaseApp = app;
 window.firebaseAuth = auth;
 window.firebaseDb = db;
 window.googleProvider = provider;
+
+// Export auth functions
+window.signInWithPopup = signInWithPopup;
+window.signOut = signOut;
 window.onAuthStateChanged = onAuthStateChanged;
-window.getDocs = getDocs;
+
+// Export firestore functions
+window.doc = doc;
+window.setDoc = setDoc;
+window.getDoc = getDoc;
 window.collection = collection;
+window.getDocs = getDocs;
 window.query = query;
 window.orderBy = orderBy;

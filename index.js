@@ -81,7 +81,7 @@ function updateCountdown() {
 // Authentication Functions
 async function signInWithGoogle() {
     try {
-        const result = await signInWithPopup(window.firebaseAuth, window.googleProvider);
+        const result = await window.signInWithPopup(window.firebaseAuth, window.googleProvider);
         const user = result.user;
         
         // Check if user has a username
@@ -94,8 +94,8 @@ async function signInWithGoogle() {
 }
 
 async function checkAndSetUsername(user) {
-    const userDoc = doc(window.firebaseDb, 'users', user.uid);
-    const userSnapshot = await getDoc(userDoc);
+    const userDoc = window.doc(window.firebaseDb, 'users', user.uid);
+    const userSnapshot = await window.getDoc(userDoc);
     
     if (userSnapshot.exists()) {
         // User exists, get their data
@@ -121,11 +121,11 @@ async function checkAndSetUsername(user) {
 }
 
 async function saveUsername(user, username) {
-    const userDoc = doc(window.firebaseDb, 'users', user.uid);
+    const userDoc = window.doc(window.firebaseDb, 'users', user.uid);
     userData.username = username.trim();
     
     try {
-        await setDoc(userDoc, userData);
+        await window.setDoc(userDoc, userData);
         updateUI(user, userData);
         usernameModal.classList.add('hidden');
     } catch (error) {
@@ -171,8 +171,8 @@ function showUsernameModal(user) {
 // Leaderboard Functions
 async function loadLeaderboard() {
     try {
-        const usersQuery = query(collection(window.firebaseDb, 'users'), orderBy('scores.total', 'desc'));
-        const querySnapshot = await getDocs(usersQuery);
+        const usersQuery = window.query(window.collection(window.firebaseDb, 'users'), window.orderBy('scores.total', 'desc'));
+        const querySnapshot = await window.getDocs(usersQuery);
         
         const leaderboardData = [];
         querySnapshot.forEach((doc) => {
@@ -258,7 +258,7 @@ leaderboardClose.addEventListener('click', () => {
 });
 
 // Auth State Observer
-onAuthStateChanged(window.firebaseAuth, (user) => {
+window.onAuthStateChanged(window.firebaseAuth, (user) => {
     if (user) {
         checkAndSetUsername(user);
     } else {
