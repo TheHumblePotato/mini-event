@@ -19,7 +19,7 @@ const countdownEl = document.getElementById('countdown');
 let deck = [];
 let discard = [];
 let score = 0;
-let lives = 1;
+let lives = 3;
 let scoringEnabled = true;
 
 
@@ -85,20 +85,31 @@ function createDeck() {
    }
 
 
-   // 150 positive fixed cards — we'll make them deterministic values: 1..6 repeated
+   // 150 positive fixed cards with values 1-6, distributed as evenly as possible
    const positives = [];
-   for (let v = 1; v <= 6; v++) {
-       const repeat = Math.floor(150 / 6); // 25 each -> 150
-       for (let r = 0; r < repeat; r++) positives.push({ id: id++, kind: 'positive', value: v });
+   const values = [1, 2, 3, 4, 5, 6];
+   const countPerValue = Math.floor(150 / values.length);
+   const remainder = 150 % values.length;
+   
+   for (let i = 0; i < values.length; i++) {
+       const count = countPerValue + (i < remainder ? 1 : 0);
+       for (let j = 0; j < count; j++) {
+           positives.push({ id: id++, kind: 'positive', value: values[i] });
+       }
    }
-   // If rounding left any, fill with 1s
-   while (positives.length < 150) positives.push({ id: id++, kind: 'positive', value: 1 });
    newDeck.push(...positives);
 
 
-   // 50 negative cards — fixed values -1 .. -3 repeated to be predictable
+   // 50 negative cards with values -1 and -2
    const negatives = [];
-   for (let i = 0; i < 50; i++) negatives.push({ id: id++, kind: 'negative', value: -(1 + (i % 3)) });
+   const negativeValues = [-1, -2];
+   for (let i = 0; i < 50; i++) {
+       negatives.push({
+           id: id++,
+           kind: 'negative',
+           value: negativeValues[i % negativeValues.length]
+       });
+   }
    newDeck.push(...negatives);
 
 
@@ -186,7 +197,10 @@ function handleCard(card) {
        case 'negative':
            if (scoringEnabled) {
                score += card.value; // negative
-               if (score < 0) { score = 0; lives -= 1; }
+               if (score < 0) {
+                   score = 0;
+                   // Don't remove a life when score goes negative
+               }
            }
            break;
        case 'jumpscare':
@@ -345,9 +359,16 @@ if (deckEl) {
        if (modifiers.cursedNext) {
            modifiers.cursedNext = false;
            lives -= 1;
-           if (lives <= 0) { score = 0; resetGame(); return; }
+           if (lives <= 0) {
+               score = 0;
+               resetGame();
+               return;
+           }
+           // After paying life cost, draw the card
+           drawCard();
+       } else {
+           drawCard();
        }
-       drawCard();
    });
 }
 if (stopBtn) stopBtn.addEventListener('click', () => stopAndSave());
