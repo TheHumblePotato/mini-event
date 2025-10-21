@@ -81,7 +81,7 @@ function updateCountdown() {
 // Authentication Functions
 async function signInWithGoogle() {
     try {
-        const result = await window.signInWithPopup(window.firebaseAuth, window.googleProvider);
+        const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.googleProvider);
         const user = result.user;
         
         // Check if user has a username
@@ -94,8 +94,8 @@ async function signInWithGoogle() {
 }
 
 async function checkAndSetUsername(user) {
-    const userDoc = window.doc(window.firebaseDb, 'users', user.uid);
-    const userSnapshot = await window.getDoc(userDoc);
+    const userDoc = window.firebaseDoc(window.firebaseDb, 'users', user.uid);
+    const userSnapshot = await window.firebaseGetDoc(userDoc);
     
     if (userSnapshot.exists()) {
         // User exists, get their data
@@ -121,11 +121,11 @@ async function checkAndSetUsername(user) {
 }
 
 async function saveUsername(user, username) {
-    const userDoc = window.doc(window.firebaseDb, 'users', user.uid);
+    const userDoc = window.firebaseDoc(window.firebaseDb, 'users', user.uid);
     userData.username = username.trim();
     
     try {
-        await window.setDoc(userDoc, userData);
+        await window.firebaseSetDoc(userDoc, userData);
         updateUI(user, userData);
         usernameModal.classList.add('hidden');
     } catch (error) {
@@ -145,7 +145,7 @@ function updateUI(user, userData) {
 }
 
 function signOutUser() {
-    signOut(window.firebaseAuth).then(() => {
+    window.firebaseSignOut(window.firebaseAuth).then(() => {
         currentUser = null;
         userData = null;
         userInfo.classList.add('hidden');
@@ -171,8 +171,8 @@ function showUsernameModal(user) {
 // Leaderboard Functions
 async function loadLeaderboard() {
     try {
-        const usersQuery = window.query(window.collection(window.firebaseDb, 'users'), window.orderBy('scores.total', 'desc'));
-        const querySnapshot = await window.getDocs(usersQuery);
+        const usersQuery = window.firebaseQuery(window.firebaseCollection(window.firebaseDb, 'users'), window.firebaseOrderBy('scores.total', 'desc'));
+        const querySnapshot = await window.firebaseGetDocs(usersQuery);
         
         const leaderboardData = [];
         querySnapshot.forEach((doc) => {
@@ -257,22 +257,24 @@ leaderboardClose.addEventListener('click', () => {
     leaderboardModal.classList.add('hidden');
 });
 
-// Auth State Observer
-window.onAuthStateChanged(window.firebaseAuth, (user) => {
-    if (user) {
-        checkAndSetUsername(user);
-    } else {
-        currentUser = null;
-        userData = null;
-        userInfo.classList.add('hidden');
-        signInBtn.classList.remove('hidden');
-        
-        // Show login modal if not asked before
-        if (!askedForLogin) {
-            showLoginModal();
+// Initialize Firebase Auth State Observer
+function initializeAuthObserver() {
+    window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
+        if (user) {
+            checkAndSetUsername(user);
+        } else {
+            currentUser = null;
+            userData = null;
+            userInfo.classList.add('hidden');
+            signInBtn.classList.remove('hidden');
+            
+            // Show login modal if not asked before
+            if (!askedForLogin) {
+                showLoginModal();
+            }
         }
-    }
-});
+    });
+}
 
 // Scary Mode Functions
 scaryToggle.addEventListener('change', function() {
@@ -565,12 +567,17 @@ function createGameCards() {
     });
 }
 
-// Initialize the page
-document.addEventListener('DOMContentLoaded', function() {
+// Main initialization function
+function initApp() {
     addBackgroundElements();
     createGameCards();
     updateCountdown();
     setInterval(updateCountdown, 1000);
+    
+    // Initialize auth observer if Firebase is ready
+    if (window.firebaseReady) {
+        initializeAuthObserver();
+    }
     
     // Start scary mode if enabled
     if (scaryMode) {
@@ -581,4 +588,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!currentUser && !askedForLogin) {
         showLoginModal();
     }
-});
+}
+
+// Make initApp available globally for the Firebase module to call
+window.initApp = initApp;
+
+// If Firebase is already ready when this script loads, initialize immediately
+if (window.firebaseReady) {
+    initApp();
+} else {
+    // Otherwise, wait for DOMContentLoaded and hope Firebase is ready by then
+    document.addEventListener('DOMContentLoaded', initApp);
+}
