@@ -7,42 +7,28 @@
   --frame-bg: linear-gradient(135deg, rgba(10,5,5,0.9), rgba(20,8,8,0.95));
 }
 
-/* Header / controls */
-#day-header {
+/* Top side controls */
+.top-controls {
   position: fixed;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 12px;
+  z-index: 220;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  z-index: 120;
 }
+#left-controls { left: 18px; }
+#right-controls { right: 18px; }
 
-#day-header .header-btn {
+/* keep older header styles for buttons */
+#left-controls .header-btn, #right-controls .header-btn {
   background: var(--accent);
   color: #000;
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 8px 12px;
   border: none;
   font-family: 'Shadows Into Light', cursive;
   cursor: pointer;
   box-shadow: 0 6px 18px rgba(0,0,0,0.6);
-}
-
-#day-controls {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.header-box {
-  background: rgba(0,0,0,0.85);
-  padding: 8px 12px;
-  border-radius: 20px;
-  border: 2px solid var(--accent);
-  color: #ffd8a8;
-  text-align: center;
 }
 
 /* Main frame with Halloween border */
@@ -51,59 +37,38 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding-top: 80px;
+  padding-top: 70px;
   padding-bottom: 100px;
 }
 
-.halloween-frame {
-  width: 820px;
-  max-width: 95vw;
-  background: var(--frame-bg);
-  border-radius: 18px;
-  padding: 18px;
-  position: relative;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
-  border: 6px solid rgba(255,107,53,0.12);
-}
-
-/* decorative pumpkins / bats in corners */
-.frame-decor {
-  position: absolute;
-  font-size: 28px;
-  opacity: 0.95;
-  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.7));
-}
-.frame-decor.top-left { top: 4px; left: 8px; }
-.frame-decor.top-right { top: 4px; right: 8px; }
-.frame-decor.bottom-left { bottom: 4px; left: 8px; }
-.frame-decor.bottom-right { bottom: 4px; right: 8px; }
-
-/* Game area */
-#game-area {
+/* make the play area obviously bounded */
+.playbound {
   width: 480px;
-  max-width: calc(100% - 40px);
-  margin: 0 auto;
-  background: linear-gradient(180deg,#070303 0%, #150707 100%);
-  border-radius: 12px;
-  padding: 12px;
-  border: 4px solid rgba(255,107,53,0.08);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  position: relative;
-}
-
-/* Canvas */
-#game-canvas {
-  background:
-    radial-gradient(circle at 30% 15%, rgba(255,107,53,0.03), transparent 6%),
-    linear-gradient(180deg,#050405 0%, #13060a 100%);
+  height: 720px;
+  border: 4px solid rgba(255,107,53,0.95);
+  box-shadow: 0 0 30px rgba(255,107,53,0.06), inset 0 0 20px rgba(0,0,0,0.6);
   border-radius: 8px;
-  box-shadow: inset 0 12px 40px rgba(0,0,0,0.6), 0 16px 40px rgba(0,0,0,0.7);
-  display:block;
+  overflow: hidden;
+  background: linear-gradient(180deg,#050405 0%, #0f0507 100%);
 }
 
-/* HUD */
+/* Score made more obvious */
+#big-score {
+  font-family: 'Creepster', cursive;
+  font-size: 1.6rem;
+  color: #ffcf6b;
+  background: rgba(0,0,0,0.7);
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 2px solid var(--accent);
+}
+
+/* Play overlay style (uses modal base) */
+.play-overlay .modal-content {
+  max-width: 520px;
+}
+
+/* HUD tweaks */
 #hud {
   width: 100%;
   display:flex;
@@ -114,13 +79,6 @@
   font-family: monospace;
 }
 
-#score, #time-left {
-  background: rgba(0,0,0,0.7);
-  padding: 6px 10px;
-  border-radius: 12px;
-  border: 2px solid var(--accent);
-}
-
 /* small note */
 #game-note {
   margin-top: 8px;
@@ -129,29 +87,13 @@
   font-size: 0.8rem;
 }
 
-/* Modals reuse index.css .modal/.modal-content; tweak */
-#day-jumpscare .modal-content {
-  display:flex;
-  justify-content:center;
-  align-items:center;
-}
+/* ensure jumpscare overlay covers whole window */
+#day-jumpscare { pointer-events: none; }
 
-/* Leaderboard table adjustments */
-#day-leaderboard-table {
-  width:100%;
-  border-collapse: collapse;
-  color: #ffdca8;
-}
-#day-leaderboard-table th, #day-leaderboard-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid rgba(255,107,53,0.06);
-  text-align:center;
-  font-size: 0.95rem;
-}
-
-/* responsive */
+/* Responsive */
 @media (max-width: 560px) {
   #game-area { width: 92vw; }
   .frame-decor { font-size: 20px; }
-  #day-header { top: 10px; }
+  #left-controls, #right-controls { top: 8px; gap: 8px; }
+  .playbound { width: 92vw; height: calc(92vw * (720/480)); }
 }

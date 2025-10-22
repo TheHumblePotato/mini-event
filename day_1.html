@@ -18,25 +18,27 @@
     <button id="sign-in-btn" class="hidden">Sign In</button>
   </div>
 
-  <div id="day-header">
+  <!-- Left / Right top controls so the game stays centered -->
+  <div id="left-controls" class="top-controls">
     <a class="header-btn" href="index.html">← Back</a>
-    <div id="day-controls">
-      <div id="game-countdown" class="header-box">
-        <div class="small-label">Game Ends (Pacific)</div>
-        <div id="game-timer">--:--:--</div>
-      </div>
+    <button id="help-btn" class="header-btn">❓ Help</button>
+    <button id="day-leaderboard-btn" class="header-btn">🏆 Day Leaderboard</button>
+  </div>
 
-      <div id="scary-toggle-container" class="header-box">
-        <label class="toggle">
-          <input type="checkbox" id="day-scary-toggle">
-          <span class="slider"></span>
-        </label>
-        <div id="toggle-label">Scary Mode</div>
-      </div>
-
-      <button id="help-btn" class="header-btn">❓ Help</button>
-      <button id="day-leaderboard-btn" class="header-btn">🏆 Day Leaderboard</button>
+  <div id="right-controls" class="top-controls">
+    <div id="game-countdown" class="header-box">
+      <div class="small-label">Game Ends (Pacific)</div>
+      <div id="game-timer">--:--:--</div>
     </div>
+
+    <div id="scary-toggle-container" class="header-box">
+      <label class="toggle">
+        <input type="checkbox" id="day-scary-toggle">
+        <span class="slider"></span>
+      </label>
+      <div id="toggle-label">Scary Mode</div>
+    </div>
+    <button id="fullscreen-btn" class="header-btn">⤢ Fullscreen</button>
   </div>
 
   <main id="game-wrap">
@@ -45,15 +47,18 @@
       <div class="frame-decor top-right">🦇</div>
 
       <div id="game-area">
-        <canvas id="game-canvas" width="480" height="720"></canvas>
+        <!-- Play boundary exactly around playable canvas -->
+        <div class="playbound">
+          <canvas id="game-canvas" width="480" height="720"></canvas>
+        </div>
 
         <div id="hud">
-          <div id="score">Score: 0</div>
+          <div id="big-score">Score: 0</div>
           <div id="time-left">Time Left: --:--:--</div>
         </div>
 
         <div id="game-note">
-          <small>Scores recorded during the event window will go to the main leaderboard. After the timer ends scores stay in the day leaderboard only.</small>
+          <small>Scores recorded during the event window will go to the main leaderboard. After the timer ends scores stay in the day leaderboard only. Scores made during event will be marked.</small>
         </div>
       </div>
 
@@ -62,11 +67,23 @@
     </div>
   </main>
 
+  <!-- Play overlay: must click to start -->
+  <div id="play-overlay" class="modal play-overlay">
+    <div class="modal-content">
+      <h2>Halloween Doodle</h2>
+      <p>Click Play to begin. Use ← → or touch to move. Pick pumpkins for points, collect jetpacks and flying hats!</p>
+      <div class="modal-buttons">
+        <button id="play-btn" class="btn-primary">Play</button>
+        <button id="play-cancel" class="btn-secondary">Back</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Day Help Modal (interactive tips) -->
   <div id="day-help-modal" class="modal hidden">
     <div class="modal-content">
       <h2>How to Play</h2>
-      <p>Bounce upward. Land on platforms to gain height. Some break, some spring you higher. Avoid enemies and blackholes. Survive as high as you can.</p>
+      <p>Bounce upward. Land on platforms to gain height. Some break, some spring you higher. Jetpacks and flying hats give temporary flight. Avoid enemies and blackholes. Pick pumpkins for bonus points.</p>
       <div class="modal-buttons">
         <button id="help-step" class="btn-primary">Show Controls</button>
         <button id="help-close" class="btn-secondary">Close</button>
