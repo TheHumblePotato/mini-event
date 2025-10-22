@@ -1,4 +1,4 @@
-// Game constants
+
 const CANVAS_WIDTH = 480;
 const CANVAS_HEIGHT = 720;
 const PLAYER_WIDTH = 50;
@@ -20,6 +20,8 @@ const scaryImages = [
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score-display');
+const startScreen = document.getElementById('start-screen');
+const startGameBtn = document.getElementById('start-game');
 const gameOverScreen = document.getElementById('game-over');
 const finalScoreDisplay = document.getElementById('final-score');
 const nameInput = document.getElementById('name-input');
@@ -56,7 +58,7 @@ let audioContext = null;
 let bgMusicInterval = null;
 let jumpscareInterval = null;
 let blackoutInterval = null;
-let gameTimerInterval = null;
+let scaryJumpInterval = null;
 
 // Initialize scary mode toggle
 if (scaryToggle) {
@@ -581,17 +583,29 @@ function addBackgroundElements() {
 
 // Generate new platforms
 function generatePlatforms() {
-    const lowestPlatform = platforms.reduce((min, p) => Math.min(min, p.y), Infinity);
+    // Find the lowest platform
+    let lowestPlatformY = CANVAS_HEIGHT;
+    for (let i = 0; i < platforms.length; i++) {
+        if (platforms[i].y < lowestPlatformY) {
+            lowestPlatformY = platforms[i].y;
+        }
+    }
     
-    while (lowestPlatform > cameraY - CANVAS_HEIGHT) {
+    // Generate platforms above the camera view
+    let generatedCount = 0;
+    const maxGenerate = 5; // Limit generations per frame
+    
+    while (lowestPlatformY > cameraY - CANVAS_HEIGHT && generatedCount < maxGenerate) {
         const x = Math.random() * (CANVAS_WIDTH - PLATFORM_WIDTH);
-        const y = lowestPlatform - 60 - Math.random() * 40;
+        const y = lowestPlatformY - 60 - Math.random() * 40;
         const rand = Math.random();
         let type = 'normal';
         if (rand > 0.88) type = 'breaking';
         else if (rand > 0.78) type = 'moving';
         
         platforms.push(new Platform(x, y, type));
+        lowestPlatformY = y;
+        generatedCount++;
 
         // Add powerups
         if (Math.random() > 0.92) {
@@ -732,7 +746,11 @@ function gameOver() {
 // Update timer
 function updateTimer() {
     const now = new Date();
-    const diff = GAME_END_DATE - now;
+    
+    // Convert GAME_END_DATE to milliseconds for comparison
+    const endTime = GAME_END_DATE.getTime();
+    const currentTime = now.getTime();
+    const diff = endTime - currentTime;
     
     if (diff <= 0) {
         timerElement.textContent = "Game Ended!";
@@ -908,8 +926,43 @@ if (scaryToggle) {
     });
 }
 
+// Submit score
+async function submitScore() {
+    const name = nameInput.value.trim();
+    if (!name) {
+        alert('Please enter your name!');
+        return;
+    }
+
+    localStorage.setItem('day1PlayerName', name);
+    
+    const now = new Date();
+    const duringGamePeriod = now < GAME_END_DATE;
+
+    try {
+        // Save to day 1 leaderboard
+        await window.firebaseAddDoc(
+            window.firebaseCollection(window.firebaseDb, 'day1Scores'),
+            {
+                name: name,
+                score: score,
+                timestamp: now,
+                duringGamePeriod: duringGamePeriod
+            }
+        );
+
+        alert('Score submitted!');
+        gameOverScreen.classList.add('hidden');
+        initGame();
+    } catch (error) {
+        console.error('Error submitting score:', error);
+        alert('Failed to submit score. Please try again.');
+    }
+}
+
 // Initialize
 window.startGame = function() {
+    addBackgroundElements();
     updateTimer();
     setInterval(updateTimer, 1000);
     initGame();

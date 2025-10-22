@@ -12,11 +12,15 @@
     <!-- Background -->
     <div id="background"></div>
 
-    <!-- Header Controls -->
-    <div id="header-controls">
+    <!-- Header Controls Left -->
+    <div id="header-controls-left">
         <button id="back-btn" class="header-btn">← Back</button>
         <button id="help-btn" class="header-btn">❓ Help</button>
         <button id="leaderboard-btn" class="header-btn">🏆 Scores</button>
+    </div>
+
+    <!-- Header Controls Right -->
+    <div id="header-controls-right">
         <div id="timer-container">
             <span id="timer-label">Game Ends:</span>
             <span id="timer">--:--:--</span>
@@ -35,6 +39,14 @@
         <div id="game-border">
             <canvas id="game-canvas"></canvas>
             <div id="score-display">Score: 0</div>
+            
+            <!-- Start Screen -->
+            <div id="start-screen">
+                <h2>Spooky Jump!</h2>
+                <p>Jump as high as you can!</p>
+                <button id="start-game" class="btn-primary">Start Game</button>
+            </div>
+            
             <div id="game-over" class="hidden">
                 <h2>Game Over!</h2>
                 <p id="final-score">Score: 0</p>
