@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Day 1 — Spooky Addition: Halloween Doodle</title>
+  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="day_1.css">
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Shadows+Into+Light&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎃</text></svg>">
+</head>
+<body>
+  <div id="auth-container">
+    <div id="user-info" class="hidden">
+      <span id="username-display"></span>
+      <button id="sign-out-btn">Sign Out</button>
+    </div>
+    <button id="sign-in-btn" class="hidden">Sign In</button>
+  </div>
+
+  <div id="day-header">
+    <a class="header-btn" href="index.html">← Back</a>
+    <div id="day-controls">
+      <div id="game-countdown" class="header-box">
+        <div class="small-label">Game Ends (Pacific)</div>
+        <div id="game-timer">--:--:--</div>
+      </div>
+
+      <div id="scary-toggle-container" class="header-box">
+        <label class="toggle">
+          <input type="checkbox" id="day-scary-toggle">
+          <span class="slider"></span>
+        </label>
+        <div id="toggle-label">Scary Mode</div>
+      </div>
+
+      <button id="help-btn" class="header-btn">❓ Help</button>
+      <button id="day-leaderboard-btn" class="header-btn">🏆 Day Leaderboard</button>
+    </div>
+  </div>
+
+  <main id="game-wrap">
+    <div class="halloween-frame">
+      <div class="frame-decor top-left">🎃</div>
+      <div class="frame-decor top-right">🦇</div>
+
+      <div id="game-area">
+        <canvas id="game-canvas" width="480" height="720"></canvas>
+
+        <div id="hud">
+          <div id="score">Score: 0</div>
+          <div id="time-left">Time Left: --:--:--</div>
+        </div>
+
+        <div id="game-note">
+          <small>Scores recorded during the event window will go to the main leaderboard. After the timer ends scores stay in the day leaderboard only.</small>
+        </div>
+      </div>
+
+      <div class="frame-decor bottom-left">🕸️</div>
+      <div class="frame-decor bottom-right">🖤</div>
+    </div>
+  </main>
+
+  <!-- Day Help Modal (interactive tips) -->
+  <div id="day-help-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>How to Play</h2>
+      <p>Bounce upward. Land on platforms to gain height. Some break, some spring you higher. Avoid enemies and blackholes. Survive as high as you can.</p>
+      <div class="modal-buttons">
+        <button id="help-step" class="btn-primary">Show Controls</button>
+        <button id="help-close" class="btn-secondary">Close</button>
+      </div>
+      <div id="help-interactive" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- Day Leaderboard Modal -->
+  <div id="day-leaderboard-modal" class="modal hidden">
+    <div class="modal-content leaderboard-content">
+      <h2>Day 1 Leaderboard</h2>
+      <div class="leaderboard-container">
+        <table id="day-leaderboard-table">
+          <thead>
+            <tr><th>Rank</th><th>Player</th><th>Score</th><th>When</th><th>Event?</th></tr>
+          </thead>
+          <tbody id="day-leaderboard-body"></tbody>
+        </table>
+      </div>
+      <div class="modal-buttons">
+        <button id="day-leaderboard-close" class="btn-primary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over / Submit Score -->
+  <div id="game-over-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Game Over</h2>
+      <p>Your score: <strong id="final-score">0</strong></p>
+      <p id="submit-note" style="font-size:0.9rem;color:#ffb86b;"></p>
+      <div class="modal-buttons">
+        <button id="submit-score-btn" class="btn-primary">Save Score</button>
+        <button id="retry-btn" class="btn-secondary">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scary jump-scare overlay -->
+  <div id="day-jumpscare" class="modal hidden">
+    <div class="modal-content" style="background:transparent;border:none;box-shadow:none;">
+      <img id="day-jumpscare-img" src="" style="max-width:90vw; border-radius:10px; box-shadow:0 0 50px #f00;" alt="Jumpscare">
+    </div>
+  </div>
+
+  <script type="module">
+    // Export firebase helpers the same way index does for consistency
+    // (index.html already sets window.firebase* when loaded before index.js; however this module ensures day page works standalone if firebase is available)
+  </script>
+
+  <script src="day_1.js"></script>
+</body>
+</html>

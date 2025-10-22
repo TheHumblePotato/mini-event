@@ -1,0 +1,157 @@
+/* ...existing code... */
+
+:root {
+  --accent: #ff6b35;
+  --accent-light: #ff9a3d;
+  --dark: #0a0606;
+  --frame-bg: linear-gradient(135deg, rgba(10,5,5,0.9), rgba(20,8,8,0.95));
+}
+
+/* Header / controls */
+#day-header {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  z-index: 120;
+}
+
+#day-header .header-btn {
+  background: var(--accent);
+  color: #000;
+  border-radius: 16px;
+  padding: 8px 12px;
+  border: none;
+  font-family: 'Shadows Into Light', cursive;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+
+#day-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.header-box {
+  background: rgba(0,0,0,0.85);
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 2px solid var(--accent);
+  color: #ffd8a8;
+  text-align: center;
+}
+
+/* Main frame with Halloween border */
+#game-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding-top: 80px;
+  padding-bottom: 100px;
+}
+
+.halloween-frame {
+  width: 820px;
+  max-width: 95vw;
+  background: var(--frame-bg);
+  border-radius: 18px;
+  padding: 18px;
+  position: relative;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  border: 6px solid rgba(255,107,53,0.12);
+}
+
+/* decorative pumpkins / bats in corners */
+.frame-decor {
+  position: absolute;
+  font-size: 28px;
+  opacity: 0.95;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.7));
+}
+.frame-decor.top-left { top: 4px; left: 8px; }
+.frame-decor.top-right { top: 4px; right: 8px; }
+.frame-decor.bottom-left { bottom: 4px; left: 8px; }
+.frame-decor.bottom-right { bottom: 4px; right: 8px; }
+
+/* Game area */
+#game-area {
+  width: 480px;
+  max-width: calc(100% - 40px);
+  margin: 0 auto;
+  background: linear-gradient(180deg,#070303 0%, #150707 100%);
+  border-radius: 12px;
+  padding: 12px;
+  border: 4px solid rgba(255,107,53,0.08);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  position: relative;
+}
+
+/* Canvas */
+#game-canvas {
+  background:
+    radial-gradient(circle at 30% 15%, rgba(255,107,53,0.03), transparent 6%),
+    linear-gradient(180deg,#050405 0%, #13060a 100%);
+  border-radius: 8px;
+  box-shadow: inset 0 12px 40px rgba(0,0,0,0.6), 0 16px 40px rgba(0,0,0,0.7);
+  display:block;
+}
+
+/* HUD */
+#hud {
+  width: 100%;
+  display:flex;
+  justify-content:space-between;
+  margin-top:10px;
+  color: #ffd8a8;
+  font-weight:bold;
+  font-family: monospace;
+}
+
+#score, #time-left {
+  background: rgba(0,0,0,0.7);
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 2px solid var(--accent);
+}
+
+/* small note */
+#game-note {
+  margin-top: 8px;
+  color: #ffb86b;
+  text-align:center;
+  font-size: 0.8rem;
+}
+
+/* Modals reuse index.css .modal/.modal-content; tweak */
+#day-jumpscare .modal-content {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+/* Leaderboard table adjustments */
+#day-leaderboard-table {
+  width:100%;
+  border-collapse: collapse;
+  color: #ffdca8;
+}
+#day-leaderboard-table th, #day-leaderboard-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255,107,53,0.06);
+  text-align:center;
+  font-size: 0.95rem;
+}
+
+/* responsive */
+@media (max-width: 560px) {
+  #game-area { width: 92vw; }
+  .frame-decor { font-size: 20px; }
+  #day-header { top: 10px; }
+}
