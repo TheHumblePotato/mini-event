@@ -1,86 +1,178 @@
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-   <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>Candy Gambling — Mathoween Day 1</title>
-   <link rel="stylesheet" href="day_1.css">
-   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Shadows+Into+Light&display=swap" rel="stylesheet">
-   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍬</text></svg>">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spooky Jump - Mathoween Day 1</title>
+    <link rel="stylesheet" href="day_1.css">
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Shadows+Into+Light&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎃</text></svg>">
 </head>
 <body>
-   <div id="game-wrapper">
-       <header>
-           <h1>Candy Gambling</h1>
-           <p>Pick candies from the deck — gamble for points. Stop to save your score.</p>
-       </header>
+    <!-- Background -->
+    <div id="background"></div>
 
+    <!-- Header Controls -->
+    <div id="header-controls">
+        <button id="back-btn" class="header-btn">← Back</button>
+        <button id="help-btn" class="header-btn">❓ Help</button>
+        <button id="leaderboard-btn" class="header-btn">🏆 Scores</button>
+        <div id="timer-container">
+            <span id="timer-label">Game Ends:</span>
+            <span id="timer">--:--:--</span>
+        </div>
+        <div id="scary-toggle-container">
+            <label class="toggle">
+                <input type="checkbox" id="scary-toggle">
+                <span class="slider"></span>
+            </label>
+            <span id="toggle-label">Scary Mode</span>
+        </div>
+    </div>
 
-       <div id="controls">
-           <div id="score-life">
-               <div class="big-counter">
-                   <span id="score">0</span>
-                   <div class="label">Score</div>
-               </div>
-               <div class="big-counter">
-                   <span id="lives">1</span>
-                   <div class="label">Lives</div>
-               </div>
-           </div>
+    <!-- Game Container -->
+    <div id="game-container">
+        <div id="game-border">
+            <canvas id="game-canvas"></canvas>
+            <div id="score-display">Score: 0</div>
+            <div id="game-over" class="hidden">
+                <h2>Game Over!</h2>
+                <p id="final-score">Score: 0</p>
+                <input type="text" id="name-input" placeholder="Enter your name" maxlength="20">
+                <div class="modal-buttons">
+                    <button id="submit-score" class="btn-primary">Submit Score</button>
+                    <button id="play-again" class="btn-secondary">Play Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal hidden">
+        <div class="modal-content help-content">
+            <h2>🎃 How to Play</h2>
+            <div class="help-section">
+                <h3>Controls</h3>
+                <p>← → Arrow Keys or A/D to move left and right</p>
+                <p>Your character automatically jumps when landing on platforms!</p>
+            </div>
+            <div class="help-section">
+                <h3>Items</h3>
+                <div class="help-item">
+                    <span class="help-icon">🟢</span>
+                    <p><strong>Green Platform:</strong> Safe to land on</p>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">🟤</span>
+                    <p><strong>Brown Platform:</strong> Breaks after you land!</p>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">🟣</span>
+                    <p><strong>Spring:</strong> Extra high bounce!</p>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">🚀</span>
+                    <p><strong>Jetpack:</strong> Fly high into the sky!</p>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">👻</span>
+                    <p><strong>Ghost Enemy:</strong> Avoid these or you'll fall!</p>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">🕳️</span>
+                    <p><strong>Black Hole:</strong> Sucks you in! Steer away!</p>
+                </div>
+            </div>
+            <div class="help-section">
+                <h3>Goal</h3>
+                <p>Jump as high as you can and collect points! The higher you go, the higher your score!</p>
+            </div>
+            <button id="help-close" class="btn-primary">Got It!</button>
+        </div>
+    </div>
 
-           <div id="countdown-container">
-               <div class="countdown-label">Event Ends:</div>
-               <div id="countdown">--:--:--</div>
-           </div>
+    <!-- Leaderboard Modal -->
+    <div id="leaderboard-modal" class="modal hidden">
+        <div class="modal-content leaderboard-content">
+            <h2>🏆 High Scores</h2>
+            <p class="leaderboard-note">⭐ = Score achieved during game period (before Oct 28)</p>
+            <div class="leaderboard-container">
+                <table id="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Name</th>
+                            <th>Score</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <tr><td colspan="4">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-buttons">
+                <button id="leaderboard-close" class="btn-primary">Close</button>
+            </div>
+        </div>
+    </div>
 
+    <!-- Jumpscare -->
+    <div id="jumpscare" class="hidden">
+        <img src="" alt="Jump Scare" id="jumpscare-image">
+    </div>
 
-           <div id="action-buttons">
-               <button id="stop-btn" class="btn-primary">Stop</button>
-               <button id="restart-btn" class="btn-secondary">Restart</button>
-           </div>
-       </div>
+    <!-- Lights Out -->
+    <div id="lights-out" class="hidden"></div>
 
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { 
+            getFirestore, 
+            collection,
+            addDoc,
+            getDocs,
+            query,
+            orderBy,
+            limit,
+            doc,
+            getDoc,
+            updateDoc,
+            increment
+        } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
-       <main>
-           <div id="game-area">
-               <div id="deck" title="Click to draw a card">
-                   <div class="deck-count">256</div>
-               </div>
-               <div id="discard-pile" title="Discard pile">
-                   <div class="discard-label">Discard</div>
-               </div>
-           </div>
-       </main>
+        const firebaseConfig = {
+            apiKey: "AIzaSyARY96nrH2Aio8rOiLkewSXtTS40TZLrAw",
+            authDomain: "nerd-mini-events.firebaseapp.com",
+            projectId: "nerd-mini-events",
+            storageBucket: "nerd-mini-events.firebasestorage.app",
+            messagingSenderId: "974357416633",
+            appId: "1:974357416633:web:e190de60553a685d03e968",
+            measurementId: "G-V9NGCSEY8J"
+        };
 
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-       <footer>
-           <p>Collect candies, but beware — some take your lives!</p>
-       </footer>
-   </div>
+        window.firebaseDb = db;
+        window.firebaseCollection = collection;
+        window.firebaseAddDoc = addDoc;
+        window.firebaseGetDocs = getDocs;
+        window.firebaseQuery = query;
+        window.firebaseOrderBy = orderBy;
+        window.firebaseLimit = limit;
+        window.firebaseDoc = doc;
+        window.firebaseGetDoc = getDoc;
+        window.firebaseUpdateDoc = updateDoc;
+        window.firebaseIncrement = increment;
 
+        window.firebaseReady = true;
+        if (window.initGame) {
+            window.initGame();
+        }
+    </script>
 
-   <!-- Jumpscare / Pumpkin overlay -->
-   <div id="jumpscare-overlay" class="hidden">
-       <div id="jumpscare-content"></div>
-   </div>
-
-
-   <!-- Peek preview container -->
-   <div id="peek-preview" class="hidden">
-       <div class="peek-inner"></div>
-       <button id="peek-close" class="btn-secondary">Close</button>
-   </div>
-
-
-   <script src="day_1.js"></script>
+    <script src="day_1.js"></script>
 </body>
 </html>
-
-
-
-
-
