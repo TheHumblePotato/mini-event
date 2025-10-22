@@ -26,18 +26,111 @@ body {
     height: 100%;
     z-index: -1;
     pointer-events: none;
+    overflow: hidden;
+}
+
+/* Animated background elements */
+.bg-pumpkin {
+    position: absolute;
+    font-size: 3rem;
+    opacity: 0.3;
+    animation: floatSlow 30s infinite ease-in-out;
+}
+
+.bg-bat {
+    position: absolute;
+    font-size: 2rem;
+    opacity: 0.4;
+    animation: zigzag 25s infinite linear;
+}
+
+.bg-spider {
+    position: absolute;
+    font-size: 1.5rem;
+    opacity: 0.3;
+    animation: drop 20s infinite ease-in;
+}
+
+.bg-skull {
+    position: absolute;
+    font-size: 2.5rem;
+    opacity: 0.25;
+    animation: floatSlow 35s infinite ease-in-out;
+}
+
+@keyframes floatSlow {
+    0%, 100% { 
+        transform: translateY(0) rotate(0deg);
+        opacity: 0.2;
+    }
+    25% { 
+        transform: translateY(-30px) rotate(10deg);
+        opacity: 0.3;
+    }
+    50% { 
+        transform: translateY(0) rotate(0deg);
+        opacity: 0.25;
+    }
+    75% { 
+        transform: translateY(-20px) rotate(-10deg);
+        opacity: 0.3;
+    }
+}
+
+@keyframes zigzag {
+    0% { 
+        transform: translate(-100px, -100px);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.4;
+    }
+    25% { 
+        transform: translate(25vw, 20vh);
+    }
+    50% { 
+        transform: translate(50vw, 40vh);
+    }
+    75% { 
+        transform: translate(75vw, 20vh);
+    }
+    90% {
+        opacity: 0.4;
+    }
+    100% { 
+        transform: translate(calc(100vw + 100px), -100px);
+        opacity: 0;
+    }
+}
+
+@keyframes drop {
+    0% {
+        transform: translateY(-100px);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.3;
+    }
+    90% {
+        opacity: 0.3;
+    }
+    100% {
+        transform: translateY(100vh);
+        opacity: 0;
+    }
 }
 
 /* Header Controls */
 #header-controls {
     position: fixed;
     top: 20px;
-    right: 20px;
+    left: 20px;
     z-index: 100;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 15px;
     flex-wrap: wrap;
+    max-width: calc(100% - 40px);
 }
 
 .header-btn {
@@ -539,8 +632,9 @@ input:checked + .slider:before {
 @media (max-width: 768px) {
     #header-controls {
         top: 10px;
-        right: 10px;
+        left: 10px;
         gap: 8px;
+        max-width: calc(100% - 20px);
     }
     
     .header-btn {
@@ -557,6 +651,14 @@ input:checked + .slider:before {
     }
     
     #timer {
+        font-size: 1rem;
+    }
+    
+    #scary-toggle-container {
+        padding: 8px 12px;
+    }
+    
+    #toggle-label {
         font-size: 1rem;
     }
     
@@ -583,6 +685,18 @@ input:checked + .slider:before {
     }
     
     #game-over p {
+        font-size: 1.2rem;
+    }
+    
+    .bg-pumpkin, .bg-skull {
+        font-size: 2rem;
+    }
+    
+    .bg-bat {
+        font-size: 1.5rem;
+    }
+    
+    .bg-spider {
         font-size: 1.2rem;
     }
 }

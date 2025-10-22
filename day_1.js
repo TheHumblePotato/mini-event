@@ -467,7 +467,7 @@ function startScaryMode() {
     // Add background elements
     for (let i = 0; i < 3; i++) {
         const ghost = document.createElement('div');
-        ghost.classList.add('ghost');
+        ghost.classList.add('ghost', 'scary-element');
         ghost.style.left = `${Math.random() * 90}%`;
         ghost.style.top = `${Math.random() * 90}%`;
         background.appendChild(ghost);
@@ -475,7 +475,7 @@ function startScaryMode() {
 
     for (let i = 0; i < 2; i++) {
         const fog = document.createElement('div');
-        fog.classList.add('fog');
+        fog.classList.add('fog', 'scary-element');
         fog.style.top = `${30 + i * 30}%`;
         background.appendChild(fog);
     }
@@ -499,10 +499,26 @@ function startScaryMode() {
             triggerBlackout();
         }
     }, 30000);
+    
+    // Make background elements jump out randomly
+    setInterval(() => {
+        const bgElements = background.querySelectorAll('.bg-pumpkin, .bg-bat, .bg-skull');
+        if (bgElements.length > 0 && Math.random() < 0.2) {
+            const element = bgElements[Math.floor(Math.random() * bgElements.length)];
+            element.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+            element.style.transform = 'scale(2) rotate(360deg)';
+            element.style.opacity = '0.8';
+            setTimeout(() => {
+                element.style.transition = 'transform 2s ease, opacity 2s ease';
+                element.style.transform = '';
+                element.style.opacity = '';
+            }, 300);
+        }
+    }, 10000);
 }
 
 function stopScaryMode() {
-    const elements = background.querySelectorAll('.ghost, .fog');
+    const elements = background.querySelectorAll('.ghost, .fog, .scary-element');
     elements.forEach(el => el.remove());
     
     if (bgMusicInterval) {
@@ -516,6 +532,50 @@ function stopScaryMode() {
     if (blackoutInterval) {
         clearInterval(blackoutInterval);
         blackoutInterval = null;
+    }
+}
+
+// Add ambient background elements
+function addBackgroundElements() {
+    // Pumpkins
+    for (let i = 0; i < 4; i++) {
+        const pumpkin = document.createElement('div');
+        pumpkin.classList.add('bg-pumpkin');
+        pumpkin.textContent = '🎃';
+        pumpkin.style.left = `${Math.random() * 90}%`;
+        pumpkin.style.top = `${Math.random() * 90}%`;
+        pumpkin.style.animationDelay = `${Math.random() * 5}s`;
+        background.appendChild(pumpkin);
+    }
+    
+    // Bats
+    for (let i = 0; i < 3; i++) {
+        const bat = document.createElement('div');
+        bat.classList.add('bg-bat');
+        bat.textContent = '🦇';
+        bat.style.animationDelay = `${Math.random() * 10}s`;
+        background.appendChild(bat);
+    }
+    
+    // Spiders
+    for (let i = 0; i < 3; i++) {
+        const spider = document.createElement('div');
+        spider.classList.add('bg-spider');
+        spider.textContent = '🕷️';
+        spider.style.left = `${10 + Math.random() * 80}%`;
+        spider.style.animationDelay = `${Math.random() * 8}s`;
+        background.appendChild(spider);
+    }
+    
+    // Skulls
+    for (let i = 0; i < 2; i++) {
+        const skull = document.createElement('div');
+        skull.classList.add('bg-skull');
+        skull.textContent = '💀';
+        skull.style.left = `${Math.random() * 90}%`;
+        skull.style.top = `${Math.random() * 90}%`;
+        skull.style.animationDelay = `${Math.random() * 7}s`;
+        background.appendChild(skull);
     }
 }
 
@@ -849,12 +909,12 @@ if (scaryToggle) {
 }
 
 // Initialize
-window.initGame = function() {
+window.startGame = function() {
     updateTimer();
     setInterval(updateTimer, 1000);
     initGame();
 };
 
 if (window.firebaseReady) {
-    window.initGame();
+    window.startGame();
 }
