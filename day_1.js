@@ -188,7 +188,7 @@
       platforms.push(p);
 
       // enemies: spawn more often
-      if(i >= 4 && Math.random() < 0.14) {
+      if(i >= 4 && Math.random() < 0.06) {
         enemies.push({ x: Math.random()*(W-40), y: p.y - 28, w:28, h:28, seed:Math.random()*1000 });
       }
 
