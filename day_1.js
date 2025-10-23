@@ -14,10 +14,12 @@
   - User total score updated when saving
 */
 
+// Full replacement of day_1 runtime implementing requested fixes/features
 (() => {
+  // DOM
   const canvas = document.getElementById('game-canvas');
   const ctx = canvas.getContext('2d');
-
+  const playbound = document.getElementById('playbound');
   const bigScoreEl = document.getElementById('big-score');
   const gameTimerHeader = document.getElementById('game-timer');
   const scaryToggle = document.getElementById('day-scary-toggle');
@@ -35,48 +37,47 @@
   const submitScoreBtn = document.getElementById('submit-score-btn');
   const retryBtn = document.getElementById('retry-btn');
   const submitNote = document.getElementById('submit-note');
-  const dayJumpscare = document.getElementById('day-jumpscare');
   const dayJumpscareImg = document.getElementById('day-jumpscare-img');
+  const dayJumpscare = document.getElementById('day-jumpscare');
   const playOverlay = document.getElementById('play-overlay');
   const playBtn = document.getElementById('play-btn');
-  const playCancel = document.getElementById('play-cancel');
   const fullscreenBtn = document.getElementById('fullscreen-btn');
-  const playbound = document.getElementById('playbound');
   const backgroundRoot = document.getElementById('background');
 
+  // config / constants
   const W = canvas.width;
   const H = canvas.height;
   const GRAVITY = 0.45;
   const PLAYER_SIZE = 28;
   const SCROLL_THRESHOLD = H * 0.42;
   const JUMP_VEL = -12;
+  const MAX_PLATFORMS = 120;
+  const REGEN_MS = 5000; // breakable regen 5s
+  const ANTI_SOFTLOCK_COOLDOWN = 600;
 
+  // state
   let platforms = [];
   let enemies = [];
-  let blackholes = [];
-  let pickups = []; // only jetpack / hat remain
+  let pumpkins = []; // previously blackholes
+  let pickups = [];
   let player = null;
   let keys = { left: false, right: false };
   let score = 0;
   let running = false;
-  let scaryMode = localStorage.getItem('day1Scary') === 'true';
   let lastTime = performance.now();
   let animationId = null;
-  let pendingSaveEntry = null;
   let frozen = false;
-  let flightTimer = 0;
-
-  // anti-softlock spawn throttle
   let lastAntiSoftlockAt = 0;
-  const ANTI_SOFTLOCK_COOLDOWN = 800; // ms
-  const MAX_PLATFORMS = 80;
+  let scaryMode = localStorage.getItem('day1Scary') === 'true';
+  // firebase/persistence hooks expected on window: firebaseAuth, firebaseSignInWithPopup, googleProvider, firebaseDb, firebaseDoc, firebaseSetDoc, firebaseGetDoc, firebaseCollection, firebaseGetDocs, firebaseQuery, firebaseOrderBy
 
-  // Event end time in Pacific (Oct 28 00:00 Pacific)
+  // timers / event end
   const now = new Date();
   const year = now.getFullYear();
   const EVENT_END_ISO = `${year}-10-28T00:00:00-07:00`;
   const GAME_END_TS = Date.parse(EVENT_END_ISO);
 
+  // helpers
   function formatTimeRemaining(ms) {
     if (ms <= 0) return '00:00:00';
     const s = Math.floor(ms / 1000);
@@ -85,335 +86,209 @@
     const ss = (s % 60).toString().padStart(2,'0');
     return `${hh}:${mm}:${ss}`;
   }
-
   function updateTimers() {
     if (!gameTimerHeader) return;
     const left = GAME_END_TS - Date.now();
     gameTimerHeader.textContent = left <= 0 ? 'Game Ended' : formatTimeRemaining(left);
   }
-
-  // audio helpers (same pattern as index)
-  let audioCtx = null;
-  function getAudioCtx() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
-  function playScreamLoud() {
-    try {
-      const ctx = getAudioCtx();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = 'sawtooth';
-      o.frequency.setValueAtTime(220, ctx.currentTime);
-      g.gain.setValueAtTime(0.0001, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.8, ctx.currentTime + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
-      o.connect(g); g.connect(ctx.destination);
-      o.start(); o.stop(ctx.currentTime + 1.25);
-    } catch(e) {}
-  }
-  function glitchFreezeBrief() { frozen = true; setTimeout(()=> { frozen = false; }, 400 + Math.random()*700); }
-  function doJumpscareBig() { if (!scaryMode) return; dayJumpscareImg.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000' viewBox='0 0 1000 1000'%3E%3Crect width='1000' height='1000' fill='%23000'/%3E%3Ctext x='500' y='520' font-size='140' fill='%23ff0000' text-anchor='middle' font-family='Creepster, Arial' font-weight='700'%3ESCREAM%3C/text%3E%3C/svg%3E"; dayJumpscare.classList.remove('hidden'); playScreamLoud(); setTimeout(()=> dayJumpscare.classList.add('hidden'), 1400); }
-
-  function createPlayer() {
-    return { x: W/2 - PLAYER_SIZE/2, y: H - 100, vx: 0, vy: 0, w: PLAYER_SIZE, h: PLAYER_SIZE, alive: true, yTop: H };
+  function rectsOverlap(a,b){
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   }
 
-  // small helper: show/hide modal inside playbound (so overlays cover only game area)
-  function showModalInPlaybound(modalEl) {
-    if (!modalEl || !playbound) return;
+  // audio / jumpscare
+  function getAudioCtx(){ try { return new (window.AudioContext||window.webkitAudioContext)(); } catch(e){ return null; } }
+  function playScreamLoud(){
+    const ctx = getAudioCtx(); if(!ctx) return;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(220, ctx.currentTime);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.7, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 1.2);
+  }
+  function doJumpscare(){
+    if(!scaryMode) return;
+    dayJumpscareImg.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='1000'%3E%3Crect width='100%' height='100%' fill='%23000'/%3E%3Ctext x='50%' y='55%' font-size='140' text-anchor='middle' fill='%23ff0000' font-family='Creepster'%3ESCREAM%3C/text%3E%3C/svg%3E";
+    dayJumpscare.classList.remove('hidden');
+    playScreamLoud();
+    setTimeout(()=> dayJumpscare.classList.add('hidden'), 1300);
+  }
+
+  // UI helpers
+  function showModalInPlaybound(modalEl){
+    if(!modalEl || !playbound) return;
+    if(modalEl.parentElement !== playbound) playbound.appendChild(modalEl);
     modalEl.classList.remove('hidden');
-    // move modal into playbound for positioning
-    if (modalEl.parentElement !== playbound) playbound.appendChild(modalEl);
   }
-  function hideModal(modalEl) {
-    if (!modalEl) return;
-    modalEl.classList.add('hidden');
-    // keep DOM position but hide
-  }
-
-  // inline toast for save status (no alerts)
-  function showToast(msg, timeout = 2500) {
+  function hideModal(modalEl){ if(!modalEl) return; modalEl.classList.add('hidden'); }
+  function showToast(msg, timeout=2200){
+    if(!playbound) return;
     let t = playbound.querySelector('.save-toast');
-    if (!t) {
-      t = document.createElement('div');
-      t.className = 'save-toast';
-      playbound.appendChild(t);
-    }
+    if(!t){ t = document.createElement('div'); t.className='save-toast'; playbound.appendChild(t); }
     t.textContent = msg;
-    t.style.opacity = '1';
     clearTimeout(t._timeout);
-    t._timeout = setTimeout(() => { if (t) t.remove(); }, timeout);
+    t._timeout = setTimeout(()=> { t && t.remove(); }, timeout);
   }
 
-  // Adjust createPlatform: faster and varied moving platform speeds
-  function createPlatform(x,y,type='static') {
+  // player factory
+  function createPlayer(){
+    return { x: W/2 - PLAYER_SIZE/2, y: H - 100, vx:0, vy:0, w:PLAYER_SIZE, h:PLAYER_SIZE, alive:true, flight: null };
+  }
+
+  // platform factory - springs removed; moving platforms faster / varied
+  function createPlatform(x,y,type='static'){
     const w = 70 + Math.random()*60;
     const px = Math.max(8, Math.min(W - w - 8, Math.round(x)));
-    const p = { x: px, y: Math.round(y), w, h: 12, type, used:false, toRemove:false, state: undefined, brokenAt:0 };
-    if (type === 'moving') {
-      // varied speeds, some faster
-      const base = 0.8 + Math.random()*1.6; // faster than before
-      p.vx = (Math.random() < 0.5 ? -1 : 1) * base;
-      p.minX = Math.max(6, p.x-70);
-      p.maxX = Math.min(W - p.w - 6, p.x+70);
+    const p = { x:px, y:Math.round(y), w, h:12, type, state: undefined, brokenAt:0, used:false };
+    if(type === 'moving'){
+      const base = 1.4 + Math.random()*2.0; // faster
+      p.vx = (Math.random()<0.5?-1:1)*base;
+      p.minX = Math.max(6, p.x-110);
+      p.maxX = Math.min(W - p.w - 6, p.x+110);
     }
     return p;
   }
 
-  // Landing rules: prevent landing on non-visible / off-canvas platforms
-  function canLandOnPlatform(p) {
-    // must be inside visible area (a bit above bottom)
-    if (!p) return false;
-    if (p.y > H - 8) return false;
-    // if broken state, cannot land
-    if (p.state === 'broken') return false;
+  function canLandOnPlatform(p){
+    if(!p) return false;
+    if(p.y > H - 8) return false;
+    if(p.state === 'broken') return false;
     return true;
   }
 
-  function spawnInitial() {
-    platforms = [];
-    enemies = [];
-    blackholes = [];
-    pickups = [];
+  // initial spawn: fewer pumpkins, more pickups, no springs
+  function spawnInitial(){
+    platforms=[]; enemies=[]; pumpkins=[]; pickups=[];
     let y = H - 20;
     platforms.push(createPlatform(W/2 - 50, y, 'static'));
-
-    // staged level: many safe platforms early, then hazards later
-    for (let i=1;i<22;i++) {
-      // smaller gaps early, gradually increase a bit
-      y -= Math.round(42 + Math.random()*36);
-      let type = 'static';
-      if (i < 5) {
-        const r = Math.random();
-        if (r < 0.08) type = 'spring';
-        else if (r < 0.02) type = 'moving';
-      } else if (i < 12) {
-        const r = Math.random();
-        if (r < 0.12) type = 'break';
-        else if (r < 0.22) type = 'moving';
-        else if (r < 0.32) type = 'spring';
+    for(let i=1;i<28;i++){
+      y -= Math.round(38 + Math.random()*44);
+      let type='static';
+      if(i < 5){
+        const r=Math.random();
+        if(r < 0.06) type='moving';
+      } else if(i < 12){
+        const r=Math.random();
+        if(r < 0.14) type='break';
+        else if(r < 0.34) type='moving';
       } else {
-        const r = Math.random();
-        if (r < 0.26) type = 'break';
-        else if (r < 0.40) type = 'moving';
-        else if (r < 0.50) type = 'spring';
-        else if (r < 0.56) type = 'jet';
+        const r=Math.random();
+        if(r < 0.32) type='break';
+        else if(r < 0.6) type='moving';
+        else if(r < 0.68) type='jet'; // rare boost platform
       }
-
-      let x = Math.random()*(W - 90);
-      let p = createPlatform(x, y, type);
-      // nudge to avoid stacking (try a few times)
-      for (let k=0;k<12;k++) {
+      let x = Math.random()*(W-90);
+      let p = createPlatform(x,y,type);
+      for(let k=0;k<12;k++){
         const collision = platforms.some(q => Math.abs(q.y - p.y) < 18 && Math.abs(q.x - p.x) < Math.max(40, (q.w+p.w)/2));
-        if (!collision) break;
+        if(!collision) break;
         p.x = Math.random()*(W - p.w - 16);
       }
       platforms.push(p);
 
-      // enemies are rare
-      if (i >= 8 && Math.random() < 0.06) {
-        enemies.push({ x: Math.random()*(W-40), y: p.y - 28, w: 28, h: 28, rowY: p.y - 28, seed: Math.random()*1000, type:'ghost' });
+      // enemies: spawn more often
+      if(i >= 4 && Math.random() < 0.14) {
+        enemies.push({ x: Math.random()*(W-40), y: p.y - 28, w:28, h:28, seed:Math.random()*1000 });
       }
 
-      // pickups (jetpack/hat) very rare
-      if (Math.random() < 0.03) {
-        pickups.push({ kind: Math.random() < 0.6 ? 'candy' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 34, picked:false });
+      // pickups more likely
+      if(Math.random() < 0.08){
+        pickups.push({ kind: Math.random() < 0.7 ? 'candy' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 36, picked:false });
       }
 
-      // blackholes: very rare and only later
-      if (i > 10 && Math.random() < 0.05) blackholes.push({ x: Math.random()*(W-60), y: y - 28, r: 24 });
+      // pumpkins rarer
+      if(i > 12 && Math.random() < 0.02) pumpkins.push({ x: Math.random()*(W-60), y: y - 28, r: 20 });
     }
-
     ensureNoSoftlock();
     platforms.sort((a,b)=> a.y - b.y);
   }
 
-  function ensureNoSoftlock() {
-    // ensure each ~120px band has at least one safe (non-break) platform
+  // ensure softlock free
+  function ensureNoSoftlock(){
     const bandMap = {};
     platforms.forEach(p => {
       const k = Math.floor(p.y / 120);
-      bandMap[k] = bandMap[k] || [];
-      bandMap[k].push(p);
+      (bandMap[k] = bandMap[k] || []).push(p);
     });
     Object.values(bandMap).forEach(band => {
       const hasSafe = band.some(p => p.type !== 'break');
-      if (!hasSafe && band.length > 0) {
-        band[0].type = 'static';
-      }
+      if(!hasSafe && band.length>0) band[0].type='static';
     });
-
-    // ensure vertical gaps never exceed reachable threshold
-    const maxJump = Math.abs(JUMP_VEL) * 7 + 80;
+    const maxJump = Math.abs(JUMP_VEL)*7 + 80;
     platforms.sort((a,b)=> a.y - b.y);
-    for (let i=1;i<platforms.length;i++) {
+    for(let i=1;i<platforms.length;i++){
       const dy = Math.abs(platforms[i].y - platforms[i-1].y);
-      if (dy > maxJump) {
+      if(dy > maxJump){
         const newY = Math.round((platforms[i].y + platforms[i-1].y)/2);
         let nx = Math.min(Math.max(20, platforms[i-1].x + 40), W - 120);
         let newP = createPlatform(nx, newY, 'static');
         let tries = 0;
-        while (platforms.some(q => Math.abs(q.y - newP.y) < 18 && Math.abs(q.x - newP.x) < Math.max(40, (q.w+newP.w)/2)) && tries++ < 10) {
+        while(platforms.some(q => Math.abs(q.y - newP.y) < 18 && Math.abs(q.x - newP.x) < Math.max(40, (q.w+newP.w)/2)) && tries++ < 10){
           newP.x = Math.random()*(W - newP.w - 16);
         }
         platforms.push(newP);
       }
     }
     platforms.sort((a,b)=> a.y - b.y);
-    // cap total platforms
-    if (platforms.length > MAX_PLATFORMS) platforms = platforms.slice(0, MAX_PLATFORMS);
+    if(platforms.length > MAX_PLATFORMS) platforms = platforms.slice(0, MAX_PLATFORMS);
   }
 
-  function rectsOverlap(a,b) {
-    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-  }
-
-  // input
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft') keys.left = true;
-    if (e.key === 'ArrowRight') keys.right = true;
-    if (e.key === 'f' && document.fullscreenEnabled) toggleFullscreen();
-  });
-  window.addEventListener('keyup', (e) => {
-    if (e.key === 'ArrowLeft') keys.left = false;
-    if (e.key === 'ArrowRight') keys.right = false;
-  });
-  canvas.addEventListener('touchstart', (e) => {
-    const t = e.touches[0];
-    if (t.clientX < window.innerWidth/2) { keys.left = true; keys.right = false; }
-    else { keys.right = true; keys.left = false; }
-  }, { passive:true });
-  canvas.addEventListener('touchend', () => { keys.left = keys.right = false; });
-
-  function update(dt) {
-    if (!player || !player.alive || frozen) return;
-
-    regeneratePlatforms(dt);
-
-    if (flightTimer > 0) {
-      // flightTimer path removed - we no longer use continuous flight; keep variable for legacy but ignore
-      flightTimer = 0;
-    }
-
-    if (keys.left) player.vx -= 0.6;
-    if (keys.right) player.vx += 0.6;
-    player.vx *= 0.96;
-
-    player.vy += GRAVITY;
-    player.x += player.vx;
-    player.y += player.vy;
-
-    // wrap horizontally
-    if (player.x > W) player.x = -player.w;
-    if (player.x + player.w < 0) player.x = W - 1;
-
-    // moving platforms
-    platforms.forEach(p => {
-      if (p.type === 'moving') {
-        p.x += p.vx * (dt/16.666);
-        if (p.x < p.minX || p.x > p.maxX) { p.vx *= -1; p.x = Math.max(p.minX, Math.min(p.x, p.maxX)); }
-      }
-    });
-
-    // landing with visibility checks
-    if (player.vy > 0) {
-      platforms.forEach(p => {
-        const platRect = { x: p.x, y: p.y, w: p.w, h: p.h };
-        const playerFoot = { x: player.x, y: player.y + player.h, w: player.w, h: 6 };
-        if (rectsOverlap(playerFoot, platRect) && (player.y + player.h - player.vy) <= p.y + 3 && canLandOnPlatform(p)) {
-          if (p.type === 'break') {
-            const reachable = platforms.some(q => q !== p && (q.type !== 'break') && (q.y < p.y) && (p.y - q.y) < 180);
-            if (!reachable) {
-              p.type = 'static';
-            } else {
-              player.vy = -9;
-              // mark as broken and start timer to regenerate; cannot be jumped on until fully restored
-              p.state = 'broken';
-              p.brokenAt = Date.now();
-            }
-          } else if (p.type === 'spring') {
-            player.vy = -22; // stronger spring
-            p.used = true;
-          } else if (p.type === 'jet') {
-            player.vy = -36; // jet platform huge boost
-            p.used = true;
-          } else {
-            player.vy = JUMP_VEL + (-Math.random()*2);
-          }
+  // continuous generator above player (keeps density consistent at high scores)
+  function generatePlatformsAbove(){
+    if(!player) return;
+    let minY = Infinity;
+    platforms.forEach(p => { if(p.y < minY) minY = p.y; });
+    if(minY === Infinity) minY = H - 20;
+    let attempts = 0;
+    while(minY > -140 && platforms.length < MAX_PLATFORMS && attempts++ < 80){
+      const gap = 34 + Math.random()*46;
+      const newY = Math.round(minY - gap);
+      const x = Math.random() * (W - 90);
+      let type = 'static';
+      const prog = Math.min(1, score/1000);
+      const r = Math.random();
+      if(r < 0.12 + 0.28*prog) type = 'break';
+      else if(r < 0.42 + 0.2*prog) type = 'moving';
+      else if(r < 0.46 + 0.06*prog) type = 'jet';
+      const p = createPlatform(x, newY, type);
+      if(!platforms.some(q => Math.abs(q.y - p.y) < 18 && Math.abs(q.x - p.x) < Math.max(40, (q.w+p.w)/2))){
+        platforms.push(p);
+        minY = p.y;
+      } else {
+        let tries = 0;
+        while(tries++ < 6 && platforms.some(q => Math.abs(q.y - p.y) < 18 && Math.abs(q.x - p.x) < Math.max(40, (q.w+p.w)/2))){
+          p.x = Math.random()*(W - p.w - 16);
         }
-      });
-    }
-
-    // remove any platforms marked for removal by other logic (keep regen logic intact)
-    platforms = platforms.filter(p => p !== undefined);
-
-    // pickups collisions (candy/hat) - immediate fixed momentum
-    pickups.forEach(it => {
-      if (!it.picked && rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:it.x,y:it.y,w:28,h:28})) {
-        it.picked = true;
-        if (it.kind === 'candy') {
-          player.vy = -40; // big fixed boost
-          score += 50;
-        } else if (it.kind === 'hat') {
-          player.vy = -28; // fixed hat boost
-          score += 35;
-        }
+        platforms.push(p);
+        minY = p.y;
       }
-    });
-
-    // enemies
-    enemies.forEach(e => {
-      e.x += Math.sin((Date.now() + e.seed) / 800) * 0.4;
-      if (rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:e.x,y:e.y,w:e.w,h:e.h})) {
-        killPlayer('enemy');
+      // pickups spawn noticeably more often up high
+      if(Math.random() < 0.06){
+        pickups.push({ kind: Math.random() < 0.75 ? 'candy' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 36, picked:false });
       }
-    });
-
-    // pumpkin collision (previously blackholes)
-    blackholes.forEach(b => {
-      const px = player.x + player.w/2, py = player.y + player.h/2;
-      const cx = b.x + b.r, cy = b.y + b.r;
-      const dx = px - cx, dy = py - cy;
-      if (dx*dx + dy*dy < (b.r + player.w/4)*(b.r + player.w/4)) killPlayer('pumpkin');
-    });
-
-    // scroll world if player high
-    if (player.y < SCROLL_THRESHOLD) {
-      const dy = Math.floor(SCROLL_THRESHOLD - player.y);
-      player.y = SCROLL_THRESHOLD;
-      platforms.forEach(p => p.y += dy);
-      enemies.forEach(e => e.y += dy);
-      blackholes.forEach(b => b.y += dy);
-      pickups.forEach(it => it.y += dy);
-      score += Math.floor(dy/8);
-      // ensure we always have enough platforms above when scrolling
-      generatePlatformsAbove();
+      // pumpkins rarer and later
+      if(Math.random() < 0.012 && score > 150) pumpkins.push({ x: Math.random()*(W-60), y: newY - 28, r: 20 });
+      // enemies more often
+      if(Math.random() < 0.08) enemies.push({ x: Math.random()*(W-40), y: newY - 28, w:28, h:28, seed:Math.random()*1000 });
     }
-
-    // fall death
-    if (player.y > H + 160) killPlayer('fall');
-
-    // runtime anti-softlock (rate-limited)
-    antiSoftlockRuntime();
-    // ensure continuous generation
-    generatePlatformsAbove();
+    trimPlatforms();
+    platforms.sort((a,b)=> a.y - b.y);
   }
 
-  // --- replaced/added functions & small handler fixes to address spawn, save, retry, auth ---
-  // runtime anti-softlock (rate-limited) + continuous generator
-  function antiSoftlockRuntime() {
-    if (!player) return;
+  function antiSoftlockRuntime(){
+    if(!player) return;
     const nowTs = Date.now();
-    if (nowTs - lastAntiSoftlockAt < ANTI_SOFTLOCK_COOLDOWN) return;
-
-    // If there are very few platforms near player or none above the view, generate more above
+    if(nowTs - lastAntiSoftlockAt < ANTI_SOFTLOCK_COOLDOWN) return;
     const dangerZone = platforms.filter(p => p.y > player.y - 40 && p.y < player.y + 240);
     const hasSafe = dangerZone.some(p => p.type !== 'break');
-    if (!hasSafe) {
+    if(!hasSafe){
       const y = Math.round(player.y - 140);
-      if (!platforms.some(p => Math.abs(p.y - y) < 22)) {
+      if(!platforms.some(p => Math.abs(p.y - y) < 22)){
         let nx = Math.min(Math.max(40, player.x + 40), W - 120);
         let np = createPlatform(nx, y, 'static');
         let tries = 0;
-        while (platforms.some(q => Math.abs(q.y - np.y) < 18 && Math.abs(q.x - np.x) < Math.max(40, (q.w+np.w)/2)) && tries++ < 8) {
+        while(platforms.some(q => Math.abs(q.y - np.y) < 18 && Math.abs(q.x - np.x) < Math.max(40, (q.w+np.w)/2)) && tries++ < 8){
           np.x = Math.random()*(W - np.w - 16);
         }
         platforms.push(np);
@@ -423,527 +298,187 @@
     }
   }
 
-  // ensure we always have enough platforms above view as player climbs
-  function generatePlatformsAbove() {
-    if (!player) return;
-    // find current highest (min y)
-    let minY = Infinity;
-    platforms.forEach(p => { if (p.y < minY) minY = p.y; });
-    if (minY === Infinity) minY = H - 20;
-
-    // desired "coverage" above screen: keep generating until minY < -60 (i.e. we have platforms above viewport)
-    let attempts = 0;
-    while (minY > -80 && platforms.length < MAX_PLATFORMS && attempts++ < 40) {
-      // create a new platform a bit above the current minY
-      const gap = 36 + Math.random()*48;
-      const newY = Math.round(minY - gap);
-      const x = Math.random() * (W - 90);
-      // difficulty progression: more hazards as score increases
-      let type = 'static';
-      const prog = Math.min(1, score / 800); // scale 0..1
-      const r = Math.random();
-      if (r < 0.08 + 0.2 * prog) type = 'break';
-      else if (r < 0.18 + 0.2 * prog) type = 'moving';
-      else if (r < 0.28) type = 'spring';
-      else if (r < 0.30 + 0.06 * prog) type = 'jet';
-      const p = createPlatform(x, newY, type);
-      // avoid too-close vertical overlap
-      if (!platforms.some(q => Math.abs(q.y - p.y) < 18 && Math.abs(q.x - p.x) < Math.max(40, (q.w+p.w)/2))) {
-        platforms.push(p);
-        minY = p.y;
-      } else {
-        // nudge and retry a few times
-        let tries = 0;
-        while (tries++ < 6 && platforms.some(q => Math.abs(q.y - p.y) < 18 && Math.abs(q.x - p.x) < Math.max(40, (q.w+p.w)/2))) {
-          p.x = Math.random()*(W - p.w - 16);
-        }
-        platforms.push(p);
-        minY = p.y;
-      }
-
-      // very rare pickups and blackholes spawn on some of the new platforms
-      if (Math.random() < 0.015) {
-        pickups.push({ kind: Math.random() < 0.6 ? 'candy' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 34, picked:false });
-      }
-      if (Math.random() < 0.02 && score > 60) {
-        blackholes.push({ x: Math.random()*(W-60), y: newY - 28, r: 22 });
-      }
-    }
-
-    trimPlatforms();
-    platforms.sort((a,b)=> a.y - b.y);
-  }
-
-  // remove platforms that are far below the screen and cap total
-  function trimPlatforms() {
-    // remove those far below viewport
-    platforms = platforms.filter(p => p.y < H + 200);
-    // cap total to avoid runaway
-    if (platforms.length > MAX_PLATFORMS) {
-      // prefer to keep higher platforms (small y)
+  function trimPlatforms(){
+    platforms = platforms.filter(p => p.y < H + 260);
+    if(platforms.length > MAX_PLATFORMS){
       platforms.sort((a,b)=> a.y - b.y);
       platforms = platforms.slice(0, MAX_PLATFORMS);
     }
   }
 
-  function drawBackground(nowTimeSec) {
-    if (!backgroundRoot) return;
-    if (!backgroundRoot.dataset.initted) {
-      backgroundRoot.dataset.initted = '1';
-      // falling leaves and pumpkins
-      for (let i=0;i<18;i++) {
-        const leaf = document.createElement('div');
-        leaf.className = 'leaf';
-        leaf.style.left = `${Math.random()*100}%`;
-        leaf.style.top = `${-10 - Math.random()*40}%`;
-        leaf.style.animationDelay = `${Math.random()*6}s`;
-        leaf.style.transform = `scale(${0.6 + Math.random()*0.8}) rotate(${Math.random()*360}deg)`;
-        backgroundRoot.appendChild(leaf);
+  // regeneration for breakables
+  function regeneratePlatforms(){
+    const nowTs = Date.now();
+    platforms.forEach(p => {
+      if(p.state === 'broken' && (nowTs - (p.brokenAt || 0) >= REGEN_MS)){
+        p.state = undefined;
+        p.type = 'static';
+        p.used = false;
       }
-      for (let i=0;i<6;i++) {
-        const pk = document.createElement('div');
-        pk.className = 'bg-pumpkin';
-        pk.style.left = `${Math.random()*100}%`;
-        pk.style.top = `${-20 - Math.random()*60}%`;
-        pk.style.animationDelay = `${Math.random()*12}s`;
-        backgroundRoot.appendChild(pk);
-      }
+    });
+  }
+
+  // draw background elements (leaves & pumpkins)
+  function initBackgroundElements(){
+    if(!backgroundRoot) return;
+    if(backgroundRoot.dataset.initted) return;
+    backgroundRoot.dataset.initted = '1';
+    for(let i=0;i<20;i++){
+      const leaf = document.createElement('div'); leaf.className='leaf';
+      leaf.style.left = `${Math.random()*100}%`;
+      leaf.style.top = `${-10 - Math.random()*60}%`;
+      leaf.style.animationDelay = `${Math.random()*10}s`;
+      backgroundRoot.appendChild(leaf);
+    }
+    for(let i=0;i<8;i++){
+      const pk = document.createElement('div'); pk.className='bg-pumpkin';
+      pk.style.left = `${Math.random()*100}%`;
+      pk.style.top = `${-20 - Math.random()*60}%`;
+      pk.style.animationDelay = `${Math.random()*12}s`;
+      backgroundRoot.appendChild(pk);
     }
   }
 
-  function draw(nowTime) {
-    // clear canvas
+  // draw everything
+  function draw(){
     ctx.clearRect(0,0,W,H);
-
-    // background gradient
     const bg = ctx.createLinearGradient(0,0,0,H);
-    bg.addColorStop(0, '#070306');
-    bg.addColorStop(1, '#0b0305');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0,0,W,H);
+    bg.addColorStop(0,'#070306'); bg.addColorStop(1,'#0b0305');
+    ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
 
-    // blackholes: more visible and pumpkin-ringed
-    blackholes.forEach(b => {
+    // pumpkins
+    pumpkins.forEach(b => {
       const cx = b.x + b.r, cy = b.y + b.r;
-      // outer glow
       const g = ctx.createRadialGradient(cx,cy,b.r*0.6,cx,cy,b.r*2.5);
-      g.addColorStop(0, 'rgba(255,120,0,0.28)');
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(cx,cy,b.r*2,0,Math.PI*2);
-      ctx.fill();
-      // pumpkin ring
-      ctx.fillStyle = '#ff8c00';
-      ctx.beginPath();
-      ctx.arc(cx,cy,b.r*1.1,0,Math.PI*2);
-      ctx.fill();
-      // center hole
-      ctx.fillStyle = '#000';
-      ctx.beginPath();
-      ctx.arc(cx,cy,b.r*0.8,0,Math.PI*2);
-      ctx.fill();
-      // carved eyes
-      ctx.fillStyle = '#200';
-      ctx.beginPath();
-      ctx.moveTo(cx - 8, cy - 2);
-      ctx.quadraticCurveTo(cx - 2, cy - 10, cx + 6, cy - 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(cx - 10, cy + 6);
-      ctx.quadraticCurveTo(cx - 2, cy + 12, cx + 10, cy + 6);
-      ctx.fill();
+      g.addColorStop(0,'rgba(255,140,40,0.35)'); g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx,cy,b.r*2,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#ff8c00'; ctx.beginPath(); ctx.arc(cx,cy,b.r*1.1,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(cx,cy,b.r*0.8,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#200'; ctx.beginPath(); ctx.moveTo(cx - 8, cy - 2); ctx.quadraticCurveTo(cx - 2, cy - 10, cx + 6, cy - 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx - 10, cy + 6); ctx.quadraticCurveTo(cx - 2, cy + 12, cx + 10, cy + 6); ctx.fill();
     });
 
     // platforms
     platforms.forEach(p => {
-      if (p.type === 'break') ctx.fillStyle = '#5a1b1b';
-      else if (p.type === 'spring') ctx.fillStyle = '#ffd86b';
-      else if (p.type === 'jet') ctx.fillStyle = '#7fe0ff';
-      else if (p.type === 'moving') ctx.fillStyle = '#bb7f3a';
-      else ctx.fillStyle = '#884422';
+      // alpha for broken
+      const alpha = (p.state === 'broken') ? 0.25 : 1.0;
+      ctx.globalAlpha = alpha;
+      let color = '#884422';
+      if(p.type === 'break') color = '#5a1b1b';
+      else if(p.type === 'jet') color = '#7fe0ff';
+      else if(p.type === 'moving') color = '#bb7f3a';
+      ctx.fillStyle = color;
       ctx.fillRect(p.x, p.y, p.w, p.h);
-      ctx.strokeStyle = '#000';
-      ctx.strokeRect(p.x, p.y, p.w, p.h);
-
-      // spring visual
-      if (p.type === 'spring') {
-        ctx.fillStyle = '#c15a00';
-        ctx.fillRect(p.x + p.w/2 - 6, p.y - 8, 12, 6);
+      ctx.strokeStyle = '#000'; ctx.strokeRect(p.x, p.y, p.w, p.h);
+      if(p.state === 'broken'){
+        ctx.globalAlpha = 0.35;
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath();
+        ctx.moveTo(p.x + 4, p.y + 2); ctx.lineTo(p.x + p.w - 4, p.y + 2); ctx.stroke();
       }
+      ctx.globalAlpha = 1.0;
     });
 
-    // pickups (jetpack/hat) - larger visuals
+    // pickups: candy big & glowing, hat large
     pickups.forEach(it => {
-      if (it.picked) return;
-      if (it.kind === 'jetpack') {
-        ctx.fillStyle = '#39d7ff';
-        ctx.fillRect(it.x - 6, it.y - 6, 36, 24);
-        ctx.fillStyle = '#222';
-        ctx.fillRect(it.x - 2, it.y - 2, 6, 12);
-        ctx.fillRect(it.x + 22, it.y - 2, 6, 12);
-      } else if (it.kind === 'hat') {
-        ctx.fillStyle = '#8b2a8b';
-        ctx.beginPath();
-        ctx.moveTo(it.x - 2, it.y + 18);
-        ctx.quadraticCurveTo(it.x + 12, it.y - 10, it.x + 32, it.y + 18);
-        ctx.fill();
+      if(it.picked) return;
+      const cx = it.x + 14, cy = it.y + 14;
+      if(it.kind === 'candy'){
+        const rad = 16;
+        const grad = ctx.createRadialGradient(cx,cy,2,cx,cy,rad*1.8);
+        grad.addColorStop(0,'rgba(255,255,180,0.98)'); grad.addColorStop(0.4,'rgba(255,140,60,0.95)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(cx,cy,rad*1.1,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#ffd84d'; ctx.beginPath(); ctx.arc(cx,cy,rad,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#ff6b35'; ctx.lineWidth = 2; ctx.beginPath();
+        ctx.moveTo(cx-8,cy-6); ctx.quadraticCurveTo(cx,cy, cx+8,cy+6); ctx.stroke();
+      } else if(it.kind === 'hat'){
+        ctx.fillStyle = '#9b2fa0';
+        ctx.beginPath(); ctx.ellipse(cx, cy-2, 22, 10, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#4b0d4b'; ctx.fillRect(cx-8, cy+2, 16, 6);
       }
     });
 
     // enemies
     enemies.forEach(e => {
-      ctx.fillStyle = scaryMode ? '#6a0000' : '#ffffff';
-      ctx.fillRect(e.x, e.y, e.w, e.h);
-      ctx.fillStyle = '#000';
-      ctx.fillRect(e.x + 5, e.y + 6, 6, 6);
-      ctx.fillRect(e.x + e.w - 11, e.y + 6, 6, 6);
+      ctx.fillStyle = '#fff'; ctx.fillRect(e.x, e.y, e.w, e.h);
+      ctx.fillStyle = '#000'; ctx.fillRect(e.x + 5, e.y + 6, 6, 6); ctx.fillRect(e.x + e.w - 11, e.y + 6, 6, 6);
     });
 
     // player
-    if (player) {
-      ctx.fillStyle = scaryMode ? '#ff0000' : '#ffd86b';
-      ctx.beginPath();
-      ctx.ellipse(player.x + player.w/2, player.y + player.h/2, player.w/2, player.h/2, 0, 0, Math.PI*2);
-      ctx.fill();
-      ctx.fillStyle = '#000';
-      ctx.beginPath();
-      ctx.arc(player.x + player.w*0.35, player.y + player.h*0.35, 3, 0, Math.PI*2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(player.x + player.w*0.65, player.y + player.h*0.35, 3, 0, Math.PI*2);
-      ctx.fill();
+    if(player){
+      ctx.fillStyle = '#ffd86b'; ctx.beginPath();
+      ctx.ellipse(player.x + player.w/2, player.y + player.h/2, player.w/2, player.h/2, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(player.x + player.w*0.35, player.y + player.h*0.35, 3, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(player.x + player.w*0.65, player.y + player.h*0.35, 3, 0, Math.PI*2); ctx.fill();
     }
 
-    // small scary glitch overlay occasionally in scary mode
-    if (scaryMode && Math.random() < 0.002) {
-      ctx.fillStyle = 'rgba(255,0,0,0.06)';
-      ctx.fillRect(0, Math.random()*H, W, 4 + Math.random()*40);
+    // occasional scary glitch
+    if(scaryMode && Math.random() < 0.002){
+      ctx.fillStyle = 'rgba(255,0,0,0.06)'; ctx.fillRect(0, Math.random()*H, W, 4 + Math.random()*40);
     }
   }
 
-  function loop(nowTime) {
-    const dt = Math.min(32, nowTime - lastTime);
-    lastTime = nowTime;
-    drawBackground(nowTime / 1000);
-    draw(nowTime / 1000);
-    if (running) {
-      update(dt/16.666);
-      if (bigScoreEl) bigScoreEl.textContent = `Score: ${score}`;
-      updateTimers();
-    }
-    animationId = requestAnimationFrame(loop);
-  }
+  // main update
+  function update(dtNorm){
+    if(!player || !player.alive || frozen) return;
+    // dtNorm is fraction relative to 16.666ms; convert to ms for flight timers
+    const dtMs = Math.max(0, dtNorm * 16.666);
 
-  function killPlayer(reason) {
-    if (!player || !player.alive) return;
-    player.alive = false;
-    running = false;
-    finalScoreEl.textContent = score;
-    const within = Date.now() <= GAME_END_TS;
-    submitNote.textContent = within ? 'This score is within the event window and can be submitted to the main leaderboard.' : 'Event window ended — score will be recorded in the day leaderboard only.';
-
-    // If fullscreen, do not show popups (require user to exit FS to save)
-    if (document.fullscreenElement === playbound) {
-      // just stop the game but don't show modals
-      // show small top HUD change (optional) - here we just return
-      return;
-    }
-
-    gameOverModal.classList.remove('hidden');
-
-    if (scaryMode) { doJumpscareBig(); if (Math.random() < 0.6) glitchFreezeBrief(); }
-  }
-
-  // start / reset
-  function startGame() {
-    if (running) return;
-    // hide overlays when starting in fullscreen
-    if (document.fullscreenElement === playbound) {
-      if (playOverlay) playOverlay.classList.add('hidden');
-      if (gameOverModal) gameOverModal.classList.add('hidden');
-    }
-    spawnInitial();
-    player = createPlayer();
-    score = 0;
-    running = true;
-    lastTime = performance.now();
-    if (!animationId) animationId = requestAnimationFrame(loop);
-    playOverlay && playOverlay.classList.add('hidden');
-  }
-
-  function resetToPlayOnly() {
-    gameOverModal.classList.add('hidden');
-    playOverlay.classList.remove('hidden');
-    if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
-    running = false;
-  }
-
-  // leaderboard persistence & submission (require firebase; do not persist locally)
-  function loadLocalScores() { try { return JSON.parse(localStorage.getItem(DAY1_KEY) || '[]'); } catch (e) { return []; } }
-  function saveLocalScore(entry) { /* disabled per request - do nothing */ }
-
-  // submitScoreToFirestoreDocs: ensure one leaderboard slot per user (use uid as doc id)
-  async function submitScoreToFirestoreDocs(entry) {
-    try {
-      if (!window.firebaseReady || !window.firebaseDb || !window.firebaseSetDoc || !window.firebaseDoc) {
-        console.warn('Firebase not available; cannot save remotely.');
-        return { ok: false, reason: 'no-firebase' };
-      }
-      // if we have uid, use it as doc id so only one slot per user
-      const id = entry.uid ? entry.uid : `${Date.now()}_${entry.uid||'anon'}`;
-      const docRef = window.firebaseDoc(window.firebaseDb, 'day1_scores', id);
-
-      // If user doc exists, fetch existing score and only write if new score is higher
-      if (entry.uid && window.firebaseGetDoc) {
-        const existing = await window.firebaseGetDoc(docRef);
-        if (existing && existing.exists && existing.exists()) {
-          const data = existing.data();
-          if ((data.score || 0) >= entry.score) {
-            // still update user totals but do not overwrite day1 slot
-            // update user totals below
-          } else {
-            await window.firebaseSetDoc(docRef, entry);
-          }
-        } else {
-          await window.firebaseSetDoc(docRef, entry);
-        }
-      } else {
-        // anonymous fallback (timestamp id)
-        await window.firebaseSetDoc(docRef, entry);
-      }
-
-      // update user's aggregated totals if uid present
-      if (entry.uid && window.firebaseGetDoc && window.firebaseSetDoc) {
-        const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', entry.uid);
-        const snap = await window.firebaseGetDoc(userDocRef);
-        let docData = {};
-        if (snap && snap.exists && snap.exists()) {
-          docData = snap.data();
-        } else {
-          docData = { username: entry.playerName, email: (window.currentUser && window.currentUser.email) || '', createdAt: new Date(), scores: { day1:0,day2:0,day3:0,day4:0,day5:0, total:0 } };
-        }
-        docData.scores = docData.scores || {};
-        docData.scores.day1 = Math.max(docData.scores.day1 || 0, entry.score);
-        const s = docData.scores;
-        docData.scores.total = (s.day1||0)+(s.day2||0)+(s.day3||0)+(s.day4||0)+(s.day5||0);
-        await window.firebaseSetDoc(userDocRef, docData);
-      }
-
-      return { ok: true };
-    } catch (err) {
-      console.error('Failed to submit score to Firestore:', err);
-      return { ok: false, reason: err && err.message ? err.message : 'unknown' };
-    }
-  }
-
-  // handleSubmitScore: try silent currentUser, otherwise start Google sign-in flow (no alerts), show signin UI inside playbound and then save
-  async function handleSubmitScore() {
-    // prefer firebase auth current user
-    const fbUser = (window.firebaseAuth && window.firebaseAuth.currentUser) ? window.firebaseAuth.currentUser : null;
-    const uid = fbUser ? fbUser.uid : null;
-    const name = (window.userData && window.userData.username) ? window.userData.username : (fbUser && fbUser.email ? fbUser.email.split('@')[0] : 'Anonymous');
-    const entry = { score, playerName: name, uid, ts: Date.now(), withinEvent: Date.now() <= GAME_END_TS };
-
-    if (!uid) {
-      // initiate Google sign-in popup (inside game flow). Do not use alerts.
-      if (window.firebaseSignInWithPopup && window.firebaseAuth && window.googleProvider) {
-        try {
-          const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.googleProvider);
-          const user = result.user;
-          // if user is new or missing username, prompt for username inline
-          const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', user.uid);
-          let snap = null;
-          if (window.firebaseGetDoc) snap = await window.firebaseGetDoc(userDocRef);
-          let playerName = user.displayName || user.email.split('@')[0];
-          if (!snap || !(snap.exists && snap.exists())) {
-            // show inline username prompt inside playbound
-            const unameModal = document.createElement('div');
-            unameModal.className = 'modal';
-            unameModal.innerHTML = `<div class="modal-content" style="padding:12px;"><h3>Choose a username</h3><input id="inline-username" style="width:100%;padding:8px;margin-top:8px;border-radius:6px;border:1px solid #333;background:#111;color:#ffdca8"/><div style="display:flex;gap:8px;margin-top:10px;"><button id="uname-save" class="btn-primary">Save</button><button id="uname-cancel" class="btn-secondary">Cancel</button></div></div>`;
-            playbound.appendChild(unameModal);
-            const input = unameModal.querySelector('#inline-username');
-            const saveBtn = unameModal.querySelector('#uname-save');
-            const cancelBtn = unameModal.querySelector('#uname-cancel');
-            saveBtn.addEventListener('click', async () => {
-              const val = (input.value || '').trim() || playerName;
-              playerName = val;
-              // create user doc with scores
-              const docData = { username: val, email: user.email || '', createdAt: new Date(), scores: { day1:entry.score, day2:0,day3:0,day4:0,day5:0, total: entry.score } };
-              if (window.firebaseSetDoc) await window.firebaseSetDoc(userDocRef, docData);
-              unameModal.remove();
-              entry.uid = user.uid;
-              entry.playerName = val;
-              const r = await submitScoreToFirestoreDocs(entry);
-              if (r.ok) showToast('Score saved');
-              else showToast('Save failed');
-            });
-            cancelBtn.addEventListener('click', () => { unameModal.remove(); showToast('Sign in cancelled'); });
-            return;
-          } else {
-            // user exists, continue and save
-            entry.uid = user.uid;
-            entry.playerName = playerName;
-            const r = await submitScoreToFirestoreDocs(entry);
-            if (r.ok) showToast('Score saved');
-            else showToast('Save failed');
-            return;
-          }
-        } catch (err) {
-          console.error('Sign-in failed', err);
-          showToast('Sign-in failed');
-          return;
-        }
-      } else {
-        // no firebase sign-in available
-        showToast('Sign-in unavailable');
-        return;
-      }
-    }
-
-    // if uid exists, submit and show inline toast instead of alert
-    const res = await submitScoreToFirestoreDocs(entry);
-    if (!res.ok) {
-      showToast('Saving failed');
-    } else {
-      showToast('Score saved');
-    }
-
-    if (document.fullscreenElement === playbound) {
-      // keep overlays hidden in fullscreen
-      hideModal(gameOverModal);
-    } else {
-      hideModal(gameOverModal);
-      hideModal(playOverlay);
-    }
-  }
-
-  // --- fix: submit score should check Firebase auth.currentUser (so being logged in on index.html is recognized) ---
-  async function handleSubmitScore() {
-    // prefer firebase auth current user
-    const fbUser = (window.firebaseAuth && window.firebaseAuth.currentUser) ? window.firebaseAuth.currentUser : null;
-    const uid = fbUser ? fbUser.uid : null;
-    const name = (window.userData && window.userData.username) ? window.userData.username : (fbUser && fbUser.email ? fbUser.email.split('@')[0] : 'Anonymous');
-    const entry = { score, playerName: name, uid, ts: Date.now(), withinEvent: Date.now() <= GAME_END_TS };
-
-    if (!uid) {
-      pendingSaveEntry = entry;
-      // show the sign-in modal from index.html (if present)
-      const loginModal = document.getElementById('login-modal');
-      if (loginModal) loginModal.classList.remove('hidden');
-      // Also request a fresh onAuthStateChanged callback in case firebase has user persisted but hasn't populated currentUser yet
-      if (window.firebaseOnAuthStateChanged && window.firebaseAuth) {
-        // attempt a one-time wait for auth
-        const waitForAuth = new Promise((resolve) => {
-          const off = window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
-            off && off(); // unsubscribe if the API returns a function
-            resolve(user);
-          });
-          // fallback timeout
-          setTimeout(() => resolve(null), 1500);
-        });
-        const possibleUser = await waitForAuth;
-        if (possibleUser) {
-          // auto-submit if auth appears
-          pendingSaveEntry.uid = possibleUser.uid;
-          pendingSaveEntry.playerName = (window.userData && window.userData.username) ? window.userData.username : (possibleUser.email ? possibleUser.email.split('@')[0] : 'User');
-          const r = await submitScoreToFirestoreDocs(pendingSaveEntry);
-          if (!r.ok) alert('Auto-save after sign in failed: ' + (r.reason || 'unknown'));
-          pendingSaveEntry = null;
-          return;
-        }
-      }
-
-      alert('Sign in is required to save to the main leaderboard. Please sign in via the modal and the save will complete automatically.');
-      return;
-    }
-
-    const res = await submitScoreToFirestoreDocs(entry);
-    if (!res.ok) {
-      alert('Saving score failed: ' + (res.reason || 'unknown') + '.');
-    } else {
-      alert('Score saved.');
-    }
-
-    if (document.fullscreenElement === playbound) {
-      // keep overlays hidden in fullscreen
-    } else {
-      gameOverModal.classList.add('hidden');
-      playOverlay.classList.remove('hidden');
-    }
-  }
-  // --- ensure retry/play again immediately restarts and hides overlays ---
-  // replace retry handler wiring:
-  retryBtn && retryBtn.addEventListener('click', ()=> {
-    // hide overlays unconditionally then start
-    if (gameOverModal) gameOverModal.classList.add('hidden');
-    if (playOverlay) playOverlay.classList.add('hidden');
-    // small delay to ensure DOM state cleared
-    setTimeout(() => startGame(), 30);
-  });
-
-  // Also ensure play button immediately starts (already wired) but keep overlay hidden in fullscreen
-  playBtn && playBtn.addEventListener('click', () => {
-    if (document.fullscreenElement === playbound) {
-      playOverlay && playOverlay.classList.add('hidden');
-      gameOverModal && gameOverModal.classList.add('hidden');
-    }
-    startGame();
-  });
-
-  // Hook into the main loop scroll to generate above when player scrolls
-  // We'll wrap the existing scroll behavior inside update() to call generatePlatformsAbove();
-  // Find the place where scrolling occurs (player.y < SCROLL_THRESHOLD) and after the code block append:
-  // generatePlatformsAbove();
-  function update(dt) {
-    if (!player || !player.alive || frozen) return;
-
-    if (flightTimer > 0) {
-      player.vy -= 0.45; // much stronger thrust when flying
-      flightTimer -= dt * 0.016666;
-    }
-
-    if (keys.left) player.vx -= 0.6;
-    if (keys.right) player.vx += 0.6;
+    regeneratePlatforms();
+    // inputs
+    if(keys.left) player.vx -= 0.7;
+    if(keys.right) player.vx += 0.7;
     player.vx *= 0.96;
 
+    // gravity
     player.vy += GRAVITY;
+
+    // flight: if player.flight exists hold/taper velocity
+    if(player.flight){
+      player.flight.remaining -= dtMs;
+      if(player.flight.remaining > player.flight.taper){
+        player.vy = -player.flight.vel;
+      } else if(player.flight.remaining > 0){
+        const frac = Math.max(0, player.flight.remaining / player.flight.taper);
+        player.vy = -player.flight.vel * frac;
+      } else {
+        player.flight = null;
+      }
+    }
+
     player.x += player.vx;
     player.y += player.vy;
 
-    // wrap horizontally
-    if (player.x > W) player.x = -player.w;
-    if (player.x + player.w < 0) player.x = W - 1;
+    // wrap horizontal
+    if(player.x > W) player.x = -player.w;
+    if(player.x + player.w < 0) player.x = W - 1;
 
-    // moving platforms
+    // moving platforms velocity update (varied speeds)
     platforms.forEach(p => {
-      if (p.type === 'moving') {
-        p.x += p.vx * (dt/16.666);
-        if (p.x < p.minX || p.x > p.maxX) { p.vx *= -1; p.x = Math.max(p.minX, Math.min(p.x, p.maxX)); }
+      if(p.type === 'moving'){
+        p.x += p.vx * (dtNorm);
+        if(p.x < p.minX || p.x > p.maxX){ p.vx *= -1; p.x = Math.max(p.minX, Math.min(p.x, p.maxX)); }
       }
     });
 
     // landing
-    if (player.vy > 0) {
+    if(player.vy > 0){
       platforms.forEach(p => {
         const platRect = { x: p.x, y: p.y, w: p.w, h: p.h };
         const playerFoot = { x: player.x, y: player.y + player.h, w: player.w, h: 6 };
-        if (rectsOverlap(playerFoot, platRect) && (player.y + player.h - player.vy) <= p.y + 3 && canLandOnPlatform(p)) {
-          if (p.type === 'break') {
+        if(rectsOverlap(playerFoot, platRect) && (player.y + player.h - player.vy) <= p.y + 3 && canLandOnPlatform(p)){
+          if(p.type === 'break'){
             const reachable = platforms.some(q => q !== p && (q.type !== 'break') && (q.y < p.y) && (p.y - q.y) < 180);
-            if (!reachable) {
+            if(!reachable){
               p.type = 'static';
             } else {
               player.vy = -9;
-              // mark as broken and start timer to regenerate; cannot be jumped on until fully restored
               p.state = 'broken';
               p.brokenAt = Date.now();
             }
-          } else if (p.type === 'spring') {
-            player.vy = -22; // stronger spring
-            p.used = true;
-          } else if (p.type === 'jet') {
-            player.vy = -36; // jet platform huge boost
+          } else if(p.type === 'jet'){
+            // platform boost
+            player.flight = { remaining: 1800, vel:40, taper:350 };
+            player.vy = -player.flight.vel;
             p.used = true;
           } else {
             player.vy = JUMP_VEL + (-Math.random()*2);
@@ -952,590 +487,264 @@
       });
     }
 
-    // remove broken
-    platforms = platforms.filter(p => !p.toRemove);
+    // cleanup placeholder removal if any (we keep regen logic)
+    platforms = platforms.filter(p => p !== undefined);
 
-    // pickups (jetpack/hat)
+    // pickups collision -> set flight object (hold + taper)
     pickups.forEach(it => {
-      if (!it.picked && rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:it.x,y:it.y,w:28,h:28})) {
+      if(!it.picked && rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:it.x,y:it.y,w:28,h:28})){
         it.picked = true;
-        if (it.kind === 'candy') {
-          player.vy = -36; // big fixed boost
-          score += 50;
-        } else if (it.kind === 'hat') {
-          player.vy = -26; // fixed hat boost
-          score += 35;
+        if(it.kind === 'candy'){
+          player.flight = { remaining: 2400, vel:46, taper:500 }; // candy strong long
+          player.vy = -player.flight.vel;
+          score += 70;
+        } else if(it.kind === 'hat'){
+          player.flight = { remaining: 2100, vel:40, taper:450 }; // witch hat stronger
+          player.vy = -player.flight.vel;
+          score += 55;
         }
       }
     });
 
-    // enemies (very rare, stay in row)
+    // enemies more active
     enemies.forEach(e => {
-      e.x += Math.sin((Date.now() + e.seed) / 800) * 0.4;
-      if (rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:e.x,y:e.y,w:e.w,h:e.h})) {
+      e.x += Math.sin((Date.now() + e.seed) / 600) * (0.6 + Math.random()*0.4);
+      if(rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:e.x,y:e.y,w:e.w,h:e.h})){
         killPlayer('enemy');
       }
     });
 
-    // pumpkin collision (previously blackholes)
-    blackholes.forEach(b => {
+    // pumpkin collision
+    pumpkins.forEach(b => {
       const px = player.x + player.w/2, py = player.y + player.h/2;
       const cx = b.x + b.r, cy = b.y + b.r;
       const dx = px - cx, dy = py - cy;
-      if (dx*dx + dy*dy < (b.r + player.w/4)*(b.r + player.w/4)) killPlayer('pumpkin');
+      if(dx*dx + dy*dy < (b.r + player.w/4)*(b.r + player.w/4)) killPlayer('pumpkin');
     });
 
-    // scroll world if player high
-    if (player.y < SCROLL_THRESHOLD) {
+    // scroll world
+    if(player.y < SCROLL_THRESHOLD){
       const dy = Math.floor(SCROLL_THRESHOLD - player.y);
       player.y = SCROLL_THRESHOLD;
       platforms.forEach(p => p.y += dy);
       enemies.forEach(e => e.y += dy);
-      blackholes.forEach(b => b.y += dy);
+      pumpkins.forEach(b => b.y += dy);
       pickups.forEach(it => it.y += dy);
       score += Math.floor(dy/8);
-      // ensure we always have enough platforms above when scrolling
       generatePlatformsAbove();
     }
 
     // fall death
-    if (player.y > H + 160) killPlayer('fall');
+    if(player.y > H + 180) killPlayer('fall');
 
-    // runtime anti-softlock (rate-limited)
     antiSoftlockRuntime();
-    // ensure continuous generation
     generatePlatformsAbove();
   }
 
-  // ensure we always have enough platforms above view as player climbs
-  function generatePlatformsAbove() {
-    if (!player) return;
-    // find current highest (min y)
-    let minY = Infinity;
-    platforms.forEach(p => { if (p.y < minY) minY = p.y; });
-    if (minY === Infinity) minY = H - 20;
-
-    // desired "coverage" above screen: keep generating until minY < -60 (i.e. we have platforms above viewport)
-    let attempts = 0;
-    while (minY > -80 && platforms.length < MAX_PLATFORMS && attempts++ < 40) {
-      // create a new platform a bit above the current minY
-      const gap = 36 + Math.random()*48;
-      const newY = Math.round(minY - gap);
-      const x = Math.random() * (W - 90);
-      // difficulty progression: more hazards as score increases
-      let type = 'static';
-      const prog = Math.min(1, score / 800); // scale 0..1
-      const r = Math.random();
-      if (r < 0.08 + 0.2 * prog) type = 'break';
-      else if (r < 0.18 + 0.2 * prog) type = 'moving';
-      else if (r < 0.28) type = 'spring';
-      else if (r < 0.30 + 0.06 * prog) type = 'jet';
-      const p = createPlatform(x, newY, type);
-      // avoid too-close vertical overlap
-      if (!platforms.some(q => Math.abs(q.y - p.y) < 18 && Math.abs(q.x - p.x) < Math.max(40, (q.w+p.w)/2))) {
-        platforms.push(p);
-        minY = p.y;
-      } else {
-        // nudge and retry a few times
-        let tries = 0;
-        while (tries++ < 6 && platforms.some(q => Math.abs(q.y - p.y) < 18 && Math.abs(q.x - p.x) < Math.max(40, (q.w+p.w)/2))) {
-          p.x = Math.random()*(W - p.w - 16);
-        }
-        platforms.push(p);
-        minY = p.y;
-      }
-
-      // very rare pickups and blackholes spawn on some of the new platforms
-      if (Math.random() < 0.015) {
-        pickups.push({ kind: Math.random() < 0.6 ? 'candy' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 34, picked:false });
-      }
-      if (Math.random() < 0.02 && score > 60) {
-        blackholes.push({ x: Math.random()*(W-60), y: newY - 28, r: 22 });
-      }
-    }
-
-    trimPlatforms();
-    platforms.sort((a,b)=> a.y - b.y);
-  }
-
-  // remove platforms that are far below the screen and cap total
-  function trimPlatforms() {
-    // remove those far below viewport
-    platforms = platforms.filter(p => p.y < H + 200);
-    // cap total to avoid runaway
-    if (platforms.length > MAX_PLATFORMS) {
-      // prefer to keep higher platforms (small y)
-      platforms.sort((a,b)=> a.y - b.y);
-      platforms = platforms.slice(0, MAX_PLATFORMS);
-    }
-  }
-
-  function drawBackground(nowTimeSec) {
-    if (!backgroundRoot) return;
-    if (!backgroundRoot.dataset.initted) {
-      backgroundRoot.dataset.initted = '1';
-      // falling leaves and pumpkins
-      for (let i=0;i<18;i++) {
-        const leaf = document.createElement('div');
-        leaf.className = 'leaf';
-        leaf.style.left = `${Math.random()*100}%`;
-        leaf.style.top = `${-10 - Math.random()*40}%`;
-        leaf.style.animationDelay = `${Math.random()*6}s`;
-        leaf.style.transform = `scale(${0.6 + Math.random()*0.8}) rotate(${Math.random()*360}deg)`;
-        backgroundRoot.appendChild(leaf);
-      }
-      for (let i=0;i<6;i++) {
-        const pk = document.createElement('div');
-        pk.className = 'bg-pumpkin';
-        pk.style.left = `${Math.random()*100}%`;
-        pk.style.top = `${-20 - Math.random()*60}%`;
-        pk.style.animationDelay = `${Math.random()*12}s`;
-        backgroundRoot.appendChild(pk);
-      }
-    }
-  }
-
-  function draw(nowTime) {
-    // clear canvas
-    ctx.clearRect(0,0,W,H);
-
-    // background gradient
-    const bg = ctx.createLinearGradient(0,0,0,H);
-    bg.addColorStop(0, '#070306');
-    bg.addColorStop(1, '#0b0305');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0,0,W,H);
-
-    // blackholes: more visible and pumpkin-ringed
-    blackholes.forEach(b => {
-      const cx = b.x + b.r, cy = b.y + b.r;
-      // outer glow
-      const g = ctx.createRadialGradient(cx,cy,b.r*0.6,cx,cy,b.r*2.5);
-      g.addColorStop(0, 'rgba(255,120,0,0.28)');
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(cx,cy,b.r*2,0,Math.PI*2);
-      ctx.fill();
-      // pumpkin ring
-      ctx.fillStyle = '#ff8c00';
-      ctx.beginPath();
-      ctx.arc(cx,cy,b.r*1.1,0,Math.PI*2);
-      ctx.fill();
-      // center hole
-      ctx.fillStyle = '#000';
-      ctx.beginPath();
-      ctx.arc(cx,cy,b.r*0.8,0,Math.PI*2);
-      ctx.fill();
-      // carved eyes
-      ctx.fillStyle = '#200';
-      ctx.beginPath();
-      ctx.moveTo(cx - 8, cy - 2);
-      ctx.quadraticCurveTo(cx - 2, cy - 10, cx + 6, cy - 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(cx - 10, cy + 6);
-      ctx.quadraticCurveTo(cx - 2, cy + 12, cx + 10, cy + 6);
-      ctx.fill();
-    });
-
-    // platforms
-    platforms.forEach(p => {
-      if (p.type === 'break') ctx.fillStyle = '#5a1b1b';
-      else if (p.type === 'spring') ctx.fillStyle = '#ffd86b';
-      else if (p.type === 'jet') ctx.fillStyle = '#7fe0ff';
-      else if (p.type === 'moving') ctx.fillStyle = '#bb7f3a';
-      else ctx.fillStyle = '#884422';
-      ctx.fillRect(p.x, p.y, p.w, p.h);
-      ctx.strokeStyle = '#000';
-      ctx.strokeRect(p.x, p.y, p.w, p.h);
-
-      // spring visual
-      if (p.type === 'spring') {
-        ctx.fillStyle = '#c15a00';
-        ctx.fillRect(p.x + p.w/2 - 6, p.y - 8, 12, 6);
-      }
-    });
-
-    // pickups (jetpack/hat) - larger visuals
-    pickups.forEach(it => {
-      if (it.picked) return;
-      if (it.kind === 'jetpack') {
-        ctx.fillStyle = '#39d7ff';
-        ctx.fillRect(it.x - 6, it.y - 6, 36, 24);
-        ctx.fillStyle = '#222';
-        ctx.fillRect(it.x - 2, it.y - 2, 6, 12);
-        ctx.fillRect(it.x + 22, it.y - 2, 6, 12);
-      } else if (it.kind === 'hat') {
-        ctx.fillStyle = '#8b2a8b';
-        ctx.beginPath();
-        ctx.moveTo(it.x - 2, it.y + 18);
-        ctx.quadraticCurveTo(it.x + 12, it.y - 10, it.x + 32, it.y + 18);
-        ctx.fill();
-      }
-    });
-
-    // enemies
-    enemies.forEach(e => {
-      ctx.fillStyle = scaryMode ? '#6a0000' : '#ffffff';
-      ctx.fillRect(e.x, e.y, e.w, e.h);
-      ctx.fillStyle = '#000';
-      ctx.fillRect(e.x + 5, e.y + 6, 6, 6);
-      ctx.fillRect(e.x + e.w - 11, e.y + 6, 6, 6);
-    });
-
-    // player
-    if (player) {
-      ctx.fillStyle = scaryMode ? '#ff0000' : '#ffd86b';
-      ctx.beginPath();
-      ctx.ellipse(player.x + player.w/2, player.y + player.h/2, player.w/2, player.h/2, 0, 0, Math.PI*2);
-      ctx.fill();
-      ctx.fillStyle = '#000';
-      ctx.beginPath();
-      ctx.arc(player.x + player.w*0.35, player.y + player.h*0.35, 3, 0, Math.PI*2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(player.x + player.w*0.65, player.y + player.h*0.35, 3, 0, Math.PI*2);
-      ctx.fill();
-    }
-
-    // small scary glitch overlay occasionally in scary mode
-    if (scaryMode && Math.random() < 0.002) {
-      ctx.fillStyle = 'rgba(255,0,0,0.06)';
-      ctx.fillRect(0, Math.random()*H, W, 4 + Math.random()*40);
-    }
-  }
-
-  function loop(nowTime) {
+  // main loop
+  function loop(nowTime){
     const dt = Math.min(32, nowTime - lastTime);
     lastTime = nowTime;
-    drawBackground(nowTime / 1000);
-    draw(nowTime / 1000);
-    if (running) {
+    initBackgroundElements();
+    draw();
+    if(running){
       update(dt/16.666);
-      if (bigScoreEl) bigScoreEl.textContent = `Score: ${score}`;
+      if(bigScoreEl) bigScoreEl.textContent = `Score: ${score}`;
       updateTimers();
     }
     animationId = requestAnimationFrame(loop);
   }
 
-  function killPlayer(reason) {
-    if (!player || !player.alive) return;
-    player.alive = false;
-    running = false;
-    finalScoreEl.textContent = score;
-    const within = Date.now() <= GAME_END_TS;
-    submitNote.textContent = within ? 'This score is within the event window and can be submitted to the main leaderboard.' : 'Event window ended — score will be recorded in the day leaderboard only.';
-
-    // If fullscreen, do not show popups (require user to exit FS to save)
-    if (document.fullscreenElement === playbound) {
-      // just stop the game but don't show modals
-      // show small top HUD change (optional) - here we just return
-      return;
-    }
-
-    gameOverModal.classList.remove('hidden');
-
-    if (scaryMode) { doJumpscareBig(); if (Math.random() < 0.6) glitchFreezeBrief(); }
-  }
-
-  // start / reset
-  function startGame() {
-    if (running) return;
-    // hide overlays when starting in fullscreen
-    if (document.fullscreenElement === playbound) {
-      if (playOverlay) playOverlay.classList.add('hidden');
-      if (gameOverModal) gameOverModal.classList.add('hidden');
-    }
+  // game control
+  function startGame(){
+    if(running) return;
     spawnInitial();
     player = createPlayer();
     score = 0;
     running = true;
     lastTime = performance.now();
-    if (!animationId) animationId = requestAnimationFrame(loop);
-    playOverlay && playOverlay.classList.add('hidden');
+    if(!animationId) animationId = requestAnimationFrame(loop);
+    hideModal(gameOverModal);
+    hideModal(playOverlay);
   }
 
-  function resetToPlayOnly() {
-    gameOverModal.classList.add('hidden');
+  function resetToPlayOnly(){
+    hideModal(gameOverModal);
     playOverlay.classList.remove('hidden');
-    if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+    if(animationId){ cancelAnimationFrame(animationId); animationId = null; }
     running = false;
   }
 
-  // leaderboard persistence & submission (require firebase; do not persist locally)
-  const DAY1_KEY = 'day1_local_scores_v3';
-  function loadLocalScores() { try { return JSON.parse(localStorage.getItem(DAY1_KEY) || '[]'); } catch (e) { return []; } }
-  function saveLocalScore(entry) { /* disabled per request - do nothing */ }
+  // kill player: always show modal inside playbound (works in fullscreen)
+  function killPlayer(reason){
+    if(!player || !player.alive) return;
+    player.alive = false;
+    running = false;
+    finalScoreEl.textContent = score;
+    submitNote.textContent = (Date.now() <= GAME_END_TS) ? 'This score is within the event window and can be submitted to the main leaderboard.' : 'Event window ended — score will be recorded in the day leaderboard only.';
+    showModalInPlaybound(gameOverModal);
+    if(scaryMode){ doJumpscare(); if(Math.random() < 0.5) frozen = true && setTimeout(()=> frozen = false, 500 + Math.random()*900); }
+  }
 
-  // submitScoreToFirestoreDocs: ensure one leaderboard slot per user (use uid as doc id)
-  async function submitScoreToFirestoreDocs(entry) {
-    try {
-      if (!window.firebaseReady || !window.firebaseDb || !window.firebaseSetDoc || !window.firebaseDoc) {
-        console.warn('Firebase not available; cannot save remotely.');
-        return { ok: false, reason: 'no-firebase' };
-      }
-      // if we have uid, use it as doc id so only one slot per user
-      const id = entry.uid ? entry.uid : `${Date.now()}_${entry.uid||'anon'}`;
+  // persistence helpers: one slot per uid, update totals
+  async function submitScoreToFirestoreDocs(entry){
+    try{
+      if(!window.firebaseDb || !window.firebaseDoc || !window.firebaseSetDoc) return { ok:false, reason:'no-firebase' };
+      const id = entry.uid ? entry.uid : `${Date.now()}_${Math.random().toString(36).slice(2,9)}`;
       const docRef = window.firebaseDoc(window.firebaseDb, 'day1_scores', id);
-
-      // If user doc exists, fetch existing score and only write if new score is higher
-      if (entry.uid && window.firebaseGetDoc) {
+      if(entry.uid && window.firebaseGetDoc){
         const existing = await window.firebaseGetDoc(docRef);
-        if (existing && existing.exists && existing.exists()) {
+        if(existing && existing.exists && existing.exists()){
           const data = existing.data();
-          if ((data.score || 0) >= entry.score) {
-            // still update user totals but do not overwrite day1 slot
-            // update user totals below
-          } else {
+          if((data.score||0) < entry.score){
             await window.firebaseSetDoc(docRef, entry);
           }
         } else {
           await window.firebaseSetDoc(docRef, entry);
         }
       } else {
-        // anonymous fallback (timestamp id)
         await window.firebaseSetDoc(docRef, entry);
       }
-
-      // update user's aggregated totals if uid present
-      if (entry.uid && window.firebaseGetDoc && window.firebaseSetDoc) {
+      // update user totals
+      if(entry.uid && window.firebaseGetDoc && window.firebaseSetDoc){
         const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', entry.uid);
         const snap = await window.firebaseGetDoc(userDocRef);
         let docData = {};
-        if (snap && snap.exists && snap.exists()) {
-          docData = snap.data();
-        } else {
-          docData = { username: entry.playerName, email: (window.currentUser && window.currentUser.email) || '', createdAt: new Date(), scores: { day1:0,day2:0,day3:0,day4:0,day5:0, total:0 } };
-        }
+        if(snap && snap.exists && snap.exists()) docData = snap.data();
+        else docData = { username: entry.playerName, email:'', createdAt:new Date(), scores:{ day1:0,day2:0,day3:0,day4:0,day5:0, total:0 } };
         docData.scores = docData.scores || {};
         docData.scores.day1 = Math.max(docData.scores.day1 || 0, entry.score);
         const s = docData.scores;
         docData.scores.total = (s.day1||0)+(s.day2||0)+(s.day3||0)+(s.day4||0)+(s.day5||0);
         await window.firebaseSetDoc(userDocRef, docData);
       }
-
-      return { ok: true };
-    } catch (err) {
-      console.error('Failed to submit score to Firestore:', err);
-      return { ok: false, reason: err && err.message ? err.message : 'unknown' };
+      return { ok:true };
+    } catch(err){
+      console.error('save error', err);
+      return { ok:false, reason: err && err.message || 'unknown' };
     }
   }
 
-  // handleSubmitScore: try silent currentUser, otherwise start Google sign-in flow (no alerts), show signin UI inside playbound and then save
-  async function handleSubmitScore() {
-    // prefer firebase auth current user
+  // save flow: try currentUser, otherwise popup sign-in; after successful save restart game automatically
+  async function handleSubmitScore(){
     const fbUser = (window.firebaseAuth && window.firebaseAuth.currentUser) ? window.firebaseAuth.currentUser : null;
-    const uid = fbUser ? fbUser.uid : null;
-    const name = (window.userData && window.userData.username) ? window.userData.username : (fbUser && fbUser.email ? fbUser.email.split('@')[0] : 'Anonymous');
-    const entry = { score, playerName: name, uid, ts: Date.now(), withinEvent: Date.now() <= GAME_END_TS };
+    let uid = fbUser ? fbUser.uid : null;
+    let playerName = (window.userData && window.userData.username) ? window.userData.username : (fbUser && fbUser.email ? fbUser.email.split('@')[0] : 'Anonymous');
+    const entry = { score, playerName, uid, ts: Date.now(), withinEvent: Date.now() <= GAME_END_TS };
 
-    if (!uid) {
-      // initiate Google sign-in popup (inside game flow). Do not use alerts.
-      if (window.firebaseSignInWithPopup && window.firebaseAuth && window.googleProvider) {
-        try {
-          const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.googleProvider);
-          const user = result.user;
-          // if user is new or missing username, prompt for username inline
-          const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', user.uid);
-          let snap = null;
-          if (window.firebaseGetDoc) snap = await window.firebaseGetDoc(userDocRef);
-          let playerName = user.displayName || user.email.split('@')[0];
-          if (!snap || !(snap.exists && snap.exists())) {
-            // show inline username prompt inside playbound
-            const unameModal = document.createElement('div');
-            unameModal.className = 'modal';
-            unameModal.innerHTML = `<div class="modal-content" style="padding:12px;"><h3>Choose a username</h3><input id="inline-username" style="width:100%;padding:8px;margin-top:8px;border-radius:6px;border:1px solid #333;background:#111;color:#ffdca8"/><div style="display:flex;gap:8px;margin-top:10px;"><button id="uname-save" class="btn-primary">Save</button><button id="uname-cancel" class="btn-secondary">Cancel</button></div></div>`;
-            playbound.appendChild(unameModal);
-            const input = unameModal.querySelector('#inline-username');
-            const saveBtn = unameModal.querySelector('#uname-save');
-            const cancelBtn = unameModal.querySelector('#uname-cancel');
-            saveBtn.addEventListener('click', async () => {
-              const val = (input.value || '').trim() || playerName;
-              playerName = val;
-              // create user doc with scores
-              const docData = { username: val, email: user.email || '', createdAt: new Date(), scores: { day1:entry.score, day2:0,day3:0,day4:0,day5:0, total: entry.score } };
-              if (window.firebaseSetDoc) await window.firebaseSetDoc(userDocRef, docData);
-              unameModal.remove();
-              entry.uid = user.uid;
-              entry.playerName = val;
-              const r = await submitScoreToFirestoreDocs(entry);
-              if (r.ok) showToast('Score saved');
-              else showToast('Save failed');
-            });
-            cancelBtn.addEventListener('click', () => { unameModal.remove(); showToast('Sign in cancelled'); });
-            return;
-          } else {
-            // user exists, continue and save
-            entry.uid = user.uid;
-            entry.playerName = playerName;
-            const r = await submitScoreToFirestoreDocs(entry);
-            if (r.ok) showToast('Score saved');
-            else showToast('Save failed');
-            return;
-          }
-        } catch (err) {
-          console.error('Sign-in failed', err);
-          showToast('Sign-in failed');
-          return;
+    if(!uid){
+      // attempt popup signin if available
+      if(window.firebaseSignInWithPopup && window.firebaseAuth && window.googleProvider){
+        try{
+          const res = await window.firebaseSignInWithPopup(window.firebaseAuth, window.googleProvider);
+          const user = res.user;
+          uid = user.uid;
+          playerName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+          entry.uid = uid; entry.playerName = playerName;
+        } catch(e){
+          showToast('Sign-in failed'); return;
         }
       } else {
-        // no firebase sign-in available
-        showToast('Sign-in unavailable');
-        return;
+        showToast('Sign-in unavailable'); return;
       }
     }
 
-    // if uid exists, submit and show inline toast instead of alert
-    const res = await submitScoreToFirestoreDocs(entry);
-    if (!res.ok) {
-      showToast('Saving failed');
-    } else {
-      showToast('Score saved');
-    }
+    const r = await submitScoreToFirestoreDocs(entry);
+    if(!r.ok){ showToast('Save failed'); return; }
+    showToast('Score saved');
 
-    if (document.fullscreenElement === playbound) {
-      // keep overlays hidden in fullscreen
-      hideModal(gameOverModal);
-    } else {
+    // restart automatically shortly after save
+    setTimeout(() => {
       hideModal(gameOverModal);
       hideModal(playOverlay);
-    }
+      startGame();
+    }, 700);
   }
 
-  // process pending save after login (index exports firebaseOnAuthStateChanged)
-  if (window.firebaseOnAuthStateChanged && window.firebaseAuth) {
-    window.firebaseOnAuthStateChanged(window.firebaseAuth, async (user) => {
-      if (user && pendingSaveEntry) {
-        pendingSaveEntry.uid = user.uid;
-        pendingSaveEntry.playerName = (window.userData && window.userData.username) ? window.userData.username : (user.email ? user.email.split('@')[0] : 'User');
-        const r = await submitScoreToFirestoreDocs(pendingSaveEntry);
-        if (!r.ok) alert('Auto-save after sign in failed: ' + (r.reason || 'unknown'));
-        pendingSaveEntry = null;
-        if (document.fullscreenElement !== playbound) {
-          gameOverModal.classList.add('hidden');
-          playOverlay.classList.remove('hidden');
-        }
-      }
-    });
-  }
+  // inputs
+  window.addEventListener('keydown', e => {
+    if(e.key === 'ArrowLeft') keys.left = true;
+    if(e.key === 'ArrowRight') keys.right = true;
+    if(e.key === 'f' && document.fullscreenEnabled) toggleFullscreen();
+  });
+  window.addEventListener('keyup', e => {
+    if(e.key === 'ArrowLeft') keys.left = false;
+    if(e.key === 'ArrowRight') keys.right = false;
+  });
+  canvas.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    if(t.clientX < window.innerWidth/2){ keys.left = true; keys.right = false; } else { keys.right = true; keys.left=false; }
+  }, { passive:true });
+  canvas.addEventListener('touchend', ()=> { keys.left = keys.right = false; });
 
-  // Day leaderboard viewing (unchanged)
-  async function openDayLeaderboard() {
+  // UI wiring
+  dayLeaderboardBtn && dayLeaderboardBtn.addEventListener('click', async () => {
     dayLeaderboardBody.innerHTML = '<tr><td colspan="5">Loading…</td></tr>';
-    dayLeaderboardModal.classList.remove('hidden');
-
+    showModalInPlaybound(dayLeaderboardModal);
     let remote = [];
-    if (window.firebaseReady && window.firebaseGetDocs && window.firebaseQuery && window.firebaseCollection && window.firebaseOrderBy) {
-      try {
+    if(window.firebaseDb && window.firebaseGetDocs && window.firebaseCollection && window.firebaseQuery && window.firebaseOrderBy){
+      try{
         const q = window.firebaseQuery(window.firebaseCollection(window.firebaseDb,'day1_scores'), window.firebaseOrderBy('score','desc'));
         const snap = await window.firebaseGetDocs(q);
         snap.forEach(d => remote.push(d.data()));
-      } catch (e) { console.warn('Failed to load remote day1 scores', e); }
+      } catch(e){ console.warn(e); }
     }
-    const merged = remote.sort((a,b)=> (b.score||0)-(a.score||0));
-    const rows = merged.slice(0,30).map((r,idx) => {
+    const rows = (remote || []).slice(0,30).map((r,idx) => {
       const when = new Date(r.ts).toLocaleString();
       const within = r.withinEvent ? 'Yes' : 'No';
       const name = r.playerName || (r.uid ? r.uid : 'Anonymous');
       return `<tr class="${idx===0?'rank-1':idx===1?'rank-2':idx===2?'rank-3':''}"><td>${idx+1}</td><td>${escapeHtml(name)}</td><td>${r.score}</td><td>${when}</td><td>${within}</td></tr>`;
     });
     dayLeaderboardBody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="5">No scores yet</td></tr>';
-  }
+  });
+  dayLeaderboardClose && dayLeaderboardClose.addEventListener('click', ()=> hideModal(dayLeaderboardModal));
 
-  function escapeHtml(str='') { return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}[s])); }
-
-  // UI wiring
-  dayLeaderboardBtn && dayLeaderboardBtn.addEventListener('click', openDayLeaderboard);
-  dayLeaderboardClose && dayLeaderboardClose.addEventListener('click', ()=> dayLeaderboardModal.classList.add('hidden'));
   submitScoreBtn && submitScoreBtn.addEventListener('click', handleSubmitScore);
-  // Play again immediately restarts
-  retryBtn && retryBtn.addEventListener('click', ()=> {
-    // hide overlays unconditionally then start
-    if (gameOverModal) gameOverModal.classList.add('hidden');
-    if (playOverlay) playOverlay.classList.add('hidden');
-    // small delay to ensure DOM state cleared
-    setTimeout(() => startGame(), 30);
-  });
+  retryBtn && retryBtn.addEventListener('click', ()=> { hideModal(gameOverModal); hideModal(playOverlay); setTimeout(()=> startGame(), 30); });
 
-  helpBtn && helpBtn.addEventListener('click', ()=> helpModal.classList.remove('hidden'));
-  helpClose && helpClose.addEventListener('click', ()=> helpModal.classList.add('hidden'));
-  helpStep && helpStep.addEventListener('click', ()=> { helpInteractive.innerHTML = `<div style="color:#ffd8a8">Controls: ← → to move. Tap left/right on mobile. Halloween Jetpack gives long flight, Witch Hat gives high flight. Avoid blackholes & enemies.</div>`; });
+  helpBtn && helpBtn.addEventListener('click', ()=> showModalInPlaybound(helpModal));
+  helpClose && helpClose.addEventListener('click', ()=> hideModal(helpModal));
+  helpStep && helpStep.addEventListener('click', ()=> { helpInteractive.innerHTML = `<div style="color:#ffd8a8">Controls: ← → to move. Tap left/right on mobile. Candy gives long flight, Witch Hat gives strong flight. Avoid pumpkins & enemies.</div>`; });
 
-  playBtn && playBtn.addEventListener('click', () => {
-    if (document.fullscreenElement === playbound) {
-      playOverlay && playOverlay.classList.add('hidden');
-      gameOverModal && gameOverModal.classList.add('hidden');
-    }
-    startGame();
-  });
+  playBtn && playBtn.addEventListener('click', ()=> startGame());
 
-  // fullscreen only for playbound, update icon
-  let isFull = false;
-  async function toggleFullscreen() {
-    try {
-      if (!document.fullscreenElement) {
+  // fullscreen toggles playbound only and keeps aspect
+  async function toggleFullscreen(){
+    try{
+      if(!document.fullscreenElement){
         await playbound.requestFullscreen();
-        fullscreenBtn && (fullscreenBtn.textContent = '⤡');
-        isFull = true;
+        if(fullscreenBtn) fullscreenBtn.textContent = '⤡';
       } else {
         await document.exitFullscreen();
-        fullscreenBtn && (fullscreenBtn.textContent = '⤢');
-        isFull = false;
+        if(fullscreenBtn) fullscreenBtn.textContent = '⤢';
       }
-    } catch (e) { /* ignore */ }
+    }catch(e){}
   }
   fullscreenBtn && fullscreenBtn.addEventListener('click', toggleFullscreen);
 
   // scary toggle
-  if (scaryToggle) {
+  if(scaryToggle){
     scaryToggle.checked = scaryMode;
-    scaryToggle.addEventListener('change', () => {
+    scaryToggle.addEventListener('change', ()=> {
       scaryMode = scaryToggle.checked;
       localStorage.setItem('day1Scary', scaryMode ? 'true' : 'false');
-      if (scaryMode && Math.random() < 0.6) playScreamLoud();
+      if(scaryMode && Math.random() < 0.6) playScreamLoud();
     });
   }
 
-  // background init (falling leaves/pumpkins)
-  function initBackgroundElements() {
-    if (!backgroundRoot) return;
-    if (!backgroundRoot.dataset.ready) {
-      backgroundRoot.dataset.ready = '1';
-      // create a few leaves/pumpkins (drawn via CSS)
-      for (let i=0;i<20;i++) {
-        const leaf = document.createElement('div');
-        leaf.className = 'leaf';
-        leaf.style.left = `${Math.random()*100}%`;
-        leaf.style.top = `${-10 - Math.random()*60}%`;
-        leaf.style.animationDelay = `${Math.random()*10}s`;
-        backgroundRoot.appendChild(leaf);
-      }
-      for (let i=0;i<6;i++) {
-        const pk = document.createElement('div');
-        pk.className = 'bg-pumpkin';
-        pk.style.left = `${Math.random()*100}%`;
-        pk.style.top = `${-20 - Math.random()*60}%`;
-        pk.style.animationDelay = `${Math.random()*12}s`;
-        backgroundRoot.appendChild(pk);
-      }
-    }
-  }
+  // escape html
+  function escapeHtml(str=''){ return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
 
-  initBackgroundElements();
-
-  // start loop but not game
+  // draw loop start
   lastTime = performance.now();
   animationId = requestAnimationFrame(loop);
   updateTimers();
   setInterval(updateTimers, 1000);
+  initBackgroundElements();
 
-  // expose debug
+  // expose control for debugging if needed
   window.day1 = { startGame, killPlayer, resetToPlayOnly };
 
   // cleanup
-  window.addEventListener('beforeunload', ()=> { if (animationId) cancelAnimationFrame(animationId); });
-
-  // show play overlay only if not fullscreen
-  if (playOverlay && document.fullscreenElement !== playbound) playOverlay.classList.remove('hidden');
+  window.addEventListener('beforeunload', ()=> { if(animationId) cancelAnimationFrame(animationId); });
 })();
