@@ -794,7 +794,7 @@
     }
   }
 
-  {
+  
     // handleSubmitScore: after successful save, show toast and restart immediately
     async function handleSubmitScore() {
       const fbUser = (window.firebaseAuth && window.firebaseAuth.currentUser) ? window.firebaseAuth.currentUser : null;
@@ -835,7 +835,7 @@
         startGame();
       }, 700);
     }
-  }
+  
 
   // process pending save after login (index exports firebaseOnAuthStateChanged)
   if (window.firebaseOnAuthStateChanged && window.firebaseAuth) {
