@@ -718,18 +718,16 @@
     }, 700);
   }
 
-  // inputs
   window.addEventListener('keydown', e => {
-    const k = (e.key || '').toLowerCase();
-    if(k === 'arrowleft' || k === 'j' || key === 'a') keys.left = true;
-    if(k === 'arrowright' || k === 'l' || key === 'd') keys.right = true;
-    if(k === 'f' && document.fullscreenEnabled) toggleFullscreen();
+    if(e.key === 'ArrowLeft') keys.left = true;
+    if(e.key === 'ArrowRight') keys.right = true;
+    if(e.key === 'f' && document.fullscreenEnabled) toggleFullscreen();
   });
   window.addEventListener('keyup', e => {
-    const k = (e.key || '').toLowerCase();
-    if(k === 'arrowleft' || k === 'j' || key === 'a') keys.left = false;
-    if(k === 'arrowright' || k === 'l' || key === 'd') keys.right = false;
+    if(e.key === 'ArrowLeft') keys.left = false;
+    if(e.key === 'ArrowRight') keys.right = false;
   });
+  
   canvas.addEventListener('touchstart', e => {
     const t = e.touches[0];
     if(t.clientX < window.innerWidth/2){ keys.left = true; keys.right = false; } else { keys.right = true; keys.left=false; }
