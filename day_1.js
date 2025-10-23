@@ -193,7 +193,7 @@
       }
 
       // pickups more likely
-      if(Math.random() < 0.01){
+      if(Math.random() < 0.005){
         pickups.push({ kind: Math.random() < 0.7 ? 'candy' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 36, picked:false });
       }
 
@@ -498,11 +498,11 @@
       if(!it.picked && rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:it.x,y:it.y,w:28,h:28})){
         it.picked = true;
         if(it.kind === 'candy'){
-          player.flight = { remaining: 3600, vel:24, taper:600 }; // candy strong long
+          player.flight = { remaining: 2400, vel:24, taper:600 }; // candy strong long
           player.vy = -player.flight.vel;
           score += 70;
         } else if(it.kind === 'hat'){
-          player.flight = { remaining: 2400, vel:24, taper:400 }; // witch hat stronger
+          player.flight = { remaining: 1600, vel:24, taper:400 }; // witch hat stronger
           player.vy = -player.flight.vel;
           score += 55;
         }
