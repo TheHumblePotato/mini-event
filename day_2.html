@@ -1,1 +1,526 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎃 Spooky Candy Stock Market 🎃</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #1a0033 0%, #2d1b4e 50%, #1a0033 100%);
+            color: #ff9500;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '🕷️';
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            font-size: 30px;
+            animation: swing 3s ease-in-out infinite;
+        }
+
+        body::after {
+            content: '🕷️';
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            font-size: 30px;
+            animation: swing 3s ease-in-out infinite reverse;
+        }
+
+        @keyframes swing {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: #ff6600;
+            text-shadow: 0 0 20px #ff6600, 0 0 40px #ff6600;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            color: #bb86fc;
+        }
+
+        .player-stats {
+            background: rgba(0, 0, 0, 0.7);
+            border: 3px solid #ff6600;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 0 30px rgba(255, 102, 0, 0.5);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: rgba(187, 134, 252, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #bb86fc;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #bb86fc;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ff9500;
+        }
+
+        .candy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .candy-card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 3px solid #ff6600;
+            border-radius: 15px;
+            padding: 20px;
+            aspect-ratio: 4 / 3;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(255, 102, 0, 0.4);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .candy-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 40px rgba(255, 102, 0, 0.7);
+        }
+
+        .candy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .candy-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #ff6600;
+        }
+
+        .candy-icon {
+            font-size: 2em;
+        }
+
+        .candy-price {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #00ff00;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .price-change {
+            font-size: 0.9em;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .price-up {
+            color: #00ff00;
+        }
+
+        .price-down {
+            color: #ff0000;
+        }
+
+        .chart-container {
+            flex: 1;
+            position: relative;
+            margin-bottom: 15px;
+            background: rgba(187, 134, 252, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .chart {
+            width: 100%;
+            height: 100%;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-buy {
+            background: linear-gradient(135deg, #00ff00, #00aa00);
+            color: #000;
+        }
+
+        .btn-buy:hover:not(:disabled) {
+            background: linear-gradient(135deg, #00ff00, #00ff00);
+            box-shadow: 0 0 20px #00ff00;
+        }
+
+        .btn-sell {
+            background: linear-gradient(135deg, #ff0000, #aa0000);
+            color: #fff;
+        }
+
+        .btn-sell:hover:not(:disabled) {
+            background: linear-gradient(135deg, #ff0000, #ff0000);
+            box-shadow: 0 0 20px #ff0000;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .inventory {
+            background: rgba(0, 0, 0, 0.7);
+            border: 3px solid #bb86fc;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 0 30px rgba(187, 134, 252, 0.5);
+        }
+
+        .inventory h2 {
+            color: #bb86fc;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 1.8em;
+        }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .inventory-item {
+            background: rgba(255, 102, 0, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #ff6600;
+            text-align: center;
+        }
+
+        .inventory-item-name {
+            font-size: 1.1em;
+            color: #ff6600;
+            margin-bottom: 5px;
+        }
+
+        .inventory-item-qty {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ff9500;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .candy-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎃 SPOOKY CANDY STOCK MARKET 👻</h1>
+        <p>Trade wisely... or face the curse! 🕸️</p>
+    </div>
+
+    <div class="player-stats">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-label">💰 Candy Coins</div>
+                <div class="stat-value" id="coins">100</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">📦 Total Candies Owned</div>
+                <div class="stat-value" id="totalCandies">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">💼 Portfolio Value</div>
+                <div class="stat-value" id="portfolioValue">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">📊 Net Worth</div>
+                <div class="stat-value" id="netWorth">100</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="candy-grid" id="candyGrid"></div>
+
+    <div class="inventory">
+        <h2>🎒 Your Candy Inventory 🎒</h2>
+        <div class="inventory-grid" id="inventoryGrid"></div>
+    </div>
+
+    <script>
+        const candyTypes = [
+            { name: 'Candy Corn', icon: '🌽', color: '#ff9500' },
+            { name: 'Chocolate Bars', icon: '🍫', color: '#8b4513' },
+            { name: 'Gummy Worms', icon: '🪱', color: '#00ff00' },
+            { name: 'Lollipops', icon: '🍭', color: '#ff69b4' }
+        ];
+
+        let playerCoins = 100;
+        let inventory = {};
+        let candyData = {};
+
+        candyTypes.forEach(candy => {
+            inventory[candy.name] = 0;
+            candyData[candy.name] = {
+                currentPrice: Math.floor(Math.random() * 8) + 2,
+                priceHistory: [],
+                previousPrice: 0
+            };
+            for (let i = 0; i < 20; i++) {
+                candyData[candy.name].priceHistory.push(candyData[candy.name].currentPrice);
+            }
+            candyData[candy.name].previousPrice = candyData[candy.name].currentPrice;
+        });
+
+        function createCandyCard(candy) {
+            const card = document.createElement('div');
+            card.className = 'candy-card';
+            card.innerHTML = `
+                <div class="candy-header">
+                    <div class="candy-name">${candy.name}</div>
+                    <div class="candy-icon">${candy.icon}</div>
+                </div>
+                <div class="candy-price" id="price-${candy.name}">
+                    ${candyData[candy.name].currentPrice} 🪙
+                </div>
+                <div class="price-change" id="change-${candy.name}">--</div>
+                <div class="chart-container">
+                    <canvas class="chart" id="chart-${candy.name}"></canvas>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-buy" onclick="buyCandyClick('${candy.name}')">
+                        BUY 🛒
+                    </button>
+                    <button class="btn btn-sell" onclick="sellCandyClick('${candy.name}')">
+                        SELL 💸
+                    </button>
+                </div>
+            `;
+            return card;
+        }
+
+        function initializeGame() {
+            const grid = document.getElementById('candyGrid');
+            candyTypes.forEach(candy => {
+                grid.appendChild(createCandyCard(candy));
+            });
+            updateDisplay();
+            updateInventoryDisplay();
+            startPriceUpdates();
+        }
+
+        function buyCandyClick(candyName) {
+            const price = candyData[candyName].currentPrice;
+            if (playerCoins >= price) {
+                playerCoins -= price;
+                inventory[candyName]++;
+                updateDisplay();
+                updateInventoryDisplay();
+            }
+        }
+
+        function sellCandyClick(candyName) {
+            if (inventory[candyName] > 0) {
+                const price = candyData[candyName].currentPrice;
+                playerCoins += price;
+                inventory[candyName]--;
+                updateDisplay();
+                updateInventoryDisplay();
+            }
+        }
+
+        function updatePrices() {
+            candyTypes.forEach(candy => {
+                const data = candyData[candy.name];
+                data.previousPrice = data.currentPrice;
+                
+                const changePercent = (Math.random() * 0.3 - 0.15);
+                let newPrice = data.currentPrice * (1 + changePercent);
+                
+                newPrice = Math.max(2, Math.min(10, newPrice));
+                newPrice = Math.round(newPrice * 100) / 100;
+                
+                data.currentPrice = newPrice;
+                data.priceHistory.push(newPrice);
+                
+                if (data.priceHistory.length > 20) {
+                    data.priceHistory.shift();
+                }
+                
+                updateChart(candy.name);
+            });
+            updateDisplay();
+        }
+
+        function updateChart(candyName) {
+            const canvas = document.getElementById(`chart-${candyName}`);
+            const ctx = canvas.getContext('2d');
+            const data = candyData[candyName].priceHistory;
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            const width = canvas.width;
+            const height = canvas.height;
+            const padding = 10;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            const min = Math.min(...data);
+            const max = Math.max(...data);
+            const range = max - min || 1;
+            
+            ctx.strokeStyle = 'rgba(187, 134, 252, 0.2)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 5; i++) {
+                const y = padding + (height - 2 * padding) * i / 4;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+            }
+            
+            ctx.strokeStyle = candyTypes.find(c => c.name === candyName).color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            data.forEach((price, index) => {
+                const x = padding + (width - 2 * padding) * index / (data.length - 1);
+                const y = height - padding - ((price - min) / range) * (height - 2 * padding);
+                
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+            
+            const lastX = width - padding;
+            const lastY = height - padding - ((data[data.length - 1] - min) / range) * (height - 2 * padding);
+            ctx.fillStyle = candyTypes.find(c => c.name === candyName).color;
+            ctx.beginPath();
+            ctx.arc(lastX, lastY, 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function updateDisplay() {
+            candyTypes.forEach(candy => {
+                const data = candyData[candy.name];
+                const priceElement = document.getElementById(`price-${candy.name}`);
+                const changeElement = document.getElementById(`change-${candy.name}`);
+                
+                priceElement.textContent = `${data.currentPrice.toFixed(2)} 🪙`;
+                
+                const change = data.currentPrice - data.previousPrice;
+                const changePercent = (change / data.previousPrice * 100).toFixed(2);
+                
+                if (change > 0) {
+                    changeElement.textContent = `▲ +${changePercent}%`;
+                    changeElement.className = 'price-change price-up';
+                } else if (change < 0) {
+                    changeElement.textContent = `▼ ${changePercent}%`;
+                    changeElement.className = 'price-change price-down';
+                } else {
+                    changeElement.textContent = `-- 0.00%`;
+                    changeElement.className = 'price-change';
+                }
+            });
+            
+            document.getElementById('coins').textContent = playerCoins.toFixed(2);
+            
+            const totalCandies = Object.values(inventory).reduce((sum, qty) => sum + qty, 0);
+            document.getElementById('totalCandies').textContent = totalCandies;
+            
+            const portfolioValue = candyTypes.reduce((sum, candy) => {
+                return sum + (inventory[candy.name] * candyData[candy.name].currentPrice);
+            }, 0);
+            document.getElementById('portfolioValue').textContent = portfolioValue.toFixed(2);
+            
+            const netWorth = playerCoins + portfolioValue;
+            document.getElementById('netWorth').textContent = netWorth.toFixed(2);
+        }
+
+        function updateInventoryDisplay() {
+            const inventoryGrid = document.getElementById('inventoryGrid');
+            inventoryGrid.innerHTML = '';
+            
+            candyTypes.forEach(candy => {
+                const item = document.createElement('div');
+                item.className = 'inventory-item';
+                item.innerHTML = `
+                    <div class="inventory-item-name">${candy.icon} ${candy.name}</div>
+                    <div class="inventory-item-qty">${inventory[candy.name]}</div>
+                `;
+                inventoryGrid.appendChild(item);
+            });
+        }
+        
+        function startPriceUpdates() {
+            setInterval(() => {
+                updatePrices();
+            }, 2500);
+        }
+
+        initializeGame();
+    </script>
+</body>
+</html>
