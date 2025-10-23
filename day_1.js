@@ -1,24 +1,25 @@
 /*
-  Updated Day 1 game script
-  - fixed platform stacking and softlock issues
-  - spawn fewer enemies (rare)
-  - removed pumpkin pickups, keep Halloween Jetpack and Witch Hat
-  - staged difficulty: easier near start, more hazards later (but always solvable)
-  - fullscreen toggles only the playbound
-  - better save flow with error reporting
-  - background initialization for eyes/moving bits
+  Changes summary:
+  - Score moved to top HUD (CSS change too)
+  - Background uses falling leaves & pumpkins (no eye elements)
+  - Game countdown label simplified ("Game Ends")
+  - Fullscreen toggles only the playbound, updates icon, keeps visible border in FS
+  - Play/retry immediately start game; overlays hidden in fullscreen
+  - Jetpack/hat are rarer and give stronger flight; larger visuals
+  - Springs give a stronger bounce
+  - Blackholes are Halloween-themed and more visible
+  - Enemies spawn very rarely
+  - Anti-softlock runtime is rate-limited and prevents stacked mass spawns (fixes terrain bug)
+  - Save flow: no local-only leaderboard; requires Firebase; shows index sign-in modal if not signed in and auto-submits after auth
+  - User total score updated when saving
 */
 
 (() => {
   const canvas = document.getElementById('game-canvas');
   const ctx = canvas.getContext('2d');
 
-  // central HUD element (centered on playbound)
   const bigScoreEl = document.getElementById('big-score');
-
-  // top timer (keeps the only countdown)
   const gameTimerHeader = document.getElementById('game-timer');
-
   const scaryToggle = document.getElementById('day-scary-toggle');
   const helpBtn = document.getElementById('help-btn');
   const helpModal = document.getElementById('day-help-modal');
@@ -64,6 +65,11 @@
   let pendingSaveEntry = null;
   let frozen = false;
   let flightTimer = 0;
+
+  // anti-softlock spawn throttle
+  let lastAntiSoftlockAt = 0;
+  const ANTI_SOFTLOCK_COOLDOWN = 800; // ms
+  const MAX_PLATFORMS = 80;
 
   // Event end time in Pacific (Oct 28 00:00 Pacific)
   const now = new Date();
@@ -111,7 +117,6 @@
   }
 
   function createPlatform(x,y,type='static') {
-    // ensure platform inside bounds and not overlapping existing in y too-close
     const w = 70 + Math.random()*60;
     const px = Math.max(8, Math.min(W - w - 8, Math.round(x)));
     const p = { x: px, y: Math.round(y), w, h: 12, type, used:false, toRemove:false };
@@ -127,62 +132,53 @@
     let y = H - 20;
     platforms.push(createPlatform(W/2 - 50, y, 'static'));
 
-    // more safe platforms near start, then progressively harder
-    for (let i=1;i<18;i++) {
-      // gradually increase vertical spacing slightly with index
-      y -= (48 + Math.random()*32); // decreased gap to avoid softlock, fits single page
-      // decide type based on height/stage
+    // staged level: many safe platforms early, then hazards later
+    for (let i=1;i<22;i++) {
+      // smaller gaps early, gradually increase a bit
+      y -= Math.round(42 + Math.random()*36);
       let type = 'static';
-      if (i < 4) {
-        // early: mostly safe
+      if (i < 5) {
         const r = Math.random();
-        if (r < 0.06) type = 'spring';
-        if (r < 0.02) type = 'moving';
-      } else if (i < 10) {
-        // mid: introduce break and moving
+        if (r < 0.08) type = 'spring';
+        else if (r < 0.02) type = 'moving';
+      } else if (i < 12) {
         const r = Math.random();
-        if (r < 0.14) type = 'break';
-        else if (r < 0.26) type = 'moving';
-        else if (r < 0.36) type = 'spring';
-        else type = 'static';
+        if (r < 0.12) type = 'break';
+        else if (r < 0.22) type = 'moving';
+        else if (r < 0.32) type = 'spring';
       } else {
-        // higher: more hazards but still solvable
         const r = Math.random();
-        if (r < 0.22) type = 'break';
-        else if (r < 0.36) type = 'moving';
-        else if (r < 0.46) type = 'spring';
-        else if (r < 0.56) type = 'jet'; // jet platform gives big boost
-        else type = 'static';
+        if (r < 0.26) type = 'break';
+        else if (r < 0.40) type = 'moving';
+        else if (r < 0.50) type = 'spring';
+        else if (r < 0.56) type = 'jet';
       }
 
-      // create platform and ensure not colliding vertically with others
       let x = Math.random()*(W - 90);
       let p = createPlatform(x, y, type);
-      // avoid stacking: nudge x until not overlapping a nearby platform at same y-range
-      for (let k=0;k<10;k++) {
+      // nudge to avoid stacking (try a few times)
+      for (let k=0;k<12;k++) {
         const collision = platforms.some(q => Math.abs(q.y - p.y) < 18 && Math.abs(q.x - p.x) < Math.max(40, (q.w+p.w)/2));
         if (!collision) break;
         p.x = Math.random()*(W - p.w - 16);
       }
       platforms.push(p);
 
-      // enemies spawn rarely and only in higher tiers
-      if (i >= 6 && Math.random() < 0.08) { // spawn less enemies (rare)
+      // enemies are rare
+      if (i >= 8 && Math.random() < 0.06) {
         enemies.push({ x: Math.random()*(W-40), y: p.y - 28, w: 28, h: 28, rowY: p.y - 28, seed: Math.random()*1000, type:'ghost' });
       }
 
-      // jetpack / hat pickups are rarer; keep halloween naming
-      if (Math.random() < 0.06) {
-        pickups.push({ kind: Math.random() < 0.6 ? 'jetpack' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 28, picked:false });
+      // pickups (jetpack/hat) very rare
+      if (Math.random() < 0.03) {
+        pickups.push({ kind: Math.random() < 0.6 ? 'jetpack' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 34, picked:false });
       }
 
-      // blackholes very rare
-      if (Math.random() < 0.04 && i > 6) blackholes.push({ x: Math.random()*(W-60), y: y - 24, r: 20 });
+      // blackholes: very rare and only later
+      if (i > 10 && Math.random() < 0.05) blackholes.push({ x: Math.random()*(W-60), y: y - 28, r: 24 });
     }
 
-    // final anti-softlock sweep
     ensureNoSoftlock();
-    // keep platforms sorted by y ascending (smaller y = higher on screen)
     platforms.sort((a,b)=> a.y - b.y);
   }
 
@@ -208,19 +204,18 @@
       const dy = Math.abs(platforms[i].y - platforms[i-1].y);
       if (dy > maxJump) {
         const newY = Math.round((platforms[i].y + platforms[i-1].y)/2);
-        // pick an x away from neighbors
         let nx = Math.min(Math.max(20, platforms[i-1].x + 40), W - 120);
         let newP = createPlatform(nx, newY, 'static');
-        // ensure no heavy overlap
         let tries = 0;
-        while (platforms.some(q => Math.abs(q.y - newP.y) < 18 && Math.abs(q.x - newP.x) < Math.max(40, (q.w+newP.w)/2)) && tries++ < 8) {
+        while (platforms.some(q => Math.abs(q.y - newP.y) < 18 && Math.abs(q.x - newP.x) < Math.max(40, (q.w+newP.w)/2)) && tries++ < 10) {
           newP.x = Math.random()*(W - newP.w - 16);
         }
         platforms.push(newP);
       }
     }
-    // re-sort
     platforms.sort((a,b)=> a.y - b.y);
+    // cap total platforms
+    if (platforms.length > MAX_PLATFORMS) platforms = platforms.slice(0, MAX_PLATFORMS);
   }
 
   function rectsOverlap(a,b) {
@@ -247,9 +242,8 @@
   function update(dt) {
     if (!player || !player.alive || frozen) return;
 
-    // flight handling (jetpack/hat)
     if (flightTimer > 0) {
-      player.vy -= 0.28;
+      player.vy -= 0.45; // much stronger thrust when flying
       flightTimer -= dt * 0.016666;
     }
 
@@ -265,7 +259,7 @@
     if (player.x > W) player.x = -player.w;
     if (player.x + player.w < 0) player.x = W - 1;
 
-    // move moving platforms
+    // moving platforms
     platforms.forEach(p => {
       if (p.type === 'moving') {
         p.x += p.vx * (dt/16.666);
@@ -280,7 +274,6 @@
         const playerFoot = { x: player.x, y: player.y + player.h, w: player.w, h: 6 };
         if (rectsOverlap(playerFoot, platRect) && (player.y + player.h - player.vy) <= p.y + 3) {
           if (p.type === 'break') {
-            // only break if there is a reachable safe above
             const reachable = platforms.some(q => q !== p && (q.type !== 'break') && (q.y < p.y) && (p.y - q.y) < 180);
             if (!reachable) {
               p.type = 'static';
@@ -289,11 +282,10 @@
               p.toRemove = true;
             }
           } else if (p.type === 'spring') {
-            player.vy = -18;
+            player.vy = -22; // stronger spring
             p.used = true;
           } else if (p.type === 'jet') {
-            // this platform acts like a booster
-            player.vy = -28;
+            player.vy = -36; // jet platform huge boost
             p.used = true;
           } else {
             player.vy = JUMP_VEL + (-Math.random()*2);
@@ -305,21 +297,21 @@
     // remove broken
     platforms = platforms.filter(p => !p.toRemove);
 
-    // pickup collisions (only jetpack/hat remain)
+    // pickups (jetpack/hat)
     pickups.forEach(it => {
-      if (!it.picked && rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:it.x,y:it.y,w:20,h:20})) {
+      if (!it.picked && rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:it.x,y:it.y,w:28,h:28})) {
         it.picked = true;
         if (it.kind === 'jetpack') {
-          flightTimer = Math.max(flightTimer, 3.2); // strong
-          score += 30;
+          flightTimer = Math.max(flightTimer, 5.0); // very strong
+          score += 50;
         } else if (it.kind === 'hat') {
-          flightTimer = Math.max(flightTimer, 1.8); // weaker
-          score += 18;
+          flightTimer = Math.max(flightTimer, 3.2);
+          score += 35;
         }
       }
     });
 
-    // enemies (oscillate a bit but stay in their row)
+    // enemies (very rare, stay in row)
     enemies.forEach(e => {
       e.x += Math.sin((Date.now() + e.seed) / 800) * 0.4;
       if (rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:e.x,y:e.y,w:e.w,h:e.h})) {
@@ -327,7 +319,7 @@
       }
     });
 
-    // blackhole collision
+    // blackhole collision (more visible / themed)
     blackholes.forEach(b => {
       const px = player.x + player.w/2, py = player.y + player.h/2;
       const cx = b.x + b.r, cy = b.y + b.r;
@@ -349,48 +341,54 @@
     // fall death
     if (player.y > H + 160) killPlayer('fall');
 
-    // runtime anti-softlock
+    // runtime anti-softlock (rate-limited)
     antiSoftlockRuntime();
   }
 
   function antiSoftlockRuntime() {
     if (!player) return;
+    const nowTs = Date.now();
+    if (nowTs - lastAntiSoftlockAt < ANTI_SOFTLOCK_COOLDOWN) return;
     const dangerZone = platforms.filter(p => p.y > player.y - 40 && p.y < player.y + 240);
     const hasSafe = dangerZone.some(p => p.type !== 'break');
     if (!hasSafe) {
       const y = Math.round(player.y - 140);
+      // don't spam: if there is already a platform near that Y, skip
+      if (platforms.some(p => Math.abs(p.y - y) < 22)) return;
       let nx = Math.min(Math.max(40, player.x + 40), W-120);
       let np = createPlatform(nx, y, 'static');
-      // prevent overlap with existing near y
       let tries = 0;
       while (platforms.some(q => Math.abs(q.y - np.y) < 18 && Math.abs(q.x - np.x) < Math.max(40, (q.w+np.w)/2)) && tries++ < 8) {
         np.x = Math.random()*(W - np.w - 16);
       }
       platforms.push(np);
+      // cap platforms to avoid runaway
+      if (platforms.length > MAX_PLATFORMS) platforms = platforms.slice(0, MAX_PLATFORMS);
+      lastAntiSoftlockAt = nowTs;
     }
   }
 
   function drawBackground(nowTimeSec) {
     if (!backgroundRoot) return;
-    // draw eyes and drifting shapes into the #background element if not already present
     if (!backgroundRoot.dataset.initted) {
       backgroundRoot.dataset.initted = '1';
-      // add a few blinking eyes
-      for (let i=0;i<4;i++) {
-        const el = document.createElement('div');
-        el.className = 'eye scary-mode';
-        el.style.left = `${10 + i*22}%`;
-        el.style.top = `${6 + (i%2)*6}%`;
-        el.style.animationDelay = `${i*0.6}s`;
-        backgroundRoot.appendChild(el);
+      // falling leaves and pumpkins
+      for (let i=0;i<18;i++) {
+        const leaf = document.createElement('div');
+        leaf.className = 'leaf';
+        leaf.style.left = `${Math.random()*100}%`;
+        leaf.style.top = `${-10 - Math.random()*40}%`;
+        leaf.style.animationDelay = `${Math.random()*6}s`;
+        leaf.style.transform = `scale(${0.6 + Math.random()*0.8}) rotate(${Math.random()*360}deg)`;
+        backgroundRoot.appendChild(leaf);
       }
-      // add a subtle fog
-      for (let i=0;i<2;i++) {
-        const fog = document.createElement('div');
-        fog.className = 'fog';
-        fog.style.left = `${-150 + i*180}px`;
-        fog.style.top = `${20 + i*25}%`;
-        backgroundRoot.appendChild(fog);
+      for (let i=0;i<6;i++) {
+        const pk = document.createElement('div');
+        pk.className = 'bg-pumpkin';
+        pk.style.left = `${Math.random()*100}%`;
+        pk.style.top = `${-20 - Math.random()*60}%`;
+        pk.style.animationDelay = `${Math.random()*12}s`;
+        backgroundRoot.appendChild(pk);
       }
     }
   }
@@ -401,30 +399,47 @@
 
     // background gradient
     const bg = ctx.createLinearGradient(0,0,0,H);
-    bg.addColorStop(0, '#080306');
-    bg.addColorStop(1, '#0f0305');
+    bg.addColorStop(0, '#070306');
+    bg.addColorStop(1, '#0b0305');
     ctx.fillStyle = bg;
     ctx.fillRect(0,0,W,H);
 
-    // blackholes
+    // blackholes: more visible and pumpkin-ringed
     blackholes.forEach(b => {
       const cx = b.x + b.r, cy = b.y + b.r;
-      const rg = ctx.createRadialGradient(cx,cy,b.r*0.2,cx,cy,b.r*2);
-      rg.addColorStop(0,'rgba(0,0,0,0.95)');
-      rg.addColorStop(1,'rgba(80,0,0,0.0)');
-      ctx.fillStyle = rg;
+      // outer glow
+      const g = ctx.createRadialGradient(cx,cy,b.r*0.6,cx,cy,b.r*2.5);
+      g.addColorStop(0, 'rgba(255,120,0,0.28)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.arc(cx,cy,b.r*1.6,0,Math.PI*2);
+      ctx.arc(cx,cy,b.r*2,0,Math.PI*2);
       ctx.fill();
+      // pumpkin ring
+      ctx.fillStyle = '#ff8c00';
+      ctx.beginPath();
+      ctx.arc(cx,cy,b.r*1.1,0,Math.PI*2);
+      ctx.fill();
+      // center hole
       ctx.fillStyle = '#000';
       ctx.beginPath();
-      ctx.arc(cx,cy,b.r,0,Math.PI*2);
+      ctx.arc(cx,cy,b.r*0.8,0,Math.PI*2);
+      ctx.fill();
+      // carved eyes
+      ctx.fillStyle = '#200';
+      ctx.beginPath();
+      ctx.moveTo(cx - 8, cy - 2);
+      ctx.quadraticCurveTo(cx - 2, cy - 10, cx + 6, cy - 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx - 10, cy + 6);
+      ctx.quadraticCurveTo(cx - 2, cy + 12, cx + 10, cy + 6);
       ctx.fill();
     });
 
     // platforms
     platforms.forEach(p => {
-      if (p.type === 'break') ctx.fillStyle = '#491111';
+      if (p.type === 'break') ctx.fillStyle = '#5a1b1b';
       else if (p.type === 'spring') ctx.fillStyle = '#ffd86b';
       else if (p.type === 'jet') ctx.fillStyle = '#7fe0ff';
       else if (p.type === 'moving') ctx.fillStyle = '#bb7f3a';
@@ -432,23 +447,28 @@
       ctx.fillRect(p.x, p.y, p.w, p.h);
       ctx.strokeStyle = '#000';
       ctx.strokeRect(p.x, p.y, p.w, p.h);
+
+      // spring visual
+      if (p.type === 'spring') {
+        ctx.fillStyle = '#c15a00';
+        ctx.fillRect(p.x + p.w/2 - 6, p.y - 8, 12, 6);
+      }
     });
 
-    // pickups (jetpack/hat)
+    // pickups (jetpack/hat) - larger visuals
     pickups.forEach(it => {
       if (it.picked) return;
       if (it.kind === 'jetpack') {
-        ctx.fillStyle = '#7bdfff';
-        ctx.fillRect(it.x, it.y, 20, 16);
-        ctx.fillStyle = '#000';
-        ctx.fillRect(it.x+3, it.y+3, 3, 10);
-        ctx.fillRect(it.x+13, it.y+3, 3, 10);
+        ctx.fillStyle = '#39d7ff';
+        ctx.fillRect(it.x - 6, it.y - 6, 36, 24);
+        ctx.fillStyle = '#222';
+        ctx.fillRect(it.x - 2, it.y - 2, 6, 12);
+        ctx.fillRect(it.x + 22, it.y - 2, 6, 12);
       } else if (it.kind === 'hat') {
-        ctx.fillStyle = '#aa33aa';
+        ctx.fillStyle = '#8b2a8b';
         ctx.beginPath();
-        ctx.moveTo(it.x, it.y+12);
-        ctx.lineTo(it.x+10, it.y);
-        ctx.lineTo(it.x+20, it.y+12);
+        ctx.moveTo(it.x - 2, it.y + 18);
+        ctx.quadraticCurveTo(it.x + 12, it.y - 10, it.x + 32, it.y + 18);
         ctx.fill();
       }
     });
@@ -491,7 +511,7 @@
     draw(nowTime / 1000);
     if (running) {
       update(dt/16.666);
-      bigScoreEl && (bigScoreEl.textContent = `Score: ${score}`);
+      if (bigScoreEl) bigScoreEl.textContent = `Score: ${score}`;
       updateTimers();
     }
     animationId = requestAnimationFrame(loop);
@@ -504,6 +524,14 @@
     finalScoreEl.textContent = score;
     const within = Date.now() <= GAME_END_TS;
     submitNote.textContent = within ? 'This score is within the event window and can be submitted to the main leaderboard.' : 'Event window ended — score will be recorded in the day leaderboard only.';
+
+    // If fullscreen, do not show popups (require user to exit FS to save)
+    if (document.fullscreenElement === playbound) {
+      // just stop the game but don't show modals
+      // show small top HUD change (optional) - here we just return
+      return;
+    }
+
     gameOverModal.classList.remove('hidden');
 
     if (scaryMode) { doJumpscareBig(); if (Math.random() < 0.6) glitchFreezeBrief(); }
@@ -512,6 +540,11 @@
   // start / reset
   function startGame() {
     if (running) return;
+    // hide overlays when starting in fullscreen
+    if (document.fullscreenElement === playbound) {
+      if (playOverlay) playOverlay.classList.add('hidden');
+      if (gameOverModal) gameOverModal.classList.add('hidden');
+    }
     spawnInitial();
     player = createPlayer();
     score = 0;
@@ -528,27 +561,29 @@
     running = false;
   }
 
-  // leaderboard persistence & submission (with improved error feedback)
+  // leaderboard persistence & submission (require firebase; do not persist locally)
   const DAY1_KEY = 'day1_local_scores_v3';
   function loadLocalScores() { try { return JSON.parse(localStorage.getItem(DAY1_KEY) || '[]'); } catch (e) { return []; } }
-  function saveLocalScore(entry) { const arr = loadLocalScores(); arr.push(entry); arr.sort((a,b)=> b.score - a.score); arr.splice(50); localStorage.setItem(DAY1_KEY, JSON.stringify(arr)); }
+  function saveLocalScore(entry) { /* disabled per request - do nothing */ }
 
   async function submitScoreToFirestoreDocs(entry) {
     try {
       if (!window.firebaseReady || !window.firebaseDb || !window.firebaseSetDoc || !window.firebaseDoc) {
-        console.warn('Firebase not available; skipping remote save.');
+        console.warn('Firebase not available; cannot save remotely.');
         return { ok: false, reason: 'no-firebase' };
       }
+      // write day score document
       const id = `${Date.now()}_${entry.uid||'anon'}`;
       const docRef = window.firebaseDoc(window.firebaseDb, 'day1_scores', id);
       await window.firebaseSetDoc(docRef, entry);
-      // update user's main doc if signed in and within event
-      if (entry.withinEvent && window.currentUser && window.currentUser.uid && window.firebaseGetDoc) {
-        const userDoc = window.firebaseDoc(window.firebaseDb, 'users', window.currentUser.uid);
-        const snapshot = await window.firebaseGetDoc(userDoc);
+
+      // update user's aggregated totals
+      if (entry.uid && window.firebaseGetDoc && window.firebaseSetDoc) {
+        const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', entry.uid);
+        const snap = await window.firebaseGetDoc(userDocRef);
         let docData = {};
-        if (snapshot && snapshot.exists && snapshot.exists()) {
-          docData = snapshot.data();
+        if (snap && snap.exists && snap.exists()) {
+          docData = snap.data();
         } else {
           docData = { username: entry.playerName, email: (window.currentUser && window.currentUser.email) || '', createdAt: new Date(), scores: { day1:0,day2:0,day3:0,day4:0,day5:0, total:0 } };
         }
@@ -556,7 +591,7 @@
         docData.scores.day1 = Math.max(docData.scores.day1 || 0, entry.score);
         const s = docData.scores;
         docData.scores.total = (s.day1||0)+(s.day2||0)+(s.day3||0)+(s.day4||0)+(s.day5||0);
-        await window.firebaseSetDoc(userDoc, docData);
+        await window.firebaseSetDoc(userDocRef, docData);
       }
       return { ok: true };
     } catch (err) {
@@ -565,33 +600,38 @@
     }
   }
 
-  // Save flow
+  // Save flow: require firebase auth; if not signed in open index sign-in modal and auto-submit on auth
   async function handleSubmitScore() {
     const uid = window.currentUser && window.currentUser.uid ? window.currentUser.uid : null;
     const name = (window.userData && window.userData.username) ? window.userData.username : (window.currentUser && window.currentUser.email ? window.currentUser.email.split('@')[0] : 'Anonymous');
     const entry = { score, playerName: name, uid, ts: Date.now(), withinEvent: Date.now() <= GAME_END_TS };
-    saveLocalScore(entry);
 
     if (!uid) {
       pendingSaveEntry = entry;
+      // show the sign-in modal from index.html (if present)
       const loginModal = document.getElementById('login-modal');
       if (loginModal) loginModal.classList.remove('hidden');
-      // show feedback to user
-      alert('Sign in is required to save to the main leaderboard. Please sign in and the save will continue automatically.');
+      alert('Sign in is required to save to the main leaderboard. Please sign in via the modal and the save will complete automatically.');
       return;
     }
 
     const res = await submitScoreToFirestoreDocs(entry);
     if (!res.ok) {
-      alert('Saving score failed: ' + (res.reason || 'unknown') + '. Your score was saved locally.');
+      alert('Saving score failed: ' + (res.reason || 'unknown') + '.');
     } else {
       alert('Score saved.');
     }
-    gameOverModal.classList.add('hidden');
-    playOverlay.classList.remove('hidden');
+
+    // hide game over and show replay (but if in fullscreen, keep overlays hidden)
+    if (document.fullscreenElement === playbound) {
+      // keep overlays hidden in fullscreen
+    } else {
+      gameOverModal.classList.add('hidden');
+      playOverlay.classList.remove('hidden');
+    }
   }
 
-  // process pending save after login
+  // process pending save after login (index exports firebaseOnAuthStateChanged)
   if (window.firebaseOnAuthStateChanged && window.firebaseAuth) {
     window.firebaseOnAuthStateChanged(window.firebaseAuth, async (user) => {
       if (user && pendingSaveEntry) {
@@ -600,18 +640,19 @@
         const r = await submitScoreToFirestoreDocs(pendingSaveEntry);
         if (!r.ok) alert('Auto-save after sign in failed: ' + (r.reason || 'unknown'));
         pendingSaveEntry = null;
-        gameOverModal.classList.add('hidden');
-        playOverlay.classList.remove('hidden');
+        if (document.fullscreenElement !== playbound) {
+          gameOverModal.classList.add('hidden');
+          playOverlay.classList.remove('hidden');
+        }
       }
     });
   }
 
-  // Day leaderboard viewing
+  // Day leaderboard viewing (unchanged)
   async function openDayLeaderboard() {
     dayLeaderboardBody.innerHTML = '<tr><td colspan="5">Loading…</td></tr>';
     dayLeaderboardModal.classList.remove('hidden');
 
-    const local = loadLocalScores().slice(0,40);
     let remote = [];
     if (window.firebaseReady && window.firebaseGetDocs && window.firebaseQuery && window.firebaseCollection && window.firebaseOrderBy) {
       try {
@@ -620,7 +661,7 @@
         snap.forEach(d => remote.push(d.data()));
       } catch (e) { console.warn('Failed to load remote day1 scores', e); }
     }
-    const merged = [...remote, ...local].sort((a,b)=> (b.score||0)-(a.score||0));
+    const merged = remote.sort((a,b)=> (b.score||0)-(a.score||0));
     const rows = merged.slice(0,30).map((r,idx) => {
       const when = new Date(r.ts).toLocaleString();
       const within = r.withinEvent ? 'Yes' : 'No';
@@ -636,22 +677,24 @@
   dayLeaderboardBtn && dayLeaderboardBtn.addEventListener('click', openDayLeaderboard);
   dayLeaderboardClose && dayLeaderboardClose.addEventListener('click', ()=> dayLeaderboardModal.classList.add('hidden'));
   submitScoreBtn && submitScoreBtn.addEventListener('click', handleSubmitScore);
-  retryBtn && retryBtn.addEventListener('click', ()=> { gameOverModal.classList.add('hidden'); playOverlay.classList.remove('hidden'); });
+  // Play again immediately restarts
+  retryBtn && retryBtn.addEventListener('click', ()=> { if (document.fullscreenElement !== playbound) startGame(); else { /* in fullscreen don't show modal; restart immediately */ startGame(); } });
 
   helpBtn && helpBtn.addEventListener('click', ()=> helpModal.classList.remove('hidden'));
   helpClose && helpClose.addEventListener('click', ()=> helpModal.classList.add('hidden'));
-  helpStep && helpStep.addEventListener('click', ()=> { helpInteractive.innerHTML = `<div style="color:#ffd8a8">Controls: ← → to move. Tap left/right on mobile. Halloween Jetpack gives long flight, Witch Hat gives short flight. Avoid blackholes & enemies.</div>`; });
+  helpStep && helpStep.addEventListener('click', ()=> { helpInteractive.innerHTML = `<div style="color:#ffd8a8">Controls: ← → to move. Tap left/right on mobile. Halloween Jetpack gives long flight, Witch Hat gives high flight. Avoid blackholes & enemies.</div>`; });
 
   playBtn && playBtn.addEventListener('click', () => startGame());
+  // close play overlay will just hide it, but play must be clicked to start
   playCancel && playCancel.addEventListener('click', () => playOverlay.classList.add('hidden'));
 
-  // fullscreen only for playbound
+  // fullscreen only for playbound, update icon
   let isFull = false;
   async function toggleFullscreen() {
     try {
       if (!document.fullscreenElement) {
         await playbound.requestFullscreen();
-        fullscreenBtn && (fullscreenBtn.textContent = '⤢');
+        fullscreenBtn && (fullscreenBtn.textContent = '⤡');
         isFull = true;
       } else {
         await document.exitFullscreen();
@@ -672,17 +715,27 @@
     });
   }
 
-  // background init (eyes/fog) - reuse small set if index didn't run
+  // background init (falling leaves/pumpkins)
   function initBackgroundElements() {
     if (!backgroundRoot) return;
-    // add a few eyes and fog if not already
     if (!backgroundRoot.dataset.ready) {
       backgroundRoot.dataset.ready = '1';
-      for (let i=0;i<3;i++) {
-        const e = document.createElement('div'); e.className = 'eye'; e.style.left = `${10 + i*28}%`; e.style.top = `${6 + (i%2)*5}%`; backgroundRoot.appendChild(e);
+      // create a few leaves/pumpkins (drawn via CSS)
+      for (let i=0;i<20;i++) {
+        const leaf = document.createElement('div');
+        leaf.className = 'leaf';
+        leaf.style.left = `${Math.random()*100}%`;
+        leaf.style.top = `${-10 - Math.random()*60}%`;
+        leaf.style.animationDelay = `${Math.random()*10}s`;
+        backgroundRoot.appendChild(leaf);
       }
-      for (let i=0;i<2;i++) {
-        const f = document.createElement('div'); f.className = 'fog'; f.style.left = `${-150 + i*220}px`; f.style.top = `${20 + i*20}%`; backgroundRoot.appendChild(f);
+      for (let i=0;i<6;i++) {
+        const pk = document.createElement('div');
+        pk.className = 'bg-pumpkin';
+        pk.style.left = `${Math.random()*100}%`;
+        pk.style.top = `${-20 - Math.random()*60}%`;
+        pk.style.animationDelay = `${Math.random()*12}s`;
+        backgroundRoot.appendChild(pk);
       }
     }
   }
@@ -701,5 +754,6 @@
   // cleanup
   window.addEventListener('beforeunload', ()=> { if (animationId) cancelAnimationFrame(animationId); });
 
-  if (playOverlay) playOverlay.classList.remove('hidden');
+  // show play overlay only if not fullscreen
+  if (playOverlay && document.fullscreenElement !== playbound) playOverlay.classList.remove('hidden');
 })();
