@@ -193,7 +193,7 @@
       }
 
       // pickups more likely
-      if(Math.random() < 0.08){
+      if(Math.random() < 0.02){
         pickups.push({ kind: Math.random() < 0.7 ? 'candy' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 36, picked:false });
       }
 
@@ -307,15 +307,18 @@
   }
 
   // regeneration for breakables
-  function regeneratePlatforms(){
-    const nowTs = Date.now();
-    platforms.forEach(p => {
-      if(p.state === 'broken' && (nowTs - (p.brokenAt || 0) >= REGEN_MS)){
-        p.state = undefined;
-        p.type = 'static';
-        p.used = false;
-      }
-    });
+  {
+    // replace regeneration so breakables come back as breakable (not static)
+    function regeneratePlatforms(){
+      const nowTs = Date.now();
+      platforms.forEach(p => {
+        if (p.state === 'broken' && (nowTs - (p.brokenAt || 0) >= REGEN_MS)) {
+          p.state = undefined;
+          p.type = 'break';   // regenerate as breakable (was 'static')
+          p.used = false;
+        }
+      });
+    }
   }
 
   // draw background elements (leaves & pumpkins)
@@ -495,11 +498,11 @@
       if(!it.picked && rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:it.x,y:it.y,w:28,h:28})){
         it.picked = true;
         if(it.kind === 'candy'){
-          player.flight = { remaining: 2400, vel:46, taper:500 }; // candy strong long
+          player.flight = { remaining: 1200, vel:24, taper:300 }; // candy strong long
           player.vy = -player.flight.vel;
           score += 70;
         } else if(it.kind === 'hat'){
-          player.flight = { remaining: 2100, vel:40, taper:450 }; // witch hat stronger
+          player.flight = { remaining: 800, vel:16, taper:200 }; // witch hat stronger
           player.vy = -player.flight.vel;
           score += 55;
         }
@@ -576,14 +579,68 @@
   }
 
   // kill player: always show modal inside playbound (works in fullscreen)
-  function killPlayer(reason){
-    if(!player || !player.alive) return;
-    player.alive = false;
-    running = false;
-    finalScoreEl.textContent = score;
-    submitNote.textContent = (Date.now() <= GAME_END_TS) ? 'This score is within the event window and can be submitted to the main leaderboard.' : 'Event window ended — score will be recorded in the day leaderboard only.';
-    showModalInPlaybound(gameOverModal);
-    if(scaryMode){ doJumpscare(); if(Math.random() < 0.5) frozen = true && setTimeout(()=> frozen = false, 500 + Math.random()*900); }
+  {
+    // replace killPlayer to show content (no modal wrapper border) so fullscreen still displays buttons
+    function killPlayer(reason){
+      if (!player || !player.alive) return;
+      player.alive = false;
+      running = false;
+      finalScoreEl.textContent = score;
+      submitNote.textContent = (Date.now() <= GAME_END_TS)
+        ? 'This score is within the event window and can be submitted to the main leaderboard.'
+        : 'Event window ended — score will be recorded in the day leaderboard only.';
+
+      // show the game-over CONTENT (not the modal wrapper) so border disappears
+      showGameOverContent();
+
+      if (scaryMode) {
+        doJumpscare();
+        if (Math.random() < 0.5) {
+          frozen = true;
+          setTimeout(()=> frozen = false, 500 + Math.random()*900);
+        }
+      }
+    }
+  }
+
+  {
+    // add helpers to show/hide the modal CONTENT without the modal wrapper (removes modal border)
+    const gameOverContent = gameOverModal ? gameOverModal.querySelector('.modal-content') : null;
+    let _gameOverContentParent = null;
+    function showGameOverContent() {
+      if (!gameOverContent || !playbound) return;
+      // hide the wrapper/modal element
+      gameOverModal.classList.add('hidden');
+      // remember original parent so we can restore later
+      if (! _gameOverContentParent) _gameOverContentParent = gameOverContent.parentElement;
+      // style the content to appear like a centered overlay but without the modal wrapper border
+      gameOverContent.style.position = 'absolute';
+      gameOverContent.style.left = '50%';
+      gameOverContent.style.top = '52%';
+      gameOverContent.style.transform = 'translate(-50%,-50%)';
+      gameOverContent.style.zIndex = '220';
+      gameOverContent.style.pointerEvents = 'auto';
+      // append directly into playbound (so it overlays only game area); to show full-page remove this and append to body
+      if (gameOverContent.parentElement !== playbound) playbound.appendChild(gameOverContent);
+      gameOverContent.classList.remove('hidden');
+    }
+    function hideGameOverContent() {
+      if (!gameOverContent) return;
+      gameOverContent.classList.add('hidden');
+      // restore original inline styles we set (minimal reset)
+      gameOverContent.style.position = '';
+      gameOverContent.style.left = '';
+      gameOverContent.style.top = '';
+      gameOverContent.style.transform = '';
+      gameOverContent.style.zIndex = '';
+      gameOverContent.style.pointerEvents = '';
+      // move it back inside the modal wrapper if possible
+      if (_gameOverContentParent && gameOverContent.parentElement !== _gameOverContentParent) {
+        _gameOverContentParent.appendChild(gameOverContent);
+      }
+      // ensure the modal wrapper is hidden by default
+      if (gameOverModal) gameOverModal.classList.add('hidden');
+    }
   }
 
   // persistence helpers: one slot per uid, update totals
@@ -678,29 +735,49 @@
   canvas.addEventListener('touchend', ()=> { keys.left = keys.right = false; });
 
   // UI wiring
-  dayLeaderboardBtn && dayLeaderboardBtn.addEventListener('click', async () => {
-    dayLeaderboardBody.innerHTML = '<tr><td colspan="5">Loading…</td></tr>';
-    showModalInPlaybound(dayLeaderboardModal);
-    let remote = [];
-    if(window.firebaseDb && window.firebaseGetDocs && window.firebaseCollection && window.firebaseQuery && window.firebaseOrderBy){
-      try{
-        const q = window.firebaseQuery(window.firebaseCollection(window.firebaseDb,'day1_scores'), window.firebaseOrderBy('score','desc'));
-        const snap = await window.firebaseGetDocs(q);
-        snap.forEach(d => remote.push(d.data()));
-      } catch(e){ console.warn(e); }
-    }
-    const rows = (remote || []).slice(0,30).map((r,idx) => {
-      const when = new Date(r.ts).toLocaleString();
-      const within = r.withinEvent ? 'Yes' : 'No';
-      const name = r.playerName || (r.uid ? r.uid : 'Anonymous');
-      return `<tr class="${idx===0?'rank-1':idx===1?'rank-2':idx===2?'rank-3':''}"><td>${idx+1}</td><td>${escapeHtml(name)}</td><td>${r.score}</td><td>${when}</td><td>${within}</td></tr>`;
+  {
+    // modify leaderboard button handler so leaderboard modal spans the whole page (not confined to playbound)
+    dayLeaderboardBtn && dayLeaderboardBtn.addEventListener('click', async () => {
+      // make leaderboard modal full-page by appending to body (it will no longer be confined by .playbound .modal)
+      if (dayLeaderboardModal.parentElement !== document.body) {
+        document.body.appendChild(dayLeaderboardModal);
+      }
+      // load data
+      dayLeaderboardBody.innerHTML = '<tr><td colspan="5">Loading…</td></tr>';
+      dayLeaderboardModal.classList.remove('hidden');
+
+      let remote = [];
+      if (window.firebaseDb && window.firebaseGetDocs && window.firebaseCollection && window.firebaseQuery && window.firebaseOrderBy) {
+        try {
+          const q = window.firebaseQuery(window.firebaseCollection(window.firebaseDb,'day1_scores'), window.firebaseOrderBy('score','desc'));
+          const snap = await window.firebaseGetDocs(q);
+          snap.forEach(d => remote.push(d.data()));
+        } catch (e) { console.warn(e); }
+      }
+      const rows = (remote || []).slice(0,30).map((r,idx) => {
+        const when = new Date(r.ts).toLocaleString();
+        const within = r.withinEvent ? 'Yes' : 'No';
+        const name = r.playerName || (r.uid ? r.uid : 'Anonymous');
+        return `<tr class="${idx===0?'rank-1':idx===1?'rank-2':idx===2?'rank-3':''}"><td>${idx+1}</td><td>${escapeHtml(name)}</td><td>${r.score}</td><td>${when}</td><td>${within}</td></tr>`;
+      });
+      dayLeaderboardBody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="5">No scores yet</td></tr>';
     });
-    dayLeaderboardBody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="5">No scores yet</td></tr>';
-  });
-  dayLeaderboardClose && dayLeaderboardClose.addEventListener('click', ()=> hideModal(dayLeaderboardModal));
+
+    // ensure close puts modal back (optional) and hides it
+    dayLeaderboardClose && dayLeaderboardClose.addEventListener('click', ()=> {
+      dayLeaderboardModal.classList.add('hidden');
+      // optionally move back into playbound to restore previous DOM state
+      const frame = document.querySelector('.halloween-frame') || document.getElementById('game-area');
+      if (frame && dayLeaderboardModal.parentElement !== frame) frame.appendChild(dayLeaderboardModal);
+    });
+  }
 
   submitScoreBtn && submitScoreBtn.addEventListener('click', handleSubmitScore);
-  retryBtn && retryBtn.addEventListener('click', ()=> { hideModal(gameOverModal); hideModal(playOverlay); setTimeout(()=> startGame(), 30); });
+  retryBtn && retryBtn.addEventListener('click', ()=> {
+    hideGameOverContent();
+    hideModal(playOverlay);
+    setTimeout(()=> startGame(), 30);
+  });
 
   helpBtn && helpBtn.addEventListener('click', ()=> showModalInPlaybound(helpModal));
   helpClose && helpClose.addEventListener('click', ()=> hideModal(helpModal));
