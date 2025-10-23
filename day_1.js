@@ -345,26 +345,369 @@
     antiSoftlockRuntime();
   }
 
+  {
+  // --- replaced/added functions & small handler fixes to address spawn, save, retry, auth ---
+  // runtime anti-softlock (rate-limited) + continuous generator
   function antiSoftlockRuntime() {
     if (!player) return;
     const nowTs = Date.now();
     if (nowTs - lastAntiSoftlockAt < ANTI_SOFTLOCK_COOLDOWN) return;
+
+    // If there are very few platforms near player or none above the view, generate more above
     const dangerZone = platforms.filter(p => p.y > player.y - 40 && p.y < player.y + 240);
     const hasSafe = dangerZone.some(p => p.type !== 'break');
     if (!hasSafe) {
       const y = Math.round(player.y - 140);
-      // don't spam: if there is already a platform near that Y, skip
-      if (platforms.some(p => Math.abs(p.y - y) < 22)) return;
-      let nx = Math.min(Math.max(40, player.x + 40), W-120);
-      let np = createPlatform(nx, y, 'static');
-      let tries = 0;
-      while (platforms.some(q => Math.abs(q.y - np.y) < 18 && Math.abs(q.x - np.x) < Math.max(40, (q.w+np.w)/2)) && tries++ < 8) {
-        np.x = Math.random()*(W - np.w - 16);
+      if (!platforms.some(p => Math.abs(p.y - y) < 22)) {
+        let nx = Math.min(Math.max(40, player.x + 40), W - 120);
+        let np = createPlatform(nx, y, 'static');
+        let tries = 0;
+        while (platforms.some(q => Math.abs(q.y - np.y) < 18 && Math.abs(q.x - np.x) < Math.max(40, (q.w+np.w)/2)) && tries++ < 8) {
+          np.x = Math.random()*(W - np.w - 16);
+        }
+        platforms.push(np);
+        trimPlatforms();
+        lastAntiSoftlockAt = nowTs;
       }
-      platforms.push(np);
-      // cap platforms to avoid runaway
-      if (platforms.length > MAX_PLATFORMS) platforms = platforms.slice(0, MAX_PLATFORMS);
-      lastAntiSoftlockAt = nowTs;
+    }
+  }
+
+  // ensure we always have enough platforms above view as player climbs
+  function generatePlatformsAbove() {
+    if (!player) return;
+    // find current highest (min y)
+    let minY = Infinity;
+    platforms.forEach(p => { if (p.y < minY) minY = p.y; });
+    if (minY === Infinity) minY = H - 20;
+
+    // desired "coverage" above screen: keep generating until minY < -60 (i.e. we have platforms above viewport)
+    let attempts = 0;
+    while (minY > -80 && platforms.length < MAX_PLATFORMS && attempts++ < 40) {
+      // create a new platform a bit above the current minY
+      const gap = 36 + Math.random()*48;
+      const newY = Math.round(minY - gap);
+      const x = Math.random() * (W - 90);
+      // difficulty progression: more hazards as score increases
+      let type = 'static';
+      const prog = Math.min(1, score / 800); // scale 0..1
+      const r = Math.random();
+      if (r < 0.08 + 0.2 * prog) type = 'break';
+      else if (r < 0.18 + 0.2 * prog) type = 'moving';
+      else if (r < 0.28) type = 'spring';
+      else if (r < 0.30 + 0.06 * prog) type = 'jet';
+      const p = createPlatform(x, newY, type);
+      // avoid too-close vertical overlap
+      if (!platforms.some(q => Math.abs(q.y - p.y) < 18 && Math.abs(q.x - p.x) < Math.max(40, (q.w+p.w)/2))) {
+        platforms.push(p);
+        minY = p.y;
+      } else {
+        // nudge and retry a few times
+        let tries = 0;
+        while (tries++ < 6 && platforms.some(q => Math.abs(q.y - p.y) < 18 && Math.abs(q.x - p.x) < Math.max(40, (q.w+p.w)/2))) {
+          p.x = Math.random()*(W - p.w - 16);
+        }
+        platforms.push(p);
+        minY = p.y;
+      }
+
+      // very rare pickups and blackholes spawn on some of the new platforms
+      if (Math.random() < 0.015) {
+        pickups.push({ kind: Math.random() < 0.6 ? 'jetpack' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 34, picked:false });
+      }
+      if (Math.random() < 0.02 && score > 60) {
+        blackholes.push({ x: Math.random()*(W-60), y: newY - 28, r: 22 });
+      }
+    }
+
+    trimPlatforms();
+    platforms.sort((a,b)=> a.y - b.y);
+  }
+
+  // remove platforms that are far below the screen and cap total
+  function trimPlatforms() {
+    // remove those far below viewport
+    platforms = platforms.filter(p => p.y < H + 200);
+    // cap total to avoid runaway
+    if (platforms.length > MAX_PLATFORMS) {
+      // prefer to keep higher platforms (small y)
+      platforms.sort((a,b)=> a.y - b.y);
+      platforms = platforms.slice(0, MAX_PLATFORMS);
+    }
+  }
+
+  // modify the scroll logic to generate above after scrolling
+  // ... in update(), after scrolling block replace/add:
+  // (This patch assumes the original scrolling code is present; we call generatePlatformsAbove() after scroll)
+  // generatePlatformsAbove();
+}
+  // --- fix: submit score should check Firebase auth.currentUser (so being logged in on index.html is recognized) ---
+  async function handleSubmitScore() {
+    // prefer firebase auth current user
+    const fbUser = (window.firebaseAuth && window.firebaseAuth.currentUser) ? window.firebaseAuth.currentUser : null;
+    const uid = fbUser ? fbUser.uid : null;
+    const name = (window.userData && window.userData.username) ? window.userData.username : (fbUser && fbUser.email ? fbUser.email.split('@')[0] : 'Anonymous');
+    const entry = { score, playerName: name, uid, ts: Date.now(), withinEvent: Date.now() <= GAME_END_TS };
+
+    if (!uid) {
+      pendingSaveEntry = entry;
+      // show the sign-in modal from index.html (if present)
+      const loginModal = document.getElementById('login-modal');
+      if (loginModal) loginModal.classList.remove('hidden');
+      // Also request a fresh onAuthStateChanged callback in case firebase has user persisted but hasn't populated currentUser yet
+      if (window.firebaseOnAuthStateChanged && window.firebaseAuth) {
+        // attempt a one-time wait for auth
+        const waitForAuth = new Promise((resolve) => {
+          const off = window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
+            off && off(); // unsubscribe if the API returns a function
+            resolve(user);
+          });
+          // fallback timeout
+          setTimeout(() => resolve(null), 1500);
+        });
+        const possibleUser = await waitForAuth;
+        if (possibleUser) {
+          // auto-submit if auth appears
+          pendingSaveEntry.uid = possibleUser.uid;
+          pendingSaveEntry.playerName = (window.userData && window.userData.username) ? window.userData.username : (possibleUser.email ? possibleUser.email.split('@')[0] : 'User');
+          const r = await submitScoreToFirestoreDocs(pendingSaveEntry);
+          if (!r.ok) alert('Auto-save after sign in failed: ' + (r.reason || 'unknown'));
+          pendingSaveEntry = null;
+          return;
+        }
+      }
+
+      alert('Sign in is required to save to the main leaderboard. Please sign in via the modal and the save will complete automatically.');
+      return;
+    }
+
+    const res = await submitScoreToFirestoreDocs(entry);
+    if (!res.ok) {
+      alert('Saving score failed: ' + (res.reason || 'unknown') + '.');
+    } else {
+      alert('Score saved.');
+    }
+
+    if (document.fullscreenElement === playbound) {
+      // keep overlays hidden in fullscreen
+    } else {
+      gameOverModal.classList.add('hidden');
+      playOverlay.classList.remove('hidden');
+    }
+  }
+  // --- ensure retry/play again immediately restarts and hides overlays ---
+  // replace retry handler wiring:
+  retryBtn && retryBtn.addEventListener('click', ()=> {
+    // hide overlays unconditionally then start
+    if (gameOverModal) gameOverModal.classList.add('hidden');
+    if (playOverlay) playOverlay.classList.add('hidden');
+    // small delay to ensure DOM state cleared
+    setTimeout(() => startGame(), 30);
+  });
+
+  // Also ensure play button immediately starts (already wired) but keep overlay hidden in fullscreen
+  playBtn && playBtn.addEventListener('click', () => {
+    if (document.fullscreenElement === playbound) {
+      playOverlay && playOverlay.classList.add('hidden');
+      gameOverModal && gameOverModal.classList.add('hidden');
+    }
+    startGame();
+  });
+
+  // Hook into the main loop scroll to generate above when player scrolls
+  // We'll wrap the existing scroll behavior inside update() to call generatePlatformsAbove();
+  // Find the place where scrolling occurs (player.y < SCROLL_THRESHOLD) and after the code block append:
+  // generatePlatformsAbove();
+  function update(dt) {
+    if (!player || !player.alive || frozen) return;
+
+    if (flightTimer > 0) {
+      player.vy -= 0.45; // much stronger thrust when flying
+      flightTimer -= dt * 0.016666;
+    }
+
+    if (keys.left) player.vx -= 0.6;
+    if (keys.right) player.vx += 0.6;
+    player.vx *= 0.96;
+
+    player.vy += GRAVITY;
+    player.x += player.vx;
+    player.y += player.vy;
+
+    // wrap horizontally
+    if (player.x > W) player.x = -player.w;
+    if (player.x + player.w < 0) player.x = W - 1;
+
+    // moving platforms
+    platforms.forEach(p => {
+      if (p.type === 'moving') {
+        p.x += p.vx * (dt/16.666);
+        if (p.x < p.minX || p.x > p.maxX) { p.vx *= -1; p.x = Math.max(p.minX, Math.min(p.x, p.maxX)); }
+      }
+    });
+
+    // landing
+    if (player.vy > 0) {
+      platforms.forEach(p => {
+        const platRect = { x: p.x, y: p.y, w: p.w, h: p.h };
+        const playerFoot = { x: player.x, y: player.y + player.h, w: player.w, h: 6 };
+        if (rectsOverlap(playerFoot, platRect) && (player.y + player.h - player.vy) <= p.y + 3) {
+          if (p.type === 'break') {
+            const reachable = platforms.some(q => q !== p && (q.type !== 'break') && (q.y < p.y) && (p.y - q.y) < 180);
+            if (!reachable) {
+              p.type = 'static';
+            } else {
+              player.vy = -9;
+              p.toRemove = true;
+            }
+          } else if (p.type === 'spring') {
+            player.vy = -22; // stronger spring
+            p.used = true;
+          } else if (p.type === 'jet') {
+            player.vy = -36; // jet platform huge boost
+            p.used = true;
+          } else {
+            player.vy = JUMP_VEL + (-Math.random()*2);
+          }
+        }
+      });
+    }
+
+    // remove broken
+    platforms = platforms.filter(p => !p.toRemove);
+
+    // pickups (jetpack/hat)
+    pickups.forEach(it => {
+      if (!it.picked && rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:it.x,y:it.y,w:28,h:28})) {
+        it.picked = true;
+        if (it.kind === 'jetpack') {
+          flightTimer = Math.max(flightTimer, 5.0); // very strong
+          score += 50;
+        } else if (it.kind === 'hat') {
+          flightTimer = Math.max(flightTimer, 3.2);
+          score += 35;
+        }
+      }
+    });
+
+    // enemies (very rare, stay in row)
+    enemies.forEach(e => {
+      e.x += Math.sin((Date.now() + e.seed) / 800) * 0.4;
+      if (rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:e.x,y:e.y,w:e.w,h:e.h})) {
+        killPlayer('enemy');
+      }
+    });
+
+    // blackhole collision (more visible / themed)
+    blackholes.forEach(b => {
+      const px = player.x + player.w/2, py = player.y + player.h/2;
+      const cx = b.x + b.r, cy = b.y + b.r;
+      const dx = px - cx, dy = py - cy;
+      if (dx*dx + dy*dy < (b.r + player.w/4)*(b.r + player.w/4)) killPlayer('blackhole');
+    });
+
+    // scroll world if player high
+    if (player.y < SCROLL_THRESHOLD) {
+      const dy = Math.floor(SCROLL_THRESHOLD - player.y);
+      player.y = SCROLL_THRESHOLD;
+      platforms.forEach(p => p.y += dy);
+      enemies.forEach(e => e.y += dy);
+      blackholes.forEach(b => b.y += dy);
+      pickups.forEach(it => it.y += dy);
+      score += Math.floor(dy/8);
+    }
+
+    // fall death
+    if (player.y > H + 160) killPlayer('fall');
+
+    // runtime anti-softlock (rate-limited)
+    antiSoftlockRuntime();
+    generatePlatformsAbove();
+  }
+
+  function antiSoftlockRuntime() {
+    if (!player) return;
+    const nowTs = Date.now();
+    if (nowTs - lastAntiSoftlockAt < ANTI_SOFTLOCK_COOLDOWN) return;
+
+    // If there are very few platforms near player or none above the view, generate more above
+    const dangerZone = platforms.filter(p => p.y > player.y - 40 && p.y < player.y + 240);
+    const hasSafe = dangerZone.some(p => p.type !== 'break');
+    if (!hasSafe) {
+      const y = Math.round(player.y - 140);
+      if (!platforms.some(p => Math.abs(p.y - y) < 22)) {
+        let nx = Math.min(Math.max(40, player.x + 40), W - 120);
+        let np = createPlatform(nx, y, 'static');
+        let tries = 0;
+        while (platforms.some(q => Math.abs(q.y - np.y) < 18 && Math.abs(q.x - np.x) < Math.max(40, (q.w+np.w)/2)) && tries++ < 8) {
+          np.x = Math.random()*(W - np.w - 16);
+        }
+        platforms.push(np);
+        trimPlatforms();
+        lastAntiSoftlockAt = nowTs;
+      }
+    }
+  }
+
+  // ensure we always have enough platforms above view as player climbs
+  function generatePlatformsAbove() {
+    if (!player) return;
+    // find current highest (min y)
+    let minY = Infinity;
+    platforms.forEach(p => { if (p.y < minY) minY = p.y; });
+    if (minY === Infinity) minY = H - 20;
+
+    // desired "coverage" above screen: keep generating until minY < -60 (i.e. we have platforms above viewport)
+    let attempts = 0;
+    while (minY > -80 && platforms.length < MAX_PLATFORMS && attempts++ < 40) {
+      // create a new platform a bit above the current minY
+      const gap = 36 + Math.random()*48;
+      const newY = Math.round(minY - gap);
+      const x = Math.random() * (W - 90);
+      // difficulty progression: more hazards as score increases
+      let type = 'static';
+      const prog = Math.min(1, score / 800); // scale 0..1
+      const r = Math.random();
+      if (r < 0.08 + 0.2 * prog) type = 'break';
+      else if (r < 0.18 + 0.2 * prog) type = 'moving';
+      else if (r < 0.28) type = 'spring';
+      else if (r < 0.30 + 0.06 * prog) type = 'jet';
+      const p = createPlatform(x, newY, type);
+      // avoid too-close vertical overlap
+      if (!platforms.some(q => Math.abs(q.y - p.y) < 18 && Math.abs(q.x - p.x) < Math.max(40, (q.w+p.w)/2))) {
+        platforms.push(p);
+        minY = p.y;
+      } else {
+        // nudge and retry a few times
+        let tries = 0;
+        while (tries++ < 6 && platforms.some(q => Math.abs(q.y - p.y) < 18 && Math.abs(q.x - p.x) < Math.max(40, (q.w+p.w)/2))) {
+          p.x = Math.random()*(W - p.w - 16);
+        }
+        platforms.push(p);
+        minY = p.y;
+      }
+
+      // very rare pickups and blackholes spawn on some of the new platforms
+      if (Math.random() < 0.015) {
+        pickups.push({ kind: Math.random() < 0.6 ? 'jetpack' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 34, picked:false });
+      }
+      if (Math.random() < 0.02 && score > 60) {
+        blackholes.push({ x: Math.random()*(W-60), y: newY - 28, r: 22 });
+      }
+    }
+
+    trimPlatforms();
+    platforms.sort((a,b)=> a.y - b.y);
+  }
+
+  // remove platforms that are far below the screen and cap total
+  function trimPlatforms() {
+    // remove those far below viewport
+    platforms = platforms.filter(p => p.y < H + 200);
+    // cap total to avoid runaway
+    if (platforms.length > MAX_PLATFORMS) {
+      // prefer to keep higher platforms (small y)
+      platforms.sort((a,b)=> a.y - b.y);
+      platforms = platforms.slice(0, MAX_PLATFORMS);
     }
   }
 
@@ -602,8 +945,10 @@
 
   // Save flow: require firebase auth; if not signed in open index sign-in modal and auto-submit on auth
   async function handleSubmitScore() {
-    const uid = window.currentUser && window.currentUser.uid ? window.currentUser.uid : null;
-    const name = (window.userData && window.userData.username) ? window.userData.username : (window.currentUser && window.currentUser.email ? window.currentUser.email.split('@')[0] : 'Anonymous');
+    // prefer firebase auth current user
+    const fbUser = (window.firebaseAuth && window.firebaseAuth.currentUser) ? window.firebaseAuth.currentUser : null;
+    const uid = fbUser ? fbUser.uid : null;
+    const name = (window.userData && window.userData.username) ? window.userData.username : (fbUser && fbUser.email ? fbUser.email.split('@')[0] : 'Anonymous');
     const entry = { score, playerName: name, uid, ts: Date.now(), withinEvent: Date.now() <= GAME_END_TS };
 
     if (!uid) {
@@ -611,6 +956,29 @@
       // show the sign-in modal from index.html (if present)
       const loginModal = document.getElementById('login-modal');
       if (loginModal) loginModal.classList.remove('hidden');
+      // Also request a fresh onAuthStateChanged callback in case firebase has user persisted but hasn't populated currentUser yet
+      if (window.firebaseOnAuthStateChanged && window.firebaseAuth) {
+        // attempt a one-time wait for auth
+        const waitForAuth = new Promise((resolve) => {
+          const off = window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
+            off && off(); // unsubscribe if the API returns a function
+            resolve(user);
+          });
+          // fallback timeout
+          setTimeout(() => resolve(null), 1500);
+        });
+        const possibleUser = await waitForAuth;
+        if (possibleUser) {
+          // auto-submit if auth appears
+          pendingSaveEntry.uid = possibleUser.uid;
+          pendingSaveEntry.playerName = (window.userData && window.userData.username) ? window.userData.username : (possibleUser.email ? possibleUser.email.split('@')[0] : 'User');
+          const r = await submitScoreToFirestoreDocs(pendingSaveEntry);
+          if (!r.ok) alert('Auto-save after sign in failed: ' + (r.reason || 'unknown'));
+          pendingSaveEntry = null;
+          return;
+        }
+      }
+
       alert('Sign in is required to save to the main leaderboard. Please sign in via the modal and the save will complete automatically.');
       return;
     }
@@ -622,7 +990,6 @@
       alert('Score saved.');
     }
 
-    // hide game over and show replay (but if in fullscreen, keep overlays hidden)
     if (document.fullscreenElement === playbound) {
       // keep overlays hidden in fullscreen
     } else {
@@ -678,15 +1045,25 @@
   dayLeaderboardClose && dayLeaderboardClose.addEventListener('click', ()=> dayLeaderboardModal.classList.add('hidden'));
   submitScoreBtn && submitScoreBtn.addEventListener('click', handleSubmitScore);
   // Play again immediately restarts
-  retryBtn && retryBtn.addEventListener('click', ()=> { if (document.fullscreenElement !== playbound) startGame(); else { /* in fullscreen don't show modal; restart immediately */ startGame(); } });
+  retryBtn && retryBtn.addEventListener('click', ()=> {
+    // hide overlays unconditionally then start
+    if (gameOverModal) gameOverModal.classList.add('hidden');
+    if (playOverlay) playOverlay.classList.add('hidden');
+    // small delay to ensure DOM state cleared
+    setTimeout(() => startGame(), 30);
+  });
 
   helpBtn && helpBtn.addEventListener('click', ()=> helpModal.classList.remove('hidden'));
   helpClose && helpClose.addEventListener('click', ()=> helpModal.classList.add('hidden'));
   helpStep && helpStep.addEventListener('click', ()=> { helpInteractive.innerHTML = `<div style="color:#ffd8a8">Controls: ← → to move. Tap left/right on mobile. Halloween Jetpack gives long flight, Witch Hat gives high flight. Avoid blackholes & enemies.</div>`; });
 
-  playBtn && playBtn.addEventListener('click', () => startGame());
-  // close play overlay will just hide it, but play must be clicked to start
-  playCancel && playCancel.addEventListener('click', () => playOverlay.classList.add('hidden'));
+  playBtn && playBtn.addEventListener('click', () => {
+    if (document.fullscreenElement === playbound) {
+      playOverlay && playOverlay.classList.add('hidden');
+      gameOverModal && gameOverModal.classList.add('hidden');
+    }
+    startGame();
+  });
 
   // fullscreen only for playbound, update icon
   let isFull = false;

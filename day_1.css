@@ -85,6 +85,10 @@ html, body {
 .playbound:fullscreen {
   border: 6px solid rgba(255,107,53,1);
   box-shadow: 0 0 40px rgba(255,107,53,0.18);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #000; /* leave the rest blank/dark */
 }
 
 /* ensure the canvas stays centered and scales */
@@ -94,6 +98,15 @@ html, body {
   display: block;
   border-radius: 6px;
   box-shadow: inset 0 12px 40px rgba(0,0,0,0.6), 0 12px 30px rgba(0,0,0,0.6);
+}
+
+/* In fullscreen keep canvas aspect ratio: scale by height and center */
+.playbound:fullscreen #game-canvas {
+  height: 100%;
+  width: auto;
+  max-height: 100vh;
+  max-width: calc(var(--canvas-w) / var(--canvas-h) * 100vh);
+  display: block;
 }
 
 /* fullscreen button placed over playbound */
