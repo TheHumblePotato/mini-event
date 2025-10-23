@@ -719,13 +719,15 @@
   }
 
   window.addEventListener('keydown', e => {
-    if(e.key === 'ArrowLeft') keys.left = true;
-    if(e.key === 'ArrowRight') keys.right = true;
-    if(e.key === 'f' && document.fullscreenEnabled) toggleFullscreen();
+    const k = (e.key || '').toLowerCase();
+    if (k === 'arrowleft' || k === 'a' || k === 'j') { keys.left = true; if(e.preventDefault) e.preventDefault(); }
+    if (k === 'arrowright' || k === 'd' || k === 'l') { keys.right = true; if(e.preventDefault) e.preventDefault(); }
+    if (k === 'f' && document.fullscreenEnabled) toggleFullscreen();
   });
   window.addEventListener('keyup', e => {
-    if(e.key === 'ArrowLeft') keys.left = false;
-    if(e.key === 'ArrowRight') keys.right = false;
+    const k = (e.key || '').toLowerCase();
+    if (k === 'arrowleft' || k === 'a' || k === 'j') keys.left = false;
+    if (k === 'arrowright' || k === 'd' || k === 'l') keys.right = false;
   });
   
   canvas.addEventListener('touchstart', e => {
