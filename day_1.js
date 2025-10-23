@@ -116,12 +116,56 @@
     return { x: W/2 - PLAYER_SIZE/2, y: H - 100, vx: 0, vy: 0, w: PLAYER_SIZE, h: PLAYER_SIZE, alive: true, yTop: H };
   }
 
+  // small helper: show/hide modal inside playbound (so overlays cover only game area)
+  function showModalInPlaybound(modalEl) {
+    if (!modalEl || !playbound) return;
+    modalEl.classList.remove('hidden');
+    // move modal into playbound for positioning
+    if (modalEl.parentElement !== playbound) playbound.appendChild(modalEl);
+  }
+  function hideModal(modalEl) {
+    if (!modalEl) return;
+    modalEl.classList.add('hidden');
+    // keep DOM position but hide
+  }
+
+  // inline toast for save status (no alerts)
+  function showToast(msg, timeout = 2500) {
+    let t = playbound.querySelector('.save-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.className = 'save-toast';
+      playbound.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._timeout);
+    t._timeout = setTimeout(() => { if (t) t.remove(); }, timeout);
+  }
+
+  // Adjust createPlatform: faster and varied moving platform speeds
   function createPlatform(x,y,type='static') {
     const w = 70 + Math.random()*60;
     const px = Math.max(8, Math.min(W - w - 8, Math.round(x)));
-    const p = { x: px, y: Math.round(y), w, h: 12, type, used:false, toRemove:false };
-    if (type === 'moving') { p.vx = (Math.random() < 0.5 ? -1 : 1) * (0.6 + Math.random()*1.0); p.minX = Math.max(6, p.x-70); p.maxX = Math.min(W - p.w - 6, p.x+70); }
+    const p = { x: px, y: Math.round(y), w, h: 12, type, used:false, toRemove:false, state: undefined, brokenAt:0 };
+    if (type === 'moving') {
+      // varied speeds, some faster
+      const base = 0.8 + Math.random()*1.6; // faster than before
+      p.vx = (Math.random() < 0.5 ? -1 : 1) * base;
+      p.minX = Math.max(6, p.x-70);
+      p.maxX = Math.min(W - p.w - 6, p.x+70);
+    }
     return p;
+  }
+
+  // Landing rules: prevent landing on non-visible / off-canvas platforms
+  function canLandOnPlatform(p) {
+    // must be inside visible area (a bit above bottom)
+    if (!p) return false;
+    if (p.y > H - 8) return false;
+    // if broken state, cannot land
+    if (p.state === 'broken') return false;
+    return true;
   }
 
   function spawnInitial() {
@@ -171,7 +215,7 @@
 
       // pickups (jetpack/hat) very rare
       if (Math.random() < 0.03) {
-        pickups.push({ kind: Math.random() < 0.6 ? 'jetpack' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 34, picked:false });
+        pickups.push({ kind: Math.random() < 0.6 ? 'candy' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 34, picked:false });
       }
 
       // blackholes: very rare and only later
@@ -242,9 +286,11 @@
   function update(dt) {
     if (!player || !player.alive || frozen) return;
 
+    regeneratePlatforms(dt);
+
     if (flightTimer > 0) {
-      player.vy -= 0.45; // much stronger thrust when flying
-      flightTimer -= dt * 0.016666;
+      // flightTimer path removed - we no longer use continuous flight; keep variable for legacy but ignore
+      flightTimer = 0;
     }
 
     if (keys.left) player.vx -= 0.6;
@@ -267,19 +313,21 @@
       }
     });
 
-    // landing
+    // landing with visibility checks
     if (player.vy > 0) {
       platforms.forEach(p => {
         const platRect = { x: p.x, y: p.y, w: p.w, h: p.h };
         const playerFoot = { x: player.x, y: player.y + player.h, w: player.w, h: 6 };
-        if (rectsOverlap(playerFoot, platRect) && (player.y + player.h - player.vy) <= p.y + 3) {
+        if (rectsOverlap(playerFoot, platRect) && (player.y + player.h - player.vy) <= p.y + 3 && canLandOnPlatform(p)) {
           if (p.type === 'break') {
             const reachable = platforms.some(q => q !== p && (q.type !== 'break') && (q.y < p.y) && (p.y - q.y) < 180);
             if (!reachable) {
               p.type = 'static';
             } else {
               player.vy = -9;
-              p.toRemove = true;
+              // mark as broken and start timer to regenerate; cannot be jumped on until fully restored
+              p.state = 'broken';
+              p.brokenAt = Date.now();
             }
           } else if (p.type === 'spring') {
             player.vy = -22; // stronger spring
@@ -294,24 +342,24 @@
       });
     }
 
-    // remove broken
-    platforms = platforms.filter(p => !p.toRemove);
+    // remove any platforms marked for removal by other logic (keep regen logic intact)
+    platforms = platforms.filter(p => p !== undefined);
 
-    // pickups (jetpack/hat)
+    // pickups collisions (candy/hat) - immediate fixed momentum
     pickups.forEach(it => {
       if (!it.picked && rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:it.x,y:it.y,w:28,h:28})) {
         it.picked = true;
-        if (it.kind === 'jetpack') {
-          flightTimer = Math.max(flightTimer, 5.0); // very strong
+        if (it.kind === 'candy') {
+          player.vy = -40; // big fixed boost
           score += 50;
         } else if (it.kind === 'hat') {
-          flightTimer = Math.max(flightTimer, 3.2);
+          player.vy = -28; // fixed hat boost
           score += 35;
         }
       }
     });
 
-    // enemies (very rare, stay in row)
+    // enemies
     enemies.forEach(e => {
       e.x += Math.sin((Date.now() + e.seed) / 800) * 0.4;
       if (rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:e.x,y:e.y,w:e.w,h:e.h})) {
@@ -319,12 +367,12 @@
       }
     });
 
-    // blackhole collision (more visible / themed)
+    // pumpkin collision (previously blackholes)
     blackholes.forEach(b => {
       const px = player.x + player.w/2, py = player.y + player.h/2;
       const cx = b.x + b.r, cy = b.y + b.r;
       const dx = px - cx, dy = py - cy;
-      if (dx*dx + dy*dy < (b.r + player.w/4)*(b.r + player.w/4)) killPlayer('blackhole');
+      if (dx*dx + dy*dy < (b.r + player.w/4)*(b.r + player.w/4)) killPlayer('pumpkin');
     });
 
     // scroll world if player high
@@ -336,6 +384,8 @@
       blackholes.forEach(b => b.y += dy);
       pickups.forEach(it => it.y += dy);
       score += Math.floor(dy/8);
+      // ensure we always have enough platforms above when scrolling
+      generatePlatformsAbove();
     }
 
     // fall death
@@ -343,9 +393,10 @@
 
     // runtime anti-softlock (rate-limited)
     antiSoftlockRuntime();
+    // ensure continuous generation
+    generatePlatformsAbove();
   }
 
-  {
   // --- replaced/added functions & small handler fixes to address spawn, save, retry, auth ---
   // runtime anti-softlock (rate-limited) + continuous generator
   function antiSoftlockRuntime() {
@@ -412,7 +463,7 @@
 
       // very rare pickups and blackholes spawn on some of the new platforms
       if (Math.random() < 0.015) {
-        pickups.push({ kind: Math.random() < 0.6 ? 'jetpack' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 34, picked:false });
+        pickups.push({ kind: Math.random() < 0.6 ? 'candy' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 34, picked:false });
       }
       if (Math.random() < 0.02 && score > 60) {
         blackholes.push({ x: Math.random()*(W-60), y: newY - 28, r: 22 });
@@ -435,11 +486,338 @@
     }
   }
 
-  // modify the scroll logic to generate above after scrolling
-  // ... in update(), after scrolling block replace/add:
-  // (This patch assumes the original scrolling code is present; we call generatePlatformsAbove() after scroll)
-  // generatePlatformsAbove();
-}
+  function drawBackground(nowTimeSec) {
+    if (!backgroundRoot) return;
+    if (!backgroundRoot.dataset.initted) {
+      backgroundRoot.dataset.initted = '1';
+      // falling leaves and pumpkins
+      for (let i=0;i<18;i++) {
+        const leaf = document.createElement('div');
+        leaf.className = 'leaf';
+        leaf.style.left = `${Math.random()*100}%`;
+        leaf.style.top = `${-10 - Math.random()*40}%`;
+        leaf.style.animationDelay = `${Math.random()*6}s`;
+        leaf.style.transform = `scale(${0.6 + Math.random()*0.8}) rotate(${Math.random()*360}deg)`;
+        backgroundRoot.appendChild(leaf);
+      }
+      for (let i=0;i<6;i++) {
+        const pk = document.createElement('div');
+        pk.className = 'bg-pumpkin';
+        pk.style.left = `${Math.random()*100}%`;
+        pk.style.top = `${-20 - Math.random()*60}%`;
+        pk.style.animationDelay = `${Math.random()*12}s`;
+        backgroundRoot.appendChild(pk);
+      }
+    }
+  }
+
+  function draw(nowTime) {
+    // clear canvas
+    ctx.clearRect(0,0,W,H);
+
+    // background gradient
+    const bg = ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0, '#070306');
+    bg.addColorStop(1, '#0b0305');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0,0,W,H);
+
+    // blackholes: more visible and pumpkin-ringed
+    blackholes.forEach(b => {
+      const cx = b.x + b.r, cy = b.y + b.r;
+      // outer glow
+      const g = ctx.createRadialGradient(cx,cy,b.r*0.6,cx,cy,b.r*2.5);
+      g.addColorStop(0, 'rgba(255,120,0,0.28)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(cx,cy,b.r*2,0,Math.PI*2);
+      ctx.fill();
+      // pumpkin ring
+      ctx.fillStyle = '#ff8c00';
+      ctx.beginPath();
+      ctx.arc(cx,cy,b.r*1.1,0,Math.PI*2);
+      ctx.fill();
+      // center hole
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.arc(cx,cy,b.r*0.8,0,Math.PI*2);
+      ctx.fill();
+      // carved eyes
+      ctx.fillStyle = '#200';
+      ctx.beginPath();
+      ctx.moveTo(cx - 8, cy - 2);
+      ctx.quadraticCurveTo(cx - 2, cy - 10, cx + 6, cy - 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx - 10, cy + 6);
+      ctx.quadraticCurveTo(cx - 2, cy + 12, cx + 10, cy + 6);
+      ctx.fill();
+    });
+
+    // platforms
+    platforms.forEach(p => {
+      if (p.type === 'break') ctx.fillStyle = '#5a1b1b';
+      else if (p.type === 'spring') ctx.fillStyle = '#ffd86b';
+      else if (p.type === 'jet') ctx.fillStyle = '#7fe0ff';
+      else if (p.type === 'moving') ctx.fillStyle = '#bb7f3a';
+      else ctx.fillStyle = '#884422';
+      ctx.fillRect(p.x, p.y, p.w, p.h);
+      ctx.strokeStyle = '#000';
+      ctx.strokeRect(p.x, p.y, p.w, p.h);
+
+      // spring visual
+      if (p.type === 'spring') {
+        ctx.fillStyle = '#c15a00';
+        ctx.fillRect(p.x + p.w/2 - 6, p.y - 8, 12, 6);
+      }
+    });
+
+    // pickups (jetpack/hat) - larger visuals
+    pickups.forEach(it => {
+      if (it.picked) return;
+      if (it.kind === 'jetpack') {
+        ctx.fillStyle = '#39d7ff';
+        ctx.fillRect(it.x - 6, it.y - 6, 36, 24);
+        ctx.fillStyle = '#222';
+        ctx.fillRect(it.x - 2, it.y - 2, 6, 12);
+        ctx.fillRect(it.x + 22, it.y - 2, 6, 12);
+      } else if (it.kind === 'hat') {
+        ctx.fillStyle = '#8b2a8b';
+        ctx.beginPath();
+        ctx.moveTo(it.x - 2, it.y + 18);
+        ctx.quadraticCurveTo(it.x + 12, it.y - 10, it.x + 32, it.y + 18);
+        ctx.fill();
+      }
+    });
+
+    // enemies
+    enemies.forEach(e => {
+      ctx.fillStyle = scaryMode ? '#6a0000' : '#ffffff';
+      ctx.fillRect(e.x, e.y, e.w, e.h);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(e.x + 5, e.y + 6, 6, 6);
+      ctx.fillRect(e.x + e.w - 11, e.y + 6, 6, 6);
+    });
+
+    // player
+    if (player) {
+      ctx.fillStyle = scaryMode ? '#ff0000' : '#ffd86b';
+      ctx.beginPath();
+      ctx.ellipse(player.x + player.w/2, player.y + player.h/2, player.w/2, player.h/2, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.arc(player.x + player.w*0.35, player.y + player.h*0.35, 3, 0, Math.PI*2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(player.x + player.w*0.65, player.y + player.h*0.35, 3, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    // small scary glitch overlay occasionally in scary mode
+    if (scaryMode && Math.random() < 0.002) {
+      ctx.fillStyle = 'rgba(255,0,0,0.06)';
+      ctx.fillRect(0, Math.random()*H, W, 4 + Math.random()*40);
+    }
+  }
+
+  function loop(nowTime) {
+    const dt = Math.min(32, nowTime - lastTime);
+    lastTime = nowTime;
+    drawBackground(nowTime / 1000);
+    draw(nowTime / 1000);
+    if (running) {
+      update(dt/16.666);
+      if (bigScoreEl) bigScoreEl.textContent = `Score: ${score}`;
+      updateTimers();
+    }
+    animationId = requestAnimationFrame(loop);
+  }
+
+  function killPlayer(reason) {
+    if (!player || !player.alive) return;
+    player.alive = false;
+    running = false;
+    finalScoreEl.textContent = score;
+    const within = Date.now() <= GAME_END_TS;
+    submitNote.textContent = within ? 'This score is within the event window and can be submitted to the main leaderboard.' : 'Event window ended — score will be recorded in the day leaderboard only.';
+
+    // If fullscreen, do not show popups (require user to exit FS to save)
+    if (document.fullscreenElement === playbound) {
+      // just stop the game but don't show modals
+      // show small top HUD change (optional) - here we just return
+      return;
+    }
+
+    gameOverModal.classList.remove('hidden');
+
+    if (scaryMode) { doJumpscareBig(); if (Math.random() < 0.6) glitchFreezeBrief(); }
+  }
+
+  // start / reset
+  function startGame() {
+    if (running) return;
+    // hide overlays when starting in fullscreen
+    if (document.fullscreenElement === playbound) {
+      if (playOverlay) playOverlay.classList.add('hidden');
+      if (gameOverModal) gameOverModal.classList.add('hidden');
+    }
+    spawnInitial();
+    player = createPlayer();
+    score = 0;
+    running = true;
+    lastTime = performance.now();
+    if (!animationId) animationId = requestAnimationFrame(loop);
+    playOverlay && playOverlay.classList.add('hidden');
+  }
+
+  function resetToPlayOnly() {
+    gameOverModal.classList.add('hidden');
+    playOverlay.classList.remove('hidden');
+    if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+    running = false;
+  }
+
+  // leaderboard persistence & submission (require firebase; do not persist locally)
+  function loadLocalScores() { try { return JSON.parse(localStorage.getItem(DAY1_KEY) || '[]'); } catch (e) { return []; } }
+  function saveLocalScore(entry) { /* disabled per request - do nothing */ }
+
+  // submitScoreToFirestoreDocs: ensure one leaderboard slot per user (use uid as doc id)
+  async function submitScoreToFirestoreDocs(entry) {
+    try {
+      if (!window.firebaseReady || !window.firebaseDb || !window.firebaseSetDoc || !window.firebaseDoc) {
+        console.warn('Firebase not available; cannot save remotely.');
+        return { ok: false, reason: 'no-firebase' };
+      }
+      // if we have uid, use it as doc id so only one slot per user
+      const id = entry.uid ? entry.uid : `${Date.now()}_${entry.uid||'anon'}`;
+      const docRef = window.firebaseDoc(window.firebaseDb, 'day1_scores', id);
+
+      // If user doc exists, fetch existing score and only write if new score is higher
+      if (entry.uid && window.firebaseGetDoc) {
+        const existing = await window.firebaseGetDoc(docRef);
+        if (existing && existing.exists && existing.exists()) {
+          const data = existing.data();
+          if ((data.score || 0) >= entry.score) {
+            // still update user totals but do not overwrite day1 slot
+            // update user totals below
+          } else {
+            await window.firebaseSetDoc(docRef, entry);
+          }
+        } else {
+          await window.firebaseSetDoc(docRef, entry);
+        }
+      } else {
+        // anonymous fallback (timestamp id)
+        await window.firebaseSetDoc(docRef, entry);
+      }
+
+      // update user's aggregated totals if uid present
+      if (entry.uid && window.firebaseGetDoc && window.firebaseSetDoc) {
+        const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', entry.uid);
+        const snap = await window.firebaseGetDoc(userDocRef);
+        let docData = {};
+        if (snap && snap.exists && snap.exists()) {
+          docData = snap.data();
+        } else {
+          docData = { username: entry.playerName, email: (window.currentUser && window.currentUser.email) || '', createdAt: new Date(), scores: { day1:0,day2:0,day3:0,day4:0,day5:0, total:0 } };
+        }
+        docData.scores = docData.scores || {};
+        docData.scores.day1 = Math.max(docData.scores.day1 || 0, entry.score);
+        const s = docData.scores;
+        docData.scores.total = (s.day1||0)+(s.day2||0)+(s.day3||0)+(s.day4||0)+(s.day5||0);
+        await window.firebaseSetDoc(userDocRef, docData);
+      }
+
+      return { ok: true };
+    } catch (err) {
+      console.error('Failed to submit score to Firestore:', err);
+      return { ok: false, reason: err && err.message ? err.message : 'unknown' };
+    }
+  }
+
+  // handleSubmitScore: try silent currentUser, otherwise start Google sign-in flow (no alerts), show signin UI inside playbound and then save
+  async function handleSubmitScore() {
+    // prefer firebase auth current user
+    const fbUser = (window.firebaseAuth && window.firebaseAuth.currentUser) ? window.firebaseAuth.currentUser : null;
+    const uid = fbUser ? fbUser.uid : null;
+    const name = (window.userData && window.userData.username) ? window.userData.username : (fbUser && fbUser.email ? fbUser.email.split('@')[0] : 'Anonymous');
+    const entry = { score, playerName: name, uid, ts: Date.now(), withinEvent: Date.now() <= GAME_END_TS };
+
+    if (!uid) {
+      // initiate Google sign-in popup (inside game flow). Do not use alerts.
+      if (window.firebaseSignInWithPopup && window.firebaseAuth && window.googleProvider) {
+        try {
+          const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.googleProvider);
+          const user = result.user;
+          // if user is new or missing username, prompt for username inline
+          const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', user.uid);
+          let snap = null;
+          if (window.firebaseGetDoc) snap = await window.firebaseGetDoc(userDocRef);
+          let playerName = user.displayName || user.email.split('@')[0];
+          if (!snap || !(snap.exists && snap.exists())) {
+            // show inline username prompt inside playbound
+            const unameModal = document.createElement('div');
+            unameModal.className = 'modal';
+            unameModal.innerHTML = `<div class="modal-content" style="padding:12px;"><h3>Choose a username</h3><input id="inline-username" style="width:100%;padding:8px;margin-top:8px;border-radius:6px;border:1px solid #333;background:#111;color:#ffdca8"/><div style="display:flex;gap:8px;margin-top:10px;"><button id="uname-save" class="btn-primary">Save</button><button id="uname-cancel" class="btn-secondary">Cancel</button></div></div>`;
+            playbound.appendChild(unameModal);
+            const input = unameModal.querySelector('#inline-username');
+            const saveBtn = unameModal.querySelector('#uname-save');
+            const cancelBtn = unameModal.querySelector('#uname-cancel');
+            saveBtn.addEventListener('click', async () => {
+              const val = (input.value || '').trim() || playerName;
+              playerName = val;
+              // create user doc with scores
+              const docData = { username: val, email: user.email || '', createdAt: new Date(), scores: { day1:entry.score, day2:0,day3:0,day4:0,day5:0, total: entry.score } };
+              if (window.firebaseSetDoc) await window.firebaseSetDoc(userDocRef, docData);
+              unameModal.remove();
+              entry.uid = user.uid;
+              entry.playerName = val;
+              const r = await submitScoreToFirestoreDocs(entry);
+              if (r.ok) showToast('Score saved');
+              else showToast('Save failed');
+            });
+            cancelBtn.addEventListener('click', () => { unameModal.remove(); showToast('Sign in cancelled'); });
+            return;
+          } else {
+            // user exists, continue and save
+            entry.uid = user.uid;
+            entry.playerName = playerName;
+            const r = await submitScoreToFirestoreDocs(entry);
+            if (r.ok) showToast('Score saved');
+            else showToast('Save failed');
+            return;
+          }
+        } catch (err) {
+          console.error('Sign-in failed', err);
+          showToast('Sign-in failed');
+          return;
+        }
+      } else {
+        // no firebase sign-in available
+        showToast('Sign-in unavailable');
+        return;
+      }
+    }
+
+    // if uid exists, submit and show inline toast instead of alert
+    const res = await submitScoreToFirestoreDocs(entry);
+    if (!res.ok) {
+      showToast('Saving failed');
+    } else {
+      showToast('Score saved');
+    }
+
+    if (document.fullscreenElement === playbound) {
+      // keep overlays hidden in fullscreen
+      hideModal(gameOverModal);
+    } else {
+      hideModal(gameOverModal);
+      hideModal(playOverlay);
+    }
+  }
+
   // --- fix: submit score should check Firebase auth.currentUser (so being logged in on index.html is recognized) ---
   async function handleSubmitScore() {
     // prefer firebase auth current user
@@ -550,14 +928,16 @@
       platforms.forEach(p => {
         const platRect = { x: p.x, y: p.y, w: p.w, h: p.h };
         const playerFoot = { x: player.x, y: player.y + player.h, w: player.w, h: 6 };
-        if (rectsOverlap(playerFoot, platRect) && (player.y + player.h - player.vy) <= p.y + 3) {
+        if (rectsOverlap(playerFoot, platRect) && (player.y + player.h - player.vy) <= p.y + 3 && canLandOnPlatform(p)) {
           if (p.type === 'break') {
             const reachable = platforms.some(q => q !== p && (q.type !== 'break') && (q.y < p.y) && (p.y - q.y) < 180);
             if (!reachable) {
               p.type = 'static';
             } else {
               player.vy = -9;
-              p.toRemove = true;
+              // mark as broken and start timer to regenerate; cannot be jumped on until fully restored
+              p.state = 'broken';
+              p.brokenAt = Date.now();
             }
           } else if (p.type === 'spring') {
             player.vy = -22; // stronger spring
@@ -579,11 +959,11 @@
     pickups.forEach(it => {
       if (!it.picked && rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:it.x,y:it.y,w:28,h:28})) {
         it.picked = true;
-        if (it.kind === 'jetpack') {
-          flightTimer = Math.max(flightTimer, 5.0); // very strong
+        if (it.kind === 'candy') {
+          player.vy = -36; // big fixed boost
           score += 50;
         } else if (it.kind === 'hat') {
-          flightTimer = Math.max(flightTimer, 3.2);
+          player.vy = -26; // fixed hat boost
           score += 35;
         }
       }
@@ -597,12 +977,12 @@
       }
     });
 
-    // blackhole collision (more visible / themed)
+    // pumpkin collision (previously blackholes)
     blackholes.forEach(b => {
       const px = player.x + player.w/2, py = player.y + player.h/2;
       const cx = b.x + b.r, cy = b.y + b.r;
       const dx = px - cx, dy = py - cy;
-      if (dx*dx + dy*dy < (b.r + player.w/4)*(b.r + player.w/4)) killPlayer('blackhole');
+      if (dx*dx + dy*dy < (b.r + player.w/4)*(b.r + player.w/4)) killPlayer('pumpkin');
     });
 
     // scroll world if player high
@@ -614,6 +994,8 @@
       blackholes.forEach(b => b.y += dy);
       pickups.forEach(it => it.y += dy);
       score += Math.floor(dy/8);
+      // ensure we always have enough platforms above when scrolling
+      generatePlatformsAbove();
     }
 
     // fall death
@@ -621,31 +1003,8 @@
 
     // runtime anti-softlock (rate-limited)
     antiSoftlockRuntime();
+    // ensure continuous generation
     generatePlatformsAbove();
-  }
-
-  function antiSoftlockRuntime() {
-    if (!player) return;
-    const nowTs = Date.now();
-    if (nowTs - lastAntiSoftlockAt < ANTI_SOFTLOCK_COOLDOWN) return;
-
-    // If there are very few platforms near player or none above the view, generate more above
-    const dangerZone = platforms.filter(p => p.y > player.y - 40 && p.y < player.y + 240);
-    const hasSafe = dangerZone.some(p => p.type !== 'break');
-    if (!hasSafe) {
-      const y = Math.round(player.y - 140);
-      if (!platforms.some(p => Math.abs(p.y - y) < 22)) {
-        let nx = Math.min(Math.max(40, player.x + 40), W - 120);
-        let np = createPlatform(nx, y, 'static');
-        let tries = 0;
-        while (platforms.some(q => Math.abs(q.y - np.y) < 18 && Math.abs(q.x - np.x) < Math.max(40, (q.w+np.w)/2)) && tries++ < 8) {
-          np.x = Math.random()*(W - np.w - 16);
-        }
-        platforms.push(np);
-        trimPlatforms();
-        lastAntiSoftlockAt = nowTs;
-      }
-    }
   }
 
   // ensure we always have enough platforms above view as player climbs
@@ -688,7 +1047,7 @@
 
       // very rare pickups and blackholes spawn on some of the new platforms
       if (Math.random() < 0.015) {
-        pickups.push({ kind: Math.random() < 0.6 ? 'jetpack' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 34, picked:false });
+        pickups.push({ kind: Math.random() < 0.6 ? 'candy' : 'hat', x: Math.max(10,p.x + Math.random()*(p.w-20)), y: p.y - 34, picked:false });
       }
       if (Math.random() < 0.02 && score > 60) {
         blackholes.push({ x: Math.random()*(W-60), y: newY - 28, r: 22 });
@@ -909,18 +1268,37 @@
   function loadLocalScores() { try { return JSON.parse(localStorage.getItem(DAY1_KEY) || '[]'); } catch (e) { return []; } }
   function saveLocalScore(entry) { /* disabled per request - do nothing */ }
 
+  // submitScoreToFirestoreDocs: ensure one leaderboard slot per user (use uid as doc id)
   async function submitScoreToFirestoreDocs(entry) {
     try {
       if (!window.firebaseReady || !window.firebaseDb || !window.firebaseSetDoc || !window.firebaseDoc) {
         console.warn('Firebase not available; cannot save remotely.');
         return { ok: false, reason: 'no-firebase' };
       }
-      // write day score document
-      const id = `${Date.now()}_${entry.uid||'anon'}`;
+      // if we have uid, use it as doc id so only one slot per user
+      const id = entry.uid ? entry.uid : `${Date.now()}_${entry.uid||'anon'}`;
       const docRef = window.firebaseDoc(window.firebaseDb, 'day1_scores', id);
-      await window.firebaseSetDoc(docRef, entry);
 
-      // update user's aggregated totals
+      // If user doc exists, fetch existing score and only write if new score is higher
+      if (entry.uid && window.firebaseGetDoc) {
+        const existing = await window.firebaseGetDoc(docRef);
+        if (existing && existing.exists && existing.exists()) {
+          const data = existing.data();
+          if ((data.score || 0) >= entry.score) {
+            // still update user totals but do not overwrite day1 slot
+            // update user totals below
+          } else {
+            await window.firebaseSetDoc(docRef, entry);
+          }
+        } else {
+          await window.firebaseSetDoc(docRef, entry);
+        }
+      } else {
+        // anonymous fallback (timestamp id)
+        await window.firebaseSetDoc(docRef, entry);
+      }
+
+      // update user's aggregated totals if uid present
       if (entry.uid && window.firebaseGetDoc && window.firebaseSetDoc) {
         const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', entry.uid);
         const snap = await window.firebaseGetDoc(userDocRef);
@@ -936,6 +1314,7 @@
         docData.scores.total = (s.day1||0)+(s.day2||0)+(s.day3||0)+(s.day4||0)+(s.day5||0);
         await window.firebaseSetDoc(userDocRef, docData);
       }
+
       return { ok: true };
     } catch (err) {
       console.error('Failed to submit score to Firestore:', err);
@@ -943,7 +1322,7 @@
     }
   }
 
-  // Save flow: require firebase auth; if not signed in open index sign-in modal and auto-submit on auth
+  // handleSubmitScore: try silent currentUser, otherwise start Google sign-in flow (no alerts), show signin UI inside playbound and then save
   async function handleSubmitScore() {
     // prefer firebase auth current user
     const fbUser = (window.firebaseAuth && window.firebaseAuth.currentUser) ? window.firebaseAuth.currentUser : null;
@@ -952,49 +1331,75 @@
     const entry = { score, playerName: name, uid, ts: Date.now(), withinEvent: Date.now() <= GAME_END_TS };
 
     if (!uid) {
-      pendingSaveEntry = entry;
-      // show the sign-in modal from index.html (if present)
-      const loginModal = document.getElementById('login-modal');
-      if (loginModal) loginModal.classList.remove('hidden');
-      // Also request a fresh onAuthStateChanged callback in case firebase has user persisted but hasn't populated currentUser yet
-      if (window.firebaseOnAuthStateChanged && window.firebaseAuth) {
-        // attempt a one-time wait for auth
-        const waitForAuth = new Promise((resolve) => {
-          const off = window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
-            off && off(); // unsubscribe if the API returns a function
-            resolve(user);
-          });
-          // fallback timeout
-          setTimeout(() => resolve(null), 1500);
-        });
-        const possibleUser = await waitForAuth;
-        if (possibleUser) {
-          // auto-submit if auth appears
-          pendingSaveEntry.uid = possibleUser.uid;
-          pendingSaveEntry.playerName = (window.userData && window.userData.username) ? window.userData.username : (possibleUser.email ? possibleUser.email.split('@')[0] : 'User');
-          const r = await submitScoreToFirestoreDocs(pendingSaveEntry);
-          if (!r.ok) alert('Auto-save after sign in failed: ' + (r.reason || 'unknown'));
-          pendingSaveEntry = null;
+      // initiate Google sign-in popup (inside game flow). Do not use alerts.
+      if (window.firebaseSignInWithPopup && window.firebaseAuth && window.googleProvider) {
+        try {
+          const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.googleProvider);
+          const user = result.user;
+          // if user is new or missing username, prompt for username inline
+          const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', user.uid);
+          let snap = null;
+          if (window.firebaseGetDoc) snap = await window.firebaseGetDoc(userDocRef);
+          let playerName = user.displayName || user.email.split('@')[0];
+          if (!snap || !(snap.exists && snap.exists())) {
+            // show inline username prompt inside playbound
+            const unameModal = document.createElement('div');
+            unameModal.className = 'modal';
+            unameModal.innerHTML = `<div class="modal-content" style="padding:12px;"><h3>Choose a username</h3><input id="inline-username" style="width:100%;padding:8px;margin-top:8px;border-radius:6px;border:1px solid #333;background:#111;color:#ffdca8"/><div style="display:flex;gap:8px;margin-top:10px;"><button id="uname-save" class="btn-primary">Save</button><button id="uname-cancel" class="btn-secondary">Cancel</button></div></div>`;
+            playbound.appendChild(unameModal);
+            const input = unameModal.querySelector('#inline-username');
+            const saveBtn = unameModal.querySelector('#uname-save');
+            const cancelBtn = unameModal.querySelector('#uname-cancel');
+            saveBtn.addEventListener('click', async () => {
+              const val = (input.value || '').trim() || playerName;
+              playerName = val;
+              // create user doc with scores
+              const docData = { username: val, email: user.email || '', createdAt: new Date(), scores: { day1:entry.score, day2:0,day3:0,day4:0,day5:0, total: entry.score } };
+              if (window.firebaseSetDoc) await window.firebaseSetDoc(userDocRef, docData);
+              unameModal.remove();
+              entry.uid = user.uid;
+              entry.playerName = val;
+              const r = await submitScoreToFirestoreDocs(entry);
+              if (r.ok) showToast('Score saved');
+              else showToast('Save failed');
+            });
+            cancelBtn.addEventListener('click', () => { unameModal.remove(); showToast('Sign in cancelled'); });
+            return;
+          } else {
+            // user exists, continue and save
+            entry.uid = user.uid;
+            entry.playerName = playerName;
+            const r = await submitScoreToFirestoreDocs(entry);
+            if (r.ok) showToast('Score saved');
+            else showToast('Save failed');
+            return;
+          }
+        } catch (err) {
+          console.error('Sign-in failed', err);
+          showToast('Sign-in failed');
           return;
         }
+      } else {
+        // no firebase sign-in available
+        showToast('Sign-in unavailable');
+        return;
       }
-
-      alert('Sign in is required to save to the main leaderboard. Please sign in via the modal and the save will complete automatically.');
-      return;
     }
 
+    // if uid exists, submit and show inline toast instead of alert
     const res = await submitScoreToFirestoreDocs(entry);
     if (!res.ok) {
-      alert('Saving score failed: ' + (res.reason || 'unknown') + '.');
+      showToast('Saving failed');
     } else {
-      alert('Score saved.');
+      showToast('Score saved');
     }
 
     if (document.fullscreenElement === playbound) {
       // keep overlays hidden in fullscreen
+      hideModal(gameOverModal);
     } else {
-      gameOverModal.classList.add('hidden');
-      playOverlay.classList.remove('hidden');
+      hideModal(gameOverModal);
+      hideModal(playOverlay);
     }
   }
 

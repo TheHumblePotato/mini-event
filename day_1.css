@@ -210,6 +210,56 @@ html, body {
 #day-leaderboard-table .rank-2 { background: linear-gradient(90deg, rgba(40,40,40,0.55), rgba(30,30,30,0.5)); color:#f0e0c8; font-weight:700; }
 #day-leaderboard-table .rank-3 { background: linear-gradient(90deg, rgba(60,36,24,0.55), rgba(40,26,16,0.5)); color:#f3d7b0; font-weight:700; }
 
+/* make overlays confined to the playbound (not full-page) */
+.playbound .modal {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  width: min(92%, 420px);
+  max-width: calc(100% - 24px);
+  z-index: 120;
+  background: linear-gradient(180deg, rgba(10,8,6,0.96), rgba(20,10,10,0.98));
+  border-radius: 10px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+  border: 2px solid rgba(255,107,53,0.9);
+  pointer-events: auto;
+}
+
+/* ensure play-overlay and game-over modal are small inside playbound */
+.modal.hidden { display: none; }
+.modal.play-overlay, .modal#game-over-modal { padding: 8px; }
+
+/* toast / inline save status */
+.save-toast {
+  position: absolute;
+  left: 50%;
+  top: 8%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.8);
+  color: #ffdca8;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid var(--accent);
+  z-index: 140;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+/* ensure fullscreen keeps the playbound centered with blank around */
+.playbound:fullscreen {
+  background: #050405;
+  justify-content: center;
+  align-items: center;
+}
+
+/* pumpkin / candy background elements */
+.bg-pumpkin { /* keep earlier style */ }
+.leaf { /* keep earlier style */ }
+
+/* ensure non-playbound overlay elements don't block page */
+.modal:not(.play-overlay):not(.hidden) { pointer-events: auto; }
+
 /* Responsive */
 @media (max-width: 720px) {
   .halloween-frame { width: 92vw; padding: 8px; }
