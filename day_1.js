@@ -188,7 +188,7 @@
       platforms.push(p);
 
       // enemies: spawn more often
-      if(i >= 4 && Math.random() < 0.06) {
+      if(i >= 4 && Math.random() < 0.03) {
         enemies.push({ x: Math.random()*(W-40), y: p.y - 28, w:28, h:28, seed:Math.random()*1000 });
       }
 
@@ -502,7 +502,7 @@
           player.vy = -player.flight.vel;
           score += 70;
         } else if(it.kind === 'hat'){
-          player.flight = { remaining: 3200, vel:16, taper:400 }; // witch hat stronger
+          player.flight = { remaining: 2400, vel:24, taper:400 }; // witch hat stronger
           player.vy = -player.flight.vel;
           score += 55;
         }
