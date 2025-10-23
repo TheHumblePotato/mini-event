@@ -5,6 +5,8 @@
   --accent-light: #ff9a3d;
   --dark: #0a0606;
   --frame-bg: linear-gradient(135deg, rgba(10,5,5,0.9), rgba(20,8,8,0.95));
+  --canvas-w: 480;
+  --canvas-h: 720;
 }
 
 /* Top side controls */
@@ -15,6 +17,7 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  pointer-events: auto;
 }
 #left-controls { left: 18px; }
 #right-controls { right: 18px; }
@@ -31,69 +34,140 @@
   box-shadow: 0 6px 18px rgba(0,0,0,0.6);
 }
 
-/* Main frame with Halloween border */
+/* center the whole game on page */
 #game-wrap {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding-top: 70px;
-  padding-bottom: 100px;
+  padding: 24px;
 }
 
-/* make the play area obviously bounded */
+/* frame and game area */
+.halloween-frame {
+  width: min(520px, calc( (var(--canvas-w) / var(--canvas-h)) * (100vh - 120px) ));
+  max-width: 95vw;
+  background: var(--frame-bg);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  border: 6px solid rgba(255,107,53,0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* playbound scales to viewport while keeping canvas aspect */
 .playbound {
-  width: 480px;
-  height: 720px;
+  width: 100%;
+  height: calc((var(--canvas-h) / var(--canvas-w)) * 100%);
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(180deg,#050405 0%, #0f0507 100%);
   border: 4px solid rgba(255,107,53,0.95);
   box-shadow: 0 0 30px rgba(255,107,53,0.06), inset 0 0 20px rgba(0,0,0,0.6);
-  border-radius: 8px;
-  overflow: hidden;
-  background: linear-gradient(180deg,#050405 0%, #0f0507 100%);
+  /* fit inside the frame - compute a max height */
+  height: min( calc( (var(--canvas-h) / var(--canvas-w)) * (100vw - 80px) ), calc(100vh - 160px) );
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-/* Score made more obvious */
-#big-score {
+/* ensure the canvas stays centered and scales */
+#game-canvas {
+  width: calc(min(480px, 100% - 12px));
+  height: auto;
+  max-height: calc(100% - 12px);
+  display: block;
+  border-radius: 6px;
+  box-shadow: inset 0 12px 40px rgba(0,0,0,0.6), 0 12px 30px rgba(0,0,0,0.6);
+}
+
+/* fullscreen button placed over playbound */
+.fullscreen-btn {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 50;
+  background: rgba(0,0,0,0.75);
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 1.0rem;
+}
+
+/* center score overlay */
+.center-score {
+  position: absolute;
+  z-index: 40;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
   font-family: 'Creepster', cursive;
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   color: #ffcf6b;
-  background: rgba(0,0,0,0.7);
-  padding: 6px 12px;
+  background: rgba(0,0,0,0.6);
+  padding: 8px 14px;
   border-radius: 12px;
   border: 2px solid var(--accent);
 }
 
-/* Play overlay style (uses modal base) */
-.play-overlay .modal-content {
-  max-width: 520px;
-}
+/* hide the small timer below the game - not used anymore */
+#time-left { display: none !important; }
 
-/* HUD tweaks */
-#hud {
-  width: 100%;
-  display:flex;
-  justify-content:space-between;
-  margin-top:10px;
-  color: #ffd8a8;
-  font-weight:bold;
-  font-family: monospace;
-}
-
-/* small note */
-#game-note {
-  margin-top: 8px;
+/* game note */
+.game-note-muted {
+  margin-top: 10px;
   color: #ffb86b;
-  text-align:center;
-  font-size: 0.8rem;
+  font-size: 0.84rem;
+  text-align: center;
 }
 
-/* ensure jumpscare overlay covers whole window */
-#day-jumpscare { pointer-events: none; }
+/* Day leaderboard table styling (match index.css) */
+#day-leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #e7b37a;
+  backdrop-filter: blur(2px);
+}
+#day-leaderboard-table th, #day-leaderboard-table td {
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,107,53,0.06);
+  font-size: 0.95rem;
+}
+#day-leaderboard-table th {
+  background: linear-gradient(90deg, rgba(50,20,15,0.6), rgba(40,10,10,0.55));
+  font-weight: 700;
+  color: #ffd8a8;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+/* top ranks */
+#day-leaderboard-table .rank-1 { background: linear-gradient(90deg, rgba(60,40,8,0.7), rgba(40,20,6,0.6)); color:#ffdca8; font-weight:800; }
+#day-leaderboard-table .rank-2 { background: linear-gradient(90deg, rgba(40,40,40,0.55), rgba(30,30,30,0.5)); color:#f0e0c8; font-weight:700; }
+#day-leaderboard-table .rank-3 { background: linear-gradient(90deg, rgba(60,36,24,0.55), rgba(40,26,16,0.5)); color:#f3d7b0; font-weight:700; }
+
+/* background elements (reused from index.css if present) */
+#background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
 
 /* Responsive */
-@media (max-width: 560px) {
-  #game-area { width: 92vw; }
-  .frame-decor { font-size: 20px; }
-  #left-controls, #right-controls { top: 8px; gap: 8px; }
-  .playbound { width: 92vw; height: calc(92vw * (720/480)); }
+@media (max-width: 720px) {
+  .halloween-frame { width: 92vw; padding: 8px; }
+  .center-score { font-size: 1.1rem; padding: 6px 10px; }
+  .fullscreen-btn { font-size: 0.9rem; padding: 5px 7px; }
 }

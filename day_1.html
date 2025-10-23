@@ -10,6 +10,8 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎃</text></svg>">
 </head>
 <body>
+  <div id="background"></div>
+
   <div id="auth-container">
     <div id="user-info" class="hidden">
       <span id="username-display"></span>
@@ -38,32 +40,26 @@
       </label>
       <div id="toggle-label">Scary Mode</div>
     </div>
-    <button id="fullscreen-btn" class="header-btn">⤢ Fullscreen</button>
   </div>
 
-  <main id="game-wrap">
-    <div class="halloween-frame">
-      <div class="frame-decor top-left">🎃</div>
-      <div class="frame-decor top-right">🦇</div>
-
+  <main id="game-wrap" role="main" aria-label="Game area">
+    <div class="halloween-frame" aria-hidden="false">
       <div id="game-area">
         <!-- Play boundary exactly around playable canvas -->
-        <div class="playbound">
-          <canvas id="game-canvas" width="480" height="720"></canvas>
-        </div>
+        <div class="playbound" id="playbound">
+          <canvas id="game-canvas" width="480" height="720" aria-label="Game canvas"></canvas>
 
-        <div id="hud">
-          <div id="big-score">Score: 0</div>
-          <div id="time-left">Time Left: --:--:--</div>
-        </div>
+          <!-- fullscreen button sits in the playbound and toggles just the game area -->
+          <button id="fullscreen-btn" class="fullscreen-btn" aria-label="Toggle fullscreen">⤢</button>
 
-        <div id="game-note">
-          <small>Scores recorded during the event window will go to the main leaderboard. After the timer ends scores stay in the day leaderboard only. Scores made during event will be marked.</small>
+          <!-- centered big score -->
+          <div id="big-score" class="center-score">Score: 0</div>
         </div>
       </div>
 
-      <div class="frame-decor bottom-left">🕸️</div>
-      <div class="frame-decor bottom-right">🖤</div>
+      <div id="game-note" class="game-note-muted">
+        <small>Scores recorded during the event window will go to the main leaderboard. After the timer ends scores stay in the day leaderboard only. Scores made during event will be marked.</small>
+      </div>
     </div>
   </main>
 
@@ -71,7 +67,7 @@
   <div id="play-overlay" class="modal play-overlay">
     <div class="modal-content">
       <h2>Halloween Doodle</h2>
-      <p>Click Play to begin. Use ← → or touch to move. Pick pumpkins for points, collect jetpacks and flying hats!</p>
+      <p>Click Play to begin. Use ← → or touch to move. Collect the Halloween Jetpack or Witch Hat for temporary flight.</p>
       <div class="modal-buttons">
         <button id="play-btn" class="btn-primary">Play</button>
         <button id="play-cancel" class="btn-secondary">Back</button>
@@ -83,7 +79,7 @@
   <div id="day-help-modal" class="modal hidden">
     <div class="modal-content">
       <h2>How to Play</h2>
-      <p>Bounce upward. Land on platforms to gain height. Some break, some spring you higher. Jetpacks and flying hats give temporary flight. Avoid enemies and blackholes. Pick pumpkins for bonus points.</p>
+      <p>Bounce upward. Land on platforms to gain height. Some break, some spring you higher. Halloween Jetpack and Witch Hat give temporary flight. Avoid enemies and blackholes.</p>
       <div class="modal-buttons">
         <button id="help-step" class="btn-primary">Show Controls</button>
         <button id="help-close" class="btn-secondary">Close</button>
@@ -124,16 +120,78 @@
   </div>
 
   <!-- Scary jump-scare overlay -->
-  <div id="day-jumpscare" class="modal hidden">
+  <div id="day-jumpscare" class="modal hidden" aria-hidden="true">
     <div class="modal-content" style="background:transparent;border:none;box-shadow:none;">
       <img id="day-jumpscare-img" src="" style="max-width:90vw; border-radius:10px; box-shadow:0 0 50px #f00;" alt="Jumpscare">
     </div>
   </div>
 
-  <script type="module">
-    // Export firebase helpers the same way index does for consistency
-    // (index.html already sets window.firebase* when loaded before index.js; however this module ensures day page works standalone if firebase is available)
-  </script>
+      <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
+        import { 
+            getAuth, 
+            GoogleAuthProvider, 
+            signInWithPopup, 
+            signOut, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            getDoc,
+            collection,
+            getDocs,
+            orderBy,
+            query 
+        } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyARY96nrH2Aio8rOiLkewSXtTS40TZLrAw",
+            authDomain: "nerd-mini-events.firebaseapp.com",
+            projectId: "nerd-mini-events",
+            storageBucket: "nerd-mini-events.firebasestorage.app",
+            messagingSenderId: "974357416633",
+            appId: "1:974357416633:web:e190de60553a685d03e968",
+            measurementId: "G-V9NGCSEY8J"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        // Make auth and db available globally
+        window.firebaseApp = app;
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.googleProvider = provider;
+
+        // Export auth functions
+        window.firebaseSignInWithPopup = signInWithPopup;
+        window.firebaseSignOut = signOut;
+        window.firebaseOnAuthStateChanged = onAuthStateChanged;
+
+        // Export firestore functions
+        window.firebaseDoc = doc;
+        window.firebaseSetDoc = setDoc;
+        window.firebaseGetDoc = getDoc;
+        window.firebaseCollection = collection;
+        window.firebaseGetDocs = getDocs;
+        window.firebaseQuery = query;
+        window.firebaseOrderBy = orderBy;
+
+        // Initialize the main app after Firebase is ready
+        window.firebaseReady = true;
+        if (window.initApp) {
+            window.initApp();
+        }
+    </script>
 
   <script src="day_1.js"></script>
 </body>
