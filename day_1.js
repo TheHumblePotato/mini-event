@@ -423,26 +423,19 @@
   // main update
   function update(dtNorm){
     if(!player || !player.alive || frozen) return;
-    // dtNorm is fraction relative to 16.666ms; convert to ms for flight timers
     const dtMs = Math.max(0, dtNorm * 16.666);
 
     regeneratePlatforms();
-    // inputs
-    if(keys.left) player.vx -= 0.7;
-    if(keys.right) player.vx += 0.7;
-    player.vx *= 0.96;
 
-    // Reduce momentum/inertia: lerp vx toward a target velocity so changing directions is snappier
-    const targetVX = keys.right ? 2.5 : (keys.left ? -2.5 : 0);
-    // move a fraction toward the target each frame (lower fraction = heavier inertia)
-    player.vx += (targetVX - player.vx) * 0.28;
-    // small friction to limit runaway
-    player.vx *= 0.94;
+    // inputs: slightly reduced acceleration and stronger damping for easier direction changes
+    if(keys.left) player.vx -= 0.55;    // was 0.7
+    if(keys.right) player.vx += 0.55;   // was 0.7
+    player.vx *= 0.86;                  // was 0.96 - stronger damping
 
     // gravity
     player.vy += GRAVITY;
 
-    // flight: if player.flight exists hold/taper velocity
+    // flight: hold/taper velocity when active
     if(player.flight){
       player.flight.remaining -= dtMs;
       if(player.flight.remaining > player.flight.taper){
@@ -462,7 +455,7 @@
     if(player.x > W) player.x = -player.w;
     if(player.x + player.w < 0) player.x = W - 1;
 
-    // moving platforms velocity update (varied speeds)
+    // moving platforms
     platforms.forEach(p => {
       if(p.type === 'moving'){
         p.x += p.vx * (dtNorm);
@@ -470,7 +463,7 @@
       }
     });
 
-    // landing
+    // landing logic (breakable platforms give slightly more lift than before, but still less than normal)
     if(player.vy > 0){
       platforms.forEach(p => {
         const platRect = { x: p.x, y: p.y, w: p.w, h: p.h };
@@ -481,15 +474,13 @@
             if(!reachable){
               p.type = 'static';
             } else {
--              player.vy = -9;
-+              // give breakable platforms a bit more lift than before (still less than a normal jump)
-+              player.vy = -10.5;
+              // give slightly more lift than previous -9, but still less than normal (-12)
+              player.vy = -11;
               p.state = 'broken';
               p.brokenAt = Date.now();
             }
           } else if(p.type === 'jet'){
-            // platform boost
-            player.flight = { remaining: 800, vel:20, taper:200 };
+            player.flight = { remaining: 800, vel:20, taper:300 };
             player.vy = -player.flight.vel;
             p.used = true;
           } else {
@@ -499,7 +490,7 @@
       });
     }
 
-    // cleanup placeholder removal if any (we keep regen logic)
+    // cleanup placeholder removal if any
     platforms = platforms.filter(p => p !== undefined);
 
     // pickups collision -> set flight object (hold + taper)
@@ -507,165 +498,53 @@
       if(!it.picked && rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:it.x,y:it.y,w:28,h:28})){
         it.picked = true;
         if(it.kind === 'candy'){
-          player.flight = { remaining: 2400, vel:24, taper:600 }; // candy strong long
+          player.flight = { remaining: 2400, vel:46, taper:500 }; // candy: strong long
           player.vy = -player.flight.vel;
           score += 70;
         } else if(it.kind === 'hat'){
-          player.flight = { remaining: 1600, vel:24, taper:400 }; // witch hat stronger
+          player.flight = { remaining: 2100, vel:40, taper:450 }; // witch hat: stronger
           player.vy = -player.flight.vel;
           score += 55;
         }
       }
     });
 
-    // enemies more active
-    enemies.forEach(e => {
-      ctx.fillStyle = '#fff'; ctx.fillRect(e.x, e.y, e.w, e.h);
-      ctx.fillStyle = '#000'; ctx.fillRect(e.x + 5, e.y + 6, 6, 6); ctx.fillRect(e.x + e.w - 11, e.y + 6, 6, 6);
-    });
-
-    // player
-    if(player){
-      ctx.fillStyle = '#ffd86b'; ctx.beginPath();
-      ctx.ellipse(player.x + player.w/2, player.y + player.h/2, player.w/2, player.h/2, 0, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(player.x + player.w*0.35, player.y + player.h*0.35, 3, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(player.x + player.w*0.65, player.y + player.h*0.35, 3, 0, Math.PI*2); ctx.fill();
-    }
-
-    // occasional scary glitch
-    if(scaryMode && Math.random() < 0.002){
-      ctx.fillStyle = 'rgba(255,0,0,0.06)'; ctx.fillRect(0, Math.random()*H, W, 4 + Math.random()*40);
-    }
-  }
-
-  // main update
-  function update(dtNorm){
-    if(!player || !player.alive || frozen) return;
-    // dtNorm is fraction relative to 16.666ms; convert to ms for flight timers
-    const dtMs = Math.max(0, dtNorm * 16.666);
-
-    regeneratePlatforms();
-    // inputs
-    if(keys.left) player.vx -= 0.7;
-    if(keys.right) player.vx += 0.7;
-    player.vx *= 0.96;
-
-    // Reduce momentum/inertia: lerp vx toward a target velocity so changing directions is snappier
-    const targetVX = keys.right ? 2.5 : (keys.left ? -2.5 : 0);
-    // move a fraction toward the target each frame (lower fraction = heavier inertia)
-    player.vx += (targetVX - player.vx) * 0.28;
-    // small friction to limit runaway
-    player.vx *= 0.94;
-
-    // gravity
-    player.vy += GRAVITY;
-
-    // flight: if player.flight exists hold/taper velocity
-    if(player.flight){
-      player.flight.remaining -= dtMs;
-      if(player.flight.remaining > player.flight.taper){
-        player.vy = -player.flight.vel;
-      } else if(player.flight.remaining > 0){
-        const frac = Math.max(0, player.flight.remaining / player.flight.taper);
-        player.vy = -player.flight.vel * frac;
-      } else {
-        player.flight = null;
-      }
-    }
-
-    player.x += player.vx;
-    player.y += player.vy;
-
-    // wrap horizontal
-    if(player.x > W) player.x = -player.w;
-    if(player.x + player.w < 0) player.x = W - 1;
-
-    // moving platforms velocity update (varied speeds)
-    platforms.forEach(p => {
-      if(p.type === 'moving'){
-        p.x += p.vx * (dtNorm);
-        if(p.x < p.minX || p.x > p.maxX){ p.vx *= -1; p.x = Math.max(p.minX, Math.min(p.x, p.maxX)); }
-      }
-    });
-
-    // landing
-    if(player.vy > 0){
-      platforms.forEach(p => {
-        const platRect = { x: p.x, y: p.y, w: p.w, h: p.h };
-        const playerFoot = { x: player.x, y: player.y + player.h, w: player.w, h: 6 };
-        if(rectsOverlap(playerFoot, platRect) && (player.y + player.h - player.vy) <= p.y + 3 && canLandOnPlatform(p)){
-          if(p.type === 'break'){
-            const reachable = platforms.some(q => q !== p && (q.type !== 'break') && (q.y < p.y) && (p.y - q.y) < 180);
-            if(!reachable){
-              p.type = 'static';
-            } else {
--              player.vy = -9;
-+              // give breakable platforms a bit more lift than before (still less than a normal jump)
-+              player.vy = -10.5;
-              p.state = 'broken';
-              p.brokenAt = Date.now();
-            }
-          } else if(p.type === 'jet'){
-            // platform boost
-            player.flight = { remaining: 800, vel:20, taper:200 };
-            player.vy = -player.flight.vel;
-            p.used = true;
-          } else {
-            player.vy = JUMP_VEL + (-Math.random()*2);
-          }
-        }
-      });
-    }
-
-    // cleanup placeholder removal if any (we keep regen logic)
-    platforms = platforms.filter(p => p !== undefined);
-
-    // pickups collision -> set flight object (hold + taper)
-    pickups.forEach(it => {
-      if(!it.picked && rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:it.x,y:it.y,w:28,h:28})){
-        it.picked = true;
-        if(it.kind === 'candy'){
-          player.flight = { remaining: 2400, vel:24, taper:600 }; // candy strong long
-          player.vy = -player.flight.vel;
-          score += 70;
-        } else if(it.kind === 'hat'){
-          player.flight = { remaining: 1600, vel:24, taper:400 }; // witch hat stronger
-          player.vy = -player.flight.vel;
-          score += 55;
+    // enemies: if player is in a powered flight, destroy enemies you pass through instead of dying
+    for(let i = enemies.length - 1; i >= 0; i--){
+      const e = enemies[i];
+      // small movement to keep enemies lively
+      e.x += Math.sin((Date.now() + e.seed) / 600) * (0.6 + Math.random()*0.4);
+      if(rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:e.x,y:e.y,w:e.w,h:e.h})){
+        if(player.flight){
+          // destroy enemy harmlessly
+          enemies.splice(i,1);
+          score += 8;
+          continue;
+        } else {
+          killPlayer('enemy');
+          return; // player dead, bail out
         }
       }
-    });
+    }
 
-    // enemies more active
--    enemies.forEach(e => {
--      e.x += Math.sin((Date.now() + e.seed) / 600) * (0.6 + Math.random()*0.4);
--      if(rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:e.x,y:e.y,w:e.w,h:e.h})){
--        killPlayer('enemy');
--      }
--    });
-+    // iterate backward so we can remove enemies safely when destroyed midflight
-+    for(let i = enemies.length - 1; i >= 0; i--){
-+      const e = enemies[i];
-+      e.x += Math.sin((Date.now() + e.seed) / 600) * (0.6 + Math.random()*0.4);
-+      if(rectsOverlap({x:player.x,y:player.y,w:player.w,h:player.h}, {x:e.x,y:e.y,w:e.w,h:e.h})){
-+        if(player.flight){
-+          // destroy enemy when colliding during flight
-+          enemies.splice(i,1);
-+          score += 30;
-+        } else {
-+          killPlayer('enemy');
-+          return;
-+        }
-+      }
-+    }
-
-    // pumpkin collision
-    pumpkins.forEach(b => {
+    // pumpkins: when in flight they are destroyed rather than killing the player
+    for(let i = pumpkins.length - 1; i >= 0; i--){
+      const b = pumpkins[i];
       const px = player.x + player.w/2, py = player.y + player.h/2;
       const cx = b.x + b.r, cy = b.y + b.r;
       const dx = px - cx, dy = py - cy;
-      if(dx*dx + dy*dy < (b.r + player.w/4)*(b.r + player.w/4)) killPlayer('pumpkin');
-    });
+      if(dx*dx + dy*dy < (b.r + player.w/4)*(b.r + player.w/4)){
+        if(player.flight){
+          // destroy the pumpkin harmlessly
+          pumpkins.splice(i,1);
+          score += 12;
+          continue;
+        } else {
+          killPlayer('pumpkin');
+          return;
+        }
+      }
+    }
 
     // scroll world
     if(player.y < SCROLL_THRESHOLD){
