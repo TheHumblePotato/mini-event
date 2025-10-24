@@ -91,10 +91,10 @@
   // Resize so the canvas logical world remains LOGICAL_W x LOGICAL_H but is scaled to fit playbound area (preserving aspect)
   function resizeCanvasToDisplay() {
     if (!canvas || !playbound) return;
-    const rect = playbound.getBoundingClientRect();
-    // reserve a tiny margin for the playbound border; compute scale to fit LOGICAL into rect
-    const cssW = Math.max(32, Math.floor(rect.width));
-    const cssH = Math.max(32, Math.floor(rect.height));
+    // prefer client sizes (stable, won't include fractional transforms from fullscreen)
+    const cssW = Math.max(32, Math.floor(playbound.clientWidth));
+    const cssH = Math.max(32, Math.floor(playbound.clientHeight));
+    // compute scale to maximize size while preserving aspect and staying within the playbound
     scale = Math.min(cssW / LOGICAL_W, cssH / LOGICAL_H);
     // ensure scale not zero
     scale = Math.max(scale, 0.01);
@@ -102,6 +102,7 @@
     // set CSS size to exact scaled logical pixel size (keeps crisp integer CSS px)
     const displayW = Math.round(LOGICAL_W * scale);
     const displayH = Math.round(LOGICAL_H * scale);
+    // set CSS size to exactly fill the playbound area allocated to the canvas
     canvas.style.width = `${displayW}px`;
     canvas.style.height = `${displayH}px`;
     // actual backing store in device pixels
@@ -243,7 +244,7 @@
       type = c.id;
     } else {
       const types = ['pumpkin','pumpkin_small','ghost'];
-      type = types[Math.floor(Math.random()*types.length)];
+      type = types[Math.floor(Math.random() * types.length)];
       if (allowBombs && Math.random() < 0.10) type = 'bomb';
     }
 
@@ -414,9 +415,11 @@
         if (d.y > LOGICAL_H + 16) s.drips.splice(j,1);
       }
 
-      // remove stain if entirely off bottom (including its size)
-      if (s.y - s.r > LOGICAL_H + 8) {
+      // remove stain if it has reached or passed the bottom of the playable area
+      // use a conservative test so stains disappear as soon as they are off-screen
+      if (s.y - s.r > LOGICAL_H) {
         stains.splice(i,1);
+        continue;
       }
     }
 
@@ -808,8 +811,14 @@
 
   function init(){
     resizeCanvasToDisplay();
+    // resize when the window changes size
     window.addEventListener('resize', () => { resizeCanvasToDisplay(); });
-    document.addEventListener('fullscreenchange', () => { setTimeout(resizeCanvasToDisplay, 40); });
+    // handle multiple vendor fullscreen events to ensure canvas is resized on enter/exit
+    const _fsHandler = () => setTimeout(resizeCanvasToDisplay, 64);
+    document.addEventListener('fullscreenchange', _fsHandler);
+    document.addEventListener('webkitfullscreenchange', _fsHandler);
+    document.addEventListener('mozfullscreenchange', _fsHandler);
+    document.addEventListener('MSFullscreenChange', _fsHandler);
     initBackgroundElements();
     lastTime = performance.now();
     animationId = requestAnimationFrame(function frame(t){ lastTime = t; animationId = requestAnimationFrame(loop); });
