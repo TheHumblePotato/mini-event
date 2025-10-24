@@ -1,22 +1,160 @@
-/* Small adjustments for Day 3 game area to keep day_1 background only around game */
-.playbound { /* reuse day_1 frame sizing but ensure centered for fruit ninja ratio */
-  width: min(720px, calc( (640 / 480) * (100vh - 120px) ));
-  max-width: 95vw;
-  max-height: calc(100vh - 80px);
+/* Standalone CSS for Day 3 (copied necessary frame/playbound rules; removed day_1.css reference) */
+
+:root {
+  --accent: #ff6b35;
+  --accent-light: #ff9a3d;
+  --dark: #0a0606;
+  --frame-bg: linear-gradient(135deg, rgba(10,5,5,0.9), rgba(20,8,8,0.95));
+  --canvas-w: 640;
+  --canvas-h: 480;
+}
+
+/* ensure page fits without scrolling */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #050304;
+  color: #ffdca8;
+  font-family: 'Shadows Into Light', system-ui, sans-serif;
+}
+
+/* Top side controls */
+.top-controls {
+  position: fixed;
+  top: 12px;
+  z-index: 220;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  pointer-events: auto;
+}
+#left-controls { left: 18px; }
+#right-controls { right: 18px; }
+
+/* small box around countdown */
+.header-box {
+  background: rgba(0,0,0,0.72);
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 2px solid var(--accent);
+  color: #ffd8a8;
+  font-family: monospace;
+  font-weight: 700;
+}
+
+/* frame and game area sized to viewport so no scrolling */
+#game-wrap {
   display: flex;
   justify-content: center;
   align-items: center;
-  position: relative;
-  overflow: hidden;
+  height: 100vh;
+  padding: 24px;
+  box-sizing: border-box;
 }
 
-/* canvas specific for Fruitoween */
+.halloween-frame {
+  width: min(720px, calc( (var(--canvas-w) / var(--canvas-h)) * (100vh - 120px) ));
+  max-width: 95vw;
+  max-height: calc(100vh - 80px);
+  background: var(--frame-bg);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  border: 6px solid rgba(255,107,53,0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* playbound keeps visible border and remains visible in fullscreen */
+.playbound {
+  width: 100%;
+  aspect-ratio: var(--canvas-w) / var(--canvas-h);
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(180deg,#050405 0%, #0f0507 100%);
+  border: 6px solid rgba(255,107,53,0.95);
+  box-shadow: 0 0 30px rgba(255,107,53,0.06), inset 0 0 20px rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* fullscreen: maintain aspect and scale by height to avoid squish */
+.playbound:fullscreen {
+  border: 6px solid rgba(255,107,53,1);
+  box-shadow: 0 0 40px rgba(255,107,53,0.18);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #000;
+}
+
+/* ensure the canvas stays centered and keeps correct aspect ratio */
 #game-canvas {
   width: 100%;
-  height: auto;
-  max-height: 80vh;
-  background: radial-gradient(circle at 40% 20%, rgba(10,6,6,0.6), rgba(5,3,3,0.95));
+  height: 100%;
+  display: block;
   border-radius: 6px;
+  box-shadow: inset 0 12px 40px rgba(0,0,0,0.6), 0 12px 30px rgba(0,0,0,0.6);
+  image-rendering: optimizeQuality;
+}
+
+/* In fullscreen keep canvas aspect ratio: scale by height and center */
+.playbound:fullscreen #game-canvas {
+  height: calc(100vh - 24px);
+  width: auto;
+  max-width: unset;
+  max-height: 100vh;
+}
+
+/* fullscreen button placed over playbound */
+.fullscreen-btn {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 50;
+  background: rgba(0,0,0,0.75);
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 1.0rem;
+}
+
+/* hearts (big and centered) */
+#hearts {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 230;
+  pointer-events: none;
+  font-size: 22px;
+  color: #ff4d6d;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  letter-spacing: 6px;
+}
+
+/* move and style score below hearts */
+.center-score {
+  position: absolute;
+  z-index: 210;
+  left: 50%;
+  top: 46px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  font-family: 'Creepster', cursive;
+  font-size: 1.4rem;
+  color: #ffcf6b;
+  background: rgba(0,0,0,0.65);
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 2px solid var(--accent);
 }
 
 /* trail stroke */
@@ -32,6 +170,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 600;
 }
 #day-leaderboard-modal .modal-content {
   width: min(1000px, 94vw);
@@ -45,7 +184,47 @@
   height: 28px;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  display: block;
 }
 
-/* stain visuals: drawn on canvas; CSS not required */
+/* save toast */
+.save-toast {
+  position: absolute;
+  left: 50%;
+  top: 8%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.8);
+  color: #ffdca8;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid var(--accent);
+  z-index: 400;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+/* modal inside playbound */
+.playbound .modal {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  width: min(92%, 420px);
+  max-width: calc(100% - 24px);
+  z-index: 320;
+  background: linear-gradient(180deg, rgba(10,8,6,0.96), rgba(20,10,10,0.98));
+  border-radius: 10px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+  border: 2px solid rgba(255,107,53,0.9);
+  pointer-events: auto;
+}
+.modal.hidden { display: none; }
+
+/* responsive tweaks */
+@media (max-width: 720px) {
+  .halloween-frame { width: 92vw; padding: 8px; }
+  .center-score { font-size: 1.0rem; padding: 6px 10px; top: 54px; }
+  #hearts { font-size: 18px; top: 6px; letter-spacing: 4px; }
+  .fullscreen-btn { font-size: 0.9rem; padding: 5px 7px; }
+}
 

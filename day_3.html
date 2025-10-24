@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Day 3 — Fruitoween: Halloween Slice</title>
   <link rel="stylesheet" href="index.css">
-  <link rel="stylesheet" href="day_1.css">
   <link rel="stylesheet" href="day_3.css">
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Shadows+Into+Light&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎃</text></svg>">
@@ -22,7 +21,6 @@
   </div>
 
   <div id="left-controls" class="top-controls">
-    <button id="help-btn" class="header-btn">❓ Help</button>
     <button id="day-leaderboard-btn" class="header-btn">🏆 Day Leaderboard</button>
   </div>
 
@@ -39,8 +37,12 @@
         <div class="playbound" id="playbound">
           <canvas id="game-canvas" width="640" height="480" aria-label="Game canvas"></canvas>
           <button id="fullscreen-btn" class="fullscreen-btn" aria-label="Toggle fullscreen">⤢</button>
-          <div id="big-score" class="center-score">Score: 0</div>
-          <div id="lives-indicator" class="center-score" style="top:40px;">Lives: 3</div>
+
+          <!-- hearts rendered as symbols (max 5) -->
+          <div id="hearts" aria-hidden="true"></div>
+
+          <!-- score moved downward to clear room for hearts -->
+          <div id="big-score" class="center-score" style="top:46px;">Score: 0</div>
         </div>
       </div>
       <div id="game-note" class="game-note-muted">
@@ -53,23 +55,13 @@
   <div id="play-overlay" class="modal play-overlay">
     <div class="modal-content">
       <h2>Fruitoween — Slice!</h2>
-      <p>Move the cursor or touch to slice. Slice pumpkins and objects; avoid bombs. Powerups appear as flying icons.</p>
+      <p>Move the cursor or touch to slice. Slice pumpkins and objects; avoid bombs. Rare glowing candy triggers 30s events.</p>
       <div class="modal-buttons">
         <button id="play-btn" class="btn-primary">Play</button>
       </div>
     </div>
   </div>
 
-  <!-- Day Help Modal -->
-  <div id="day-help-modal" class="modal hidden">
-    <div class="modal-content">
-      <h2>How to Play</h2>
-      <p>Slice objects by moving mouse/finger through them. Bombs remove a life unless invincible. Powerups give life, candy storm, or bomb invincibility.</p>
-      <div class="modal-buttons">
-        <button id="help-close" class="btn-secondary">Close</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Day Leaderboard Modal (will be allowed to span whole page) -->
   <div id="day-leaderboard-modal" class="modal hidden">

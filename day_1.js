@@ -23,11 +23,6 @@
   const bigScoreEl = document.getElementById('big-score');
   const gameTimerHeader = document.getElementById('game-timer');
   const scaryToggle = document.getElementById('day-scary-toggle');
-  const helpBtn = document.getElementById('help-btn');
-  const helpModal = document.getElementById('day-help-modal');
-  const helpClose = document.getElementById('help-close');
-  const helpStep = document.getElementById('help-step');
-  const helpInteractive = document.getElementById('help-interactive');
   const dayLeaderboardBtn = document.getElementById('day-leaderboard-btn');
   const dayLeaderboardModal = document.getElementById('day-leaderboard-modal');
   const dayLeaderboardClose = document.getElementById('day-leaderboard-close');
@@ -802,9 +797,6 @@
     setTimeout(()=> startGame(), 30);
   });
 
-  helpBtn && helpBtn.addEventListener('click', ()=> showModalInPlaybound(helpModal));
-  helpClose && helpClose.addEventListener('click', ()=> hideModal(helpModal));
-  helpStep && helpStep.addEventListener('click', ()=> { helpInteractive.innerHTML = `<div style="color:#ffd8a8">Controls: ← → to move. Tap left/right on mobile. Candy gives long flight, Witch Hat gives strong flight. Avoid pumpkins & enemies.</div>`; });
 
   playBtn && playBtn.addEventListener('click', ()=> startGame());
 
