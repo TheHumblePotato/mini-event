@@ -1,8 +1,8 @@
 // Game data
 const games = [
-    { day: 1, title: "Spooky Addition", date: "Monday", url: "https://thehumblepotato.github.io/mini-event/day_1.html" },
+    { day: 1, title: "Pumpkin Jump", date: "Monday", url: "https://thehumblepotato.github.io/mini-event/day_1.html" },
     { day: 2, title: "Ghostly Subtraction", date: "Tuesday", url: "https://thehumblepotato.github.io/mini-event/day_2.html" },
-    { day: 3, title: "Witchy Multiplication", date: "Wednesday", url: "https://thehumblepotato.github.io/mini-event/day_3.html" },
+    { day: 3, title: "Fruitoween", date: "Wednesday", url: "https://thehumblepotato.github.io/mini-event/day_3.html" },
     { day: 4, title: "Zombie Division", date: "Thursday", url: "https://thehumblepotato.github.io/mini-event/day_4.html" },
     { day: 5, title: "Pumpkin Algebra", date: "Friday", url: "https://thehumblepotato.github.io/mini-event/day_5.html" }
 ];

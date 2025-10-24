@@ -1,1 +1,51 @@
+/* Small adjustments for Day 3 game area to keep day_1 background only around game */
+.playbound { /* reuse day_1 frame sizing but ensure centered for fruit ninja ratio */
+  width: min(720px, calc( (640 / 480) * (100vh - 120px) ));
+  max-width: 95vw;
+  max-height: calc(100vh - 80px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* canvas specific for Fruitoween */
+#game-canvas {
+  width: 100%;
+  height: auto;
+  max-height: 80vh;
+  background: radial-gradient(circle at 40% 20%, rgba(10,6,6,0.6), rgba(5,3,3,0.95));
+  border-radius: 6px;
+}
+
+/* trail stroke */
+.slice-trail {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* make leaderboard full page when opened */
+#day-leaderboard-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#day-leaderboard-modal .modal-content {
+  width: min(1000px, 94vw);
+  max-height: 90vh;
+  overflow: auto;
+}
+
+/* badges for powerups (on-screen icons) */
+.powerup-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+/* stain visuals: drawn on canvas; CSS not required */
 
