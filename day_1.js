@@ -428,9 +428,9 @@
     regeneratePlatforms();
 
     // inputs: slightly reduced acceleration and stronger damping for easier direction changes
-    if(keys.left) player.vx -= 0.55;    // was 0.7
-    if(keys.right) player.vx += 0.55;   // was 0.7
-    player.vx *= 0.86;                  // was 0.96 - stronger damping
+    if(keys.left) player.vx -= 0.65;    // was 0.7
+    if(keys.right) player.vx += 0.65;   // was 0.7
+    player.vx *= 0.9;                  // was 0.96 - stronger damping
 
     // gravity
     player.vy += GRAVITY;
