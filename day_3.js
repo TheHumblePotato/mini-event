@@ -160,38 +160,12 @@
   // spawn a thrown object (pumpkin or bomb or spooky props)
   function spawnThrown(x = null, opts = {}) {
     if (!running) return;
+    // opts.allowBomb overrides wave allowBombs
     const allowBombs = (typeof opts.allowBomb === 'boolean') ? opts.allowBomb : wave.allowBombs;
-
-    // Very rare chance to spawn special event candy (max once per 30s)
-    const nowTs = Date.now();
-    if (nowTs - lastEventCandyAt > EVENT_CANDY_COOLDOWN && Math.random() < 0.003) {
-      // spawn event candy from bottom or side
-      const fromSide = Math.random() < 0.3;
-      const sx = fromSide ? (Math.random()<0.5 ? -20 : W+20) : (80 + Math.random()*(W-160));
-      const sy = fromSide ? (60 + Math.random()*(H-120)) : (H + 26);
-      makeEventCandy(sx, sy);
-      lastEventCandyAt = nowTs;
-      return;
-    }
-
-    // sometimes spawn one of many candy variants (treat as target candy)
-    if (Math.random() < 0.08) {
-      const cv = candyVariants[Math.floor(Math.random()*candyVariants.length)];
-      // spawn from bottom (mostly)
-      const sx = x !== null ? x : (80 + Math.random()*(W-160));
-      const sy = H + 26;
-      const vx = (Math.random() - 0.5) * 5;
-      const vy = -8 - Math.random()*8;
-      const obj = { x: sx, y: sy, vx, vy, type: 'candy', subtype: cv.id, candyMeta: cv, r: 12 + Math.random()*8, alive: true, created: Date.now() };
-      objects.push(obj);
-      return;
-    }
-
-    // otherwise normal targets / bombs (respect wave allowBombs)
-    const targetTypes = ['pumpkin','pumpkin_small','ghost'];
-    let type = targetTypes[Math.floor(Math.random()*targetTypes.length)];
+    const types = ['pumpkin','pumpkin_small','ghost'];
+    let type = types[Math.floor(Math.random()*types.length)];
     if (allowBombs && Math.random() < 0.10) type = 'bomb';
-
+    // decide spawn source: bottom or sides (use wave.fromSidesProb)
     const fromSide = Math.random() < wave.fromSidesProb;
     let sx, sy, vx, vy;
     if (fromSide) {
@@ -206,13 +180,6 @@
       vx = (Math.random() - 0.5) * (5 + (wave.type === 'fast' ? 2 : 0));
       vy = -9 - Math.random()*9;
     }
-
-    // rocket bombs stronger if event active
-    if (type === 'bomb' && rocketBombsActive) {
-      vx *= 2;
-      vy *= 1.9;
-    }
-
     const radius = (type === 'pumpkin') ? 28 : (type === 'pumpkin_small' ? 18 : 22);
     const obj = { x: sx, y: sy, vx, vy, type, r: radius, alive: true, sliced: false, created: Date.now() };
     objects.push(obj);
@@ -258,249 +225,117 @@
     showToast('Bomb invincible!');
   }
 
-  // constants
-  const EVENT_CANDY_COOLDOWN = 30_000; // 30s minimum between special event candies
-  const EVENT_DURATION_MS = 30_000; // events last 30s
-  let lastEventCandyAt = 0;
-  let activeEvent = { kind: null, until: 0 };
-
-  // time scale for speedup/slowdown
-  let timeScale = 1.0;
-  let rocketBombsActive = false;
-  let rolesReversed = false;
-
-  // candy variants (>=10) with distinct stain shapes/sizes
-  const candyVariants = [
-    { id: 'candy0', color:'#ff66cc', stain:{type:'splat',size:18} },
-    { id: 'candy1', color:'#ffde59', stain:{type:'drip',size:20} },
-    { id: 'candy2', color:'#8cff8c', stain:{type:'blob',size:14} },
-    { id: 'candy3', color:'#66d9ff', stain:{type:'radial',size:22} },
-    { id: 'candy4', color:'#ff9a3d', stain:{type:'streak',size:20} },
-    { id: 'candy5', color:'#c27bff', stain:{type:'splat',size:26} },
-    { id: 'candy6', color:'#ff7b7b', stain:{type:'drip',size:16} },
-    { id: 'candy7', color:'#ffe066', stain:{type:'ring',size:24} },
-    { id: 'candy8', color:'#6bffa6', stain:{type:'splatter',size:28} },
-    { id: 'candy9', color:'#ffc0ff', stain:{type:'ink',size:18} }
-  ];
-
-  // special event candy visual variant
-  function makeEventCandy(x,y){
-    const c = { id:'eventCandy', glow:true, color:'#fff14d', x, y, vx: (Math.random()-0.5)*4, vy: -10 - Math.random()*6, r: 18, created: Date.now() };
-    objects.push(c);
+  function addStain(x,y,r){
+    stains.push({ x, y, r, ts: Date.now() });
+    // limit stains
+    if(stains.length > 180) stains.shift();
   }
 
-  // add stain with shape information
-  function addStain(x,y, r, shape='ellipse', color='#4a1a00'){
-    stains.push({ x, y, r, ts: Date.now(), shape, color });
-    if(stains.length > 260) stains.shift();
+  function flashbangAndClearStains(){
+    flashUntil = Date.now() + 300;
+    stains = []; // wipe stains
   }
 
-  // render stains with different shapes/drips
-  function drawStains(){
-    stains.forEach(s => {
-      ctx.save();
-      ctx.globalAlpha = 0.75;
-      ctx.fillStyle = s.color || '#4a1a00';
-      if(s.shape === 'ellipse' || !s.shape){
-        ctx.beginPath();
-        ctx.ellipse(s.x, s.y, s.r, s.r*0.6, 0, 0, Math.PI*2);
-        ctx.fill();
-      } else if(s.shape === 'splat' || s.shape === 'splatter'){
-        // draw multiple circles
-        const count = 4 + Math.floor(Math.random()*5);
-        for(let i=0;i<count;i++){
-          const a = Math.random()*Math.PI*2;
-          const rr = s.r*(0.4 + Math.random()*0.9);
-          const ox = Math.cos(a)* (s.r*0.6*Math.random());
-          const oy = Math.sin(a)* (s.r*0.6*Math.random());
-          ctx.beginPath(); ctx.arc(s.x+ox, s.y+oy, rr,0,Math.PI*2); ctx.fill();
-        }
-      } else if(s.shape === 'drip'){
-        // round blob with 1-2 drips
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.r*0.8, 0, Math.PI*2); ctx.fill();
-        const drips = 1 + Math.floor(Math.random()*2);
-        for(let i=0;i<drips;i++){
-          const dx = (Math.random()-0.5)*(s.r*0.4);
-          const dy = s.r*0.6 + Math.random()*s.r*0.6;
-          ctx.beginPath(); ctx.ellipse(s.x+dx, s.y+dy, s.r*0.18, s.r*0.3, 0,0,Math.PI*2); ctx.fill();
-        }
-      } else if(s.shape === 'streak'){
-        ctx.beginPath(); ctx.ellipse(s.x, s.y, s.r, s.r*0.3, -0.4,0,Math.PI*2); ctx.fill();
-        ctx.globalAlpha = 0.45;
-        ctx.fillRect(s.x - s.r*0.2, s.y + s.r*0.1, s.r*0.4, s.r*0.8);
-      } else if(s.shape === 'ring'){
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.strokeStyle = s.color; ctx.lineWidth = Math.max(3, s.r*0.18); ctx.stroke();
+  // sliceObject respects modifier.reverse (if active) and destruction while flying
+  function sliceObject(obj){
+    if(!obj.alive) return;
+    obj.alive = false;
+    obj.sliced = true;
+    addStain(obj.x, obj.y, obj.r * (0.6 + Math.random()*0.8));
+    const reverse = modifier.active && modifier.kind === 'reverse';
+    if (obj.type === 'bomb') {
+      if (Date.now() < bombInvincibleUntil) {
+        score += 8;
       } else {
-        // fallback
-        ctx.beginPath(); ctx.ellipse(s.x, s.y, s.r, s.r*0.5, 0, 0, Math.PI*2); ctx.fill();
+        if (reverse) {
+          // bomb becomes good during reverse
+          score += 18;
+        } else {
+          loseLife();
+          flashbangAndClearStains();
+        }
       }
-      ctx.restore();
-    });
-  }
-
-  // physics: apply gravityVec and timeScale
-  function update(dtMs){
-    const nowTs = Date.now();
-    const stormActive = nowTs < candyStormUntil;
-
-    // spawn behavior: use wave.spawnRate adjusted by timeScale
-    if (running) {
-      if (wave.type === 'burst' && wave.burstCount > 0 && Math.random() < 0.12) {
-        for (let i=0;i<wave.burstCount;i++) spawnThrown(null, { allowBomb: wave.allowBombs });
-        wave.burstCount = 0;
+    } else {
+      // fruits become harmful when reversed
+      if (reverse) {
+        loseLife();
       } else {
-        const spawnPeriod = Math.max(80, wave.spawnRate / Math.max(0.2, timeScale));
-        if (Date.now() - lastSpawn > spawnPeriod + Math.random()*120) {
-          spawnThrown(null, { allowBomb: wave.allowBombs });
-          lastSpawn = Date.now();
-          // powerups rarer while slowed or during storms? still spawn independently below
-        }
+        score += (obj.type === 'pumpkin_small' ? 6 : 12);
       }
     }
-
-    // objects physics: apply gravity vector scaled by timeScale
-    for(let i = objects.length -1; i >=0; i--){
-      const o = objects[i];
-      if(!o.alive) continue;
-      // apply gravity vector per ms (normalize to 16.666 baseline)
-      const dtFactor = (dtMs / 16.666) * timeScale;
-      o.vx += (gravityVec.x || 0) * dtFactor;
-      o.vy += (gravityVec.y || GRAVITY) * dtFactor;
-      o.x += o.vx * dtFactor;
-      o.y += o.vy * dtFactor;
-
-      // if object is eventCandy and falls off, remove after some time
-      if(o.type === 'eventCandy' && (o.y < -60 || o.y > H + 120 || o.x < -120 || o.x > W + 120)){
-        objects.splice(i,1);
-        continue;
-      }
-
-      // remove if fall off bottom after a while (and not event candy or power candy)
-      if(o.y > H + 120 || o.x < -160 || o.x > W + 160) {
-        objects.splice(i,1);
-      }
-    }
-
-    // powerups move faster already; timeScale affects movement slightly
-    for(let i = powerups.length -1; i >=0; i--){
-      const p = powerups[i];
-      p.x += p.vx * (dtMs / 16.666) * timeScale;
-      if(p.x < -80 || p.x > W + 80 || Date.now() - p.created > 22000) powerups.splice(i,1);
-    }
-
-    // trail cleanup and slicing (unchanged) but consider timeScale for scoring cadence
-    const now = Date.now();
-    for(let i = trail.length -1; i >=0; i--){
-      if(now - trail[i].t > TRAIL_LIFETIME) trail.splice(i,1);
-    }
-
-    // slicing: check each segment of trail against objects & powerups
-    if(trail.length >= 2){
-      for(let oi = objects.length -1; oi >= 0; oi--){
-        const o = objects[oi];
-        if(!o.alive) continue;
-        for(let i = 0; i < trail.length -1; i++){
-          const a = trail[i], b = trail[i+1];
-          if(segmentCircleHit(a.x,a.y,b.x,b.y, o.x,o.y, o.r)){
-            // if it's an event candy
-            if(o.id === 'eventCandy' || o.type === 'eventCandy' || o.id === 'eventCandy') {
-              // trigger a 30s event (rare candy triggers events)
-              triggerRandomEvent();
-              objects.splice(oi,1);
-              break;
-            }
-            // candy variants
-            if(o.type === 'candy' && o.candyMeta){
-              // leave candy-specific stain
-              const meta = o.candyMeta;
-              addStain(o.x, o.y, meta.stain.size, meta.stain.type, meta.color);
-              score += 10;
-              objects.splice(oi,1);
-              break;
-            }
-            // normal targets / bombs
-            if(o.type === 'bomb'){
-              if(Date.now() < bombInvincibleUntil){
-                score += 6;
-                objects.splice(oi,1);
-                break;
-              } else {
-                // normal bomb behavior: if rocketBombsActive they are nastier but still penalize
-                loseLife();
-                flashbangAndClearStains();
-                objects.splice(oi,1);
-                break;
-              }
-            } else {
-              // normal pumpkin or ghost
-              addStain(o.x, o.y, o.r * (0.6 + Math.random()*0.8), 'splat');
-              score += (o.type === 'pumpkin_small' ? 6 : 12);
-              objects.splice(oi,1);
-              break;
-            }
-          }
-        }
-      }
-
-      // powerups
-      for(let pi = powerups.length -1; pi >=0; pi--){
-        const p = powerups[pi];
-        for(let i = 0; i < trail.length -1; i++){
-          const a = trail[i], b = trail[i+1];
-          if(segmentCircleHit(a.x,a.y,b.x,b.y, p.x, p.y, Math.max(p.w,p.h)/2)){
-            activatePowerup(p);
-            powerups.splice(pi,1);
-            break;
-          }
-        }
-      }
-    }
-
-    // event expiration
-    if(activeEvent.kind && Date.now() > activeEvent.until){
-      // reset effects
-      activeEvent.kind = null;
-      activeEvent.until = 0;
-      timeScale = 1.0;
-      rocketBombsActive = false;
-      rolesReversed = false;
-      gravityVec = { x: 0, y: GRAVITY };
-      showToast('Event ended');
-    }
-
-    // update UI
-    if(bigScoreEl) bigScoreEl.textContent = `Score: ${score}`;
     renderHearts();
   }
 
-  // event triggering from special candy
-  function triggerRandomEvent(){
-    const kinds = ['angleGravity','flipGravity','rocketBombs','speedx2','slowHalf','reverseRoles'];
-    const k = kinds[Math.floor(Math.random()*kinds.length)];
-    activeEvent.kind = k;
-    activeEvent.until = Date.now() + EVENT_DURATION_MS;
-    // apply immediately
-    if(k === 'angleGravity'){
-      const angle = (Math.random()*Math.PI*2);
-      const mag = 0.38;
-      gravityVec = { x: Math.cos(angle)*mag, y: Math.sin(angle)*mag };
-      showToast('Gravity now at an angle!');
-    } else if(k === 'flipGravity'){
-      gravityVec = { x: 0, y: -Math.abs(GRAVITY) * 1.1 };
-      showToast('Gravity reversed!');
-    } else if(k === 'rocketBombs'){
-      rocketBombsActive = true;
-      showToast('Rocket bombs active!');
-    } else if(k === 'speedx2'){
-      timeScale = 2.0;
-      showToast('Everything sped up x2!');
-    } else if(k === 'slowHalf'){
-      timeScale = 0.5;
-      showToast('Everything slowed x0.5!');
-    } else if(k === 'reverseRoles'){
-      rolesReversed = true;
-      showToast('Fruits are dangerous!');
+  function activatePowerup(p){
+    if(p.type === 'life'){
+      lives = Math.min(5, lives + 1);
+      renderHearts();
+      showToast('+1 Life');
+    } else if(p.type === 'candyStorm'){
+      spawnCandyStorm();
+      showToast('Candy Storm!');
+    } else if(p.type === 'bombInv'){
+      startBombInvincibility();
     }
+  }
+
+  function loseLife(){
+    lives -= 1;
+    if(lives < 0) lives = 0;
+    showToast('Life lost');
+    if(lives <= 0) endGame();
+  }
+
+  function endGame(){
+    running = false;
+    finalScoreEl.textContent = score;
+    submitNote.textContent = (Date.now() <= GAME_END_TS) ? 'This score is within the event window and can be submitted to the main leaderboard.' : 'Event window ended — score will be recorded in the day leaderboard only.';
+    // show game over content inside playbound (remove modal wrapper border)
+    if(gameOverContent && playbound){
+      if(gameOverContent.parentElement !== playbound) playbound.appendChild(gameOverContent);
+      gameOverContent.style.position = 'absolute';
+      gameOverContent.style.left = '50%';
+      gameOverContent.style.top = '48%';
+      gameOverContent.style.transform = 'translate(-50%,-50%)';
+      gameOverContent.classList.remove('hidden');
+    } else if (gameOverModal){
+      gameOverModal.classList.remove('hidden');
+    }
+    // freeze: running=false already; objects remain in place
+  }
+
+  function hideGameOverContent(){
+    if(!gameOverContent) return;
+    gameOverContent.classList.add('hidden');
+    // move back to modal wrapper
+    const wrapper = gameOverModal;
+    if(wrapper && gameOverContent.parentElement !== wrapper) wrapper.appendChild(gameOverContent);
+    gameOverContent.style.position = '';
+    gameOverContent.style.left = '';
+    gameOverContent.style.top = '';
+    gameOverContent.style.transform = '';
+  }
+
+  // UI helpers (copy pattern from day_1)
+  function showToast(msg, timeout=1800){
+    if(!playbound) return;
+    let t = playbound.querySelector('.save-toast');
+    if(!t){ t = document.createElement('div'); t.className='save-toast'; playbound.appendChild(t); }
+    t.textContent = msg;
+    clearTimeout(t._timeout);
+    t._timeout = setTimeout(()=> { t && t.remove(); }, timeout);
+  }
+
+  function updateTimers(){
+    if(!gameTimerHeader) return;
+    const left = GAME_END_TS - Date.now();
+    gameTimerHeader.textContent = left <= 0 ? 'Game Ended' : (()=>{
+      const s = Math.floor(left/1000);
+      const hh = String(Math.floor(s/3600)).padStart(2,'0');
+      const mm = String(Math.floor((s%3600)/60)).padStart(2,'0');
+      const ss = String(s%60).padStart(2,'0');
+      return `${hh}:${mm}:${ss}`;
+    })();
   }
 
   // draw
@@ -513,7 +348,14 @@
     ctx.fillRect(0,0,W,H);
 
     // stains
-    drawStains();
+    stains.forEach(s => {
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = '#4a1a00';
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y, s.r, s.r*0.6, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+    });
 
     // objects
     objects.forEach(o => {
@@ -521,34 +363,13 @@
       // simple shadow
       ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.beginPath(); ctx.ellipse(o.x+4, o.y+6, o.r*0.9, o.r*0.5, 0,0,Math.PI*2); ctx.fill();
-
-      // candy variants
-      if(o.type === 'candy' && o.candyMeta){
-        ctx.fillStyle = o.candyMeta.color;
-        ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI*2); ctx.fill();
-        if(o.glow){
-          const gr = ctx.createRadialGradient(o.x,o.y,2,o.x,o.y,o.r*2);
-          gr.addColorStop(0,'rgba(255,255,200,0.9)');
-          gr.addColorStop(1,'rgba(255,255,200,0)');
-          ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(o.x,o.y,o.r*1.4,0,Math.PI*2); ctx.fill();
-        }
-      } else if(o.type === 'eventCandy' || o.id === 'eventCandy'){
-        // very vibrant glowing candy
-        ctx.save();
-        ctx.shadowColor = '#fff06b';
-        ctx.shadowBlur = 18;
-        ctx.fillStyle = '#fffb79';
-        ctx.beginPath(); ctx.arc(o.x,o.y,o.r,0,Math.PI*2); ctx.fill();
-        ctx.restore();
-        const gr = ctx.createRadialGradient(o.x,o.y,2,o.x,o.y,o.r*2);
-        gr.addColorStop(0,'rgba(255,250,180,0.95)');
-        gr.addColorStop(1,'rgba(255,120,40,0)');
-        ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(o.x,o.y,o.r*1.6,0,Math.PI*2); ctx.fill();
-      } else if(o.type === 'bomb'){
+      if(o.type === 'bomb'){
+        // bomb visual
         ctx.fillStyle = '#222';
         ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = '#f44'; ctx.fillRect(o.x - 2, o.y - o.r - 8, 4, 6);
       } else {
+        // pumpkin / ghost
         if(o.type === 'ghost'){
           ctx.fillStyle = '#fff';
           ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI*2); ctx.fill();
@@ -571,7 +392,7 @@
       ctx.restore();
     });
 
-    // trail
+    // trail (draw quickly fading strokes)
     ctx.lineCap = 'round';
     for(let i = 0; i < trail.length - 1; i++){
       const a = trail[i], b = trail[i+1];
@@ -579,12 +400,13 @@
       ctx.strokeStyle = `rgba(255,255,255,${0.28 * alpha})`;
       ctx.lineWidth = 8 * alpha;
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      // inner brighter line
       ctx.strokeStyle = `rgba(255,230,160,${0.9 * alpha})`;
       ctx.lineWidth = 3 * alpha;
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
     }
 
-    // flash overlay for bombs
+    // UI overlays drawn outside canvas by DOM; we only need to draw flash if active
     if(Date.now() < flashUntil){
       const alpha = (flashUntil - Date.now()) / 300;
       ctx.fillStyle = `rgba(255,255,255,${0.9 * alpha})`;
@@ -592,7 +414,120 @@
     }
   }
 
-  // pushTrail unchanged but convert positions to canvas scale
+  // update physics and game logic
+  function update(dtMs){
+    // spawn logic
+    const nowTs = Date.now();
+    // candy storm spawns many
+    const stormActive = nowTs < candyStormUntil;
+    if(stormActive){
+      if(Math.random() < 0.45) spawnThrown(80 + Math.random()*(W-160));
+    } else {
+      if(nowTs - lastSpawn > SPAWN_INTERVAL + Math.random()*400) {
+        spawnThrown();
+        lastSpawn = nowTs;
+        if(Math.random() < POWERUP_CHANCE) spawnPowerup();
+      }
+    }
+
+    // objects physics
+    for(let i = objects.length -1; i >=0; i--){
+      const o = objects[i];
+      if(!o.alive) continue;
+      o.vy += GRAVITY * (dtMs / 16.666);
+      o.x += o.vx * (dtMs / 16.666);
+      o.y += o.vy * (dtMs / 16.666);
+      // remove if fall off bottom after a while
+      if(o.y > H + 80){
+        objects.splice(i,1);
+      }
+    }
+
+    // powerup movement and expiration
+    for(let i = powerups.length -1; i >=0; i--){
+      const p = powerups[i];
+      p.x += p.vx * (dtMs / 16.666);
+      if(p.x < -80 || p.x > W + 80 || Date.now() - p.created > 22000) powerups.splice(i,1);
+    }
+
+    // trail cleanup
+    const now = Date.now();
+    for(let i = trail.length -1; i >=0; i--){
+      if(now - trail[i].t > TRAIL_LIFETIME) trail.splice(i,1);
+    }
+
+    // slicing: check each segment of trail against objects & powerups
+    if(trail.length >= 2){
+      for(let oi = objects.length -1; oi >= 0; oi--){
+        const o = objects[oi];
+        if(!o.alive) continue;
+        // check against all recent trail segments
+        for(let i = 0; i < trail.length -1; i++){
+          const a = trail[i], b = trail[i+1];
+          if(segmentCircleHit(a.x,a.y,b.x,b.y, o.x,o.y, o.r)){
+            sliceObject(o);
+            break;
+          }
+        }
+      }
+
+      for(let pi = powerups.length -1; pi >=0; pi--){
+        const p = powerups[pi];
+        for(let i = 0; i < trail.length -1; i++){
+          const a = trail[i], b = trail[i+1];
+          // approximate powerup hit as rectangle vs segment (simple: point near segment)
+          if(segmentCircleHit(a.x,a.y,b.x,b.y, p.x, p.y, Math.max(p.w,p.h)/2)){
+            activatePowerup(p);
+            powerups.splice(pi,1);
+            break;
+          }
+        }
+      }
+    }
+
+    // while in bomb invincibility, bombs harmless
+    if(Date.now() > bombInvincibleUntil) {
+      // expired
+    }
+
+    // update UI
+    if(bigScoreEl) bigScoreEl.textContent = `Score: ${score}`;
+    if(livesEl) livesEl.textContent = `Lives: ${lives}`;
+  }
+
+  // main loop
+  function loop(nowTs){
+    const dt = Math.min(40, nowTs - lastTime);
+    lastTime = nowTs;
+
+    // Manage waves & modifiers
+    if (!wave.startedAt || Date.now() - wave.startedAt > wave.duration) startNewWave();
+    maybeStartModifier();
+    maybeEndModifier();
+
+    if (running) {
+      // wave-driven spawn behavior
+      if (wave.type === 'burst' && wave.burstCount > 0 && Math.random() < 0.12) {
+        // spawn a burst group (simultaneous)
+        for (let i=0;i<wave.burstCount;i++) spawnThrown(null, { allowBomb: wave.allowBombs });
+        wave.burstCount = 0; // single burst
+      } else {
+        // probabilistic spawns based on wave.spawnRate
+        if (Date.now() - lastSpawn > wave.spawnRate + Math.random()*120) {
+          spawnThrown(null, { allowBomb: wave.allowBombs });
+          lastSpawn = Date.now();
+        }
+      }
+    }
+
+    // physics update only if running (freeze on game over)
+    if (running) update(dt);
+    draw();
+    animationId = requestAnimationFrame(loop);
+  }
+
+  // input handling (mouse and touch)
+  let lastPos = null;
   function pushTrail(x,y){
     const t = Date.now();
     if(lastPos){
@@ -601,33 +536,57 @@
     }
     trail.push({ x, y, t });
     lastPos = { x, y };
+    // keep trail short
     if(trail.length > 48) trail.shift();
   }
 
-  // powerup spawning: make them faster and a bit rarer/harder (respect timeScale)
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    pushTrail(x,y);
+  });
+  canvas.addEventListener('mousedown', e => {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    pushTrail(x,y);
+  });
+  canvas.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = (t.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (t.clientY - rect.top) * (canvas.height / rect.height);
+    pushTrail(x,y);
+  }, { passive: true });
+  canvas.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = (t.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (t.clientY - rect.top) * (canvas.height / rect.height);
+    pushTrail(x,y);
+  }, { passive: true });
+  window.addEventListener('mouseup', ()=> lastPos = null);
+  window.addEventListener('touchend', ()=> lastPos = null);
+
+  // spawn powerups occasionally (independent loop)
   setInterval(()=> {
     if(!running) return;
-    // chance reduced and speed increased in spawnPowerup function already
-    if(Math.random() < 0.08) spawnPowerup();
-  }, 1800);
+    if(Math.random() < 0.12) spawnPowerup();
+  }, 2200);
 
-  // ensure hearts UI initial render
-  renderHearts();
-
-  // ensure startGame resets event state
+  // game control
   function startGame(){
+    // reset
     objects = []; powerups = []; trail = []; stains = [];
     lives = START_LIVES; score = 0;
     lastSpawn = 0; candyStormUntil = 0; bombInvincibleUntil = 0; flashUntil = 0;
-    lastEventCandyAt = 0;
-    activeEvent = { kind:null, until:0 };
-    timeScale = 1.0; rocketBombsActive = false; rolesReversed = false; gravityVec = { x:0, y:GRAVITY };
     running = true;
     lastTime = performance.now();
     if(!animationId) animationId = requestAnimationFrame(loop);
+    // hide overlays
     hideGameOverContent();
     if(playOverlay) playOverlay.classList.add('hidden');
-    renderHearts();
   }
 
   function restartFromSave(){
