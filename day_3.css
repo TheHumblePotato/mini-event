@@ -45,19 +45,21 @@ html, body {
 }
 
 /* frame and game area sized to viewport so no scrolling */
+/* Make the game area as large as possible while leaving room for top controls */
 #game-wrap {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start; /* ensure top controls do not overlap the frame */
   height: 100vh;
-  padding: 24px;
+  padding: 64px 24px 24px 24px; /* top padding reserves space for top-controls */
   box-sizing: border-box;
 }
 
 .halloween-frame {
-  width: min(720px, calc( (var(--canvas-w) / var(--canvas-h)) * (100vh - 120px) ));
+  /* keep the canvas aspect ratio and maximize size within viewport minus top controls */
+  width: min( calc( (var(--canvas-w) / var(--canvas-h)) * (100vh - 96px) ), calc(100vw - 36px) );
   max-width: 95vw;
-  max-height: calc(100vh - 80px);
+  max-height: calc(100vh - 96px);
   background: var(--frame-bg);
   border-radius: 12px;
   padding: 12px;
@@ -226,5 +228,44 @@ html, body {
   .center-score { font-size: 1.0rem; padding: 6px 10px; top: 54px; }
   #hearts { font-size: 18px; top: 6px; letter-spacing: 4px; }
   .fullscreen-btn { font-size: 0.9rem; padding: 5px 7px; }
+}
+
+/* --- Background elements from day_1.css (exact) --- */
+#background { pointer-events: none; z-index: -1; position: fixed; inset: 0; }
+
+.leaf, .bg-pumpkin {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  pointer-events: none;
+  animation-name: fall;
+  animation-duration: 12s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/* leaf visuals */
+.leaf {
+  background: radial-gradient(circle at 35% 30%, #ffa94d, #7a3a00);
+  border-radius: 6px;
+  transform-origin: center;
+  opacity: 0.9;
+}
+
+/* pumpkin visuals bigger */
+.bg-pumpkin {
+  width: 36px;
+  height: 28px;
+  background: radial-gradient(circle at 50% 40%, #ff8c00, #c25a00);
+  border-radius: 50% 50% 40% 40%;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+  opacity: 0.95;
+}
+
+/* falling animation */
+@keyframes fall {
+  0% { transform: translateY(-20vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translateY(120vh) rotate(360deg); opacity: 0.9; }
 }
 
