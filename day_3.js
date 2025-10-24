@@ -1,10 +1,11 @@
-/* Full replacement for day_3.js
-   - Removes modifier system
-   - Adds 11 candy types
-   - Candies leave colored stains in varied shapes and can drip
-   - Removes "Life lost" toast when losing a life
-   - Restores background element initialization (copied from day_1)
-   - Adds high-DPI-aware canvas resize so game area scales to available playbound space
+/* day_3.js — updated per request:
+   - stains precomputed (no per-frame randomness) and removed when they fall past bottom
+   - large stains slide down slowly, leave small trailing drips, no shaking
+   - stains use multiple non-elliptical shapes (splat/blob/polygon/drip/ellipse)
+   - high-DPI + aspect-fit scaling so canvas and game world scale up to available playbound space
+   - fullscreen resizes canvas to occupy almost the full screen
+   - candies leave stains in their own color
+   - background init preserved (copied from day_1)
 */
 (() => {
   const canvas = document.getElementById('game-canvas');
@@ -28,31 +29,32 @@
   const flashEl = document.getElementById('flash');
   const backgroundRoot = document.getElementById('background');
 
-  // event end for day_3: Oct 30 0:00 AM PT (local)
   const now = new Date();
   const year = now.getFullYear();
   const GAME_END_TS = Date.parse(`${year}-10-30T00:00:00-07:00`);
 
-  // logical canvas resolution (kept constant aspect ratio)
+  // base logical resolution (game world coordinates)
   const LOGICAL_W = 640;
   const LOGICAL_H = 480;
 
-  // game constants
+  // runtime state
+  let scale = 1;           // CSS scale (logical -> CSS px)
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
   let W = LOGICAL_W, H = LOGICAL_H;
+
   const GRAVITY = 0.35;
-  const SPAWN_INTERVAL = 800; // ms
+  const SPAWN_INTERVAL = 800;
   const POWERUP_CHANCE = 0.02;
   const TRAIL_LIFETIME = 160;
   const TRAIL_MIN_DIST = 4;
   const START_LIVES = 3;
 
-  // state
   let running = false;
   let lastTime = performance.now();
-  let objects = []; // flying items
+  let objects = [];
   let powerups = [];
-  let trail = []; // {x,y,t}
-  let stains = []; // {x,y,r,color,shape,vy,drips:[]}
+  let trail = [];
+  let stains = [];
   let lives = START_LIVES;
   let score = 0;
   let lastSpawn = 0;
@@ -61,25 +63,17 @@
   let flashUntil = 0;
   let animationId = null;
 
-  // waves (no modifiers)
   let wave = { type: 'normal', startedAt: 0, duration: 8000, spawnRate: SPAWN_INTERVAL, allowBombs: true, fromSidesProb: 0.25, burstCount: 0 };
 
-  function startNewWave() {
-    const t = Math.random();
-    const nowTs = Date.now();
-    if (t < 0.18) {
-      wave = { type: 'fast', startedAt: nowTs, duration: 8000 + Math.random()*4000, spawnRate: 220, allowBombs: true, fromSidesProb: 0.35, burstCount: 0 };
-    } else if (t < 0.36) {
-      wave = { type: 'shower', startedAt: nowTs, duration: 7000 + Math.random()*5000, spawnRate: 90, allowBombs: false, fromSidesProb: 0.18, burstCount: 0 };
-    } else if (t < 0.6) {
-      wave = { type: 'burst', startedAt: nowTs, duration: 4200, spawnRate: 700, allowBombs: false, fromSidesProb: 0.6, burstCount: 8 + Math.floor(Math.random()*6) };
-    } else {
-      wave = { type: 'normal', startedAt: nowTs, duration: 10000 + Math.random()*8000, spawnRate: 720 + Math.random()*320, allowBombs: true, fromSidesProb: 0.22, burstCount: 0 };
-    }
+  function startNewWave(){
+    const t = Math.random(), nowTs = Date.now();
+    if (t < 0.18) wave = { type:'fast', startedAt:nowTs, duration:8000+Math.random()*4000, spawnRate:220, allowBombs:true, fromSidesProb:0.35, burstCount:0 };
+    else if (t < 0.36) wave = { type:'shower', startedAt:nowTs, duration:7000+Math.random()*5000, spawnRate:90, allowBombs:false, fromSidesProb:0.18, burstCount:0 };
+    else if (t < 0.6) wave = { type:'burst', startedAt:nowTs, duration:4200, spawnRate:700, allowBombs:false, fromSidesProb:0.6, burstCount:8 + Math.floor(Math.random()*6) };
+    else wave = { type:'normal', startedAt:nowTs, duration:10000+Math.random()*8000, spawnRate:720+Math.random()*320, allowBombs:true, fromSidesProb:0.22, burstCount:0 };
     lastSpawn = 0;
   }
 
-  // candy catalog (11+ types)
   const CANDY_TYPES = [
     { id:'candy_orb', color:'#ffd84d', r:16, shape:'circle' },
     { id:'candy_twist', color:'#ff6bcb', r:14, shape:'twist' },
@@ -94,25 +88,44 @@
     { id:'candy_hex', color:'#9be3ff', r:16, shape:'hex' }
   ];
 
-  // helper: high-DPI aware canvas sizing to best-fit playbound while keeping aspect ratio and not overlapping top controls (CSS reserves top padding)
+  // Resize so the canvas logical world remains LOGICAL_W x LOGICAL_H but is scaled to fit playbound area (preserving aspect)
   function resizeCanvasToDisplay() {
     if (!canvas || !playbound) return;
-    // compute CSS pixel size of canvas element inside playbound (it is set to 100% width/height of playbound)
-    const rect = canvas.getBoundingClientRect();
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const displayW = Math.max(1, Math.round(rect.width));
-    const displayH = Math.max(1, Math.round(rect.height));
+    const rect = playbound.getBoundingClientRect();
+    // reserve a tiny margin for the playbound border; compute scale to fit LOGICAL into rect
+    const cssW = Math.max(32, Math.floor(rect.width));
+    const cssH = Math.max(32, Math.floor(rect.height));
+    scale = Math.min(cssW / LOGICAL_W, cssH / LOGICAL_H);
+    // ensure scale not zero
+    scale = Math.max(scale, 0.01);
+    dpr = Math.max(1, window.devicePixelRatio || 1);
+    // set CSS size to exact scaled logical pixel size (keeps crisp integer CSS px)
+    const displayW = Math.round(LOGICAL_W * scale);
+    const displayH = Math.round(LOGICAL_H * scale);
     canvas.style.width = `${displayW}px`;
     canvas.style.height = `${displayH}px`;
-    canvas.width = Math.round(displayW * dpr);
-    canvas.height = Math.round(displayH * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    // set logical W/H used by game scaling
-    W = LOGICAL_W;
-    H = LOGICAL_H;
+    // actual backing store in device pixels
+    canvas.width = Math.round(LOGICAL_W * scale * dpr);
+    canvas.height = Math.round(LOGICAL_H * scale * dpr);
+    // set transform so drawing commands use logical coordinates (0..LOGICAL_W / LOGICAL_H)
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+    W = LOGICAL_W; H = LOGICAL_H;
   }
 
-  // background initializer copied from day_1 exactly (leaves & pumpkins)
+  // When fullscreen, try to nearly fill viewport (small padding)
+  async function toggleFullscreen(){
+    try{
+      if(!document.fullscreenElement){
+        await playbound.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+      // resize after fullscreen state changes (some browsers need a tick)
+      setTimeout(resizeCanvasToDisplay, 80);
+    }catch(e){}
+  }
+
+  // Background init (copied from day_1)
   function initBackgroundElements(){
     if(!backgroundRoot) return;
     if(backgroundRoot.dataset.initted) return;
@@ -133,9 +146,67 @@
     }
   }
 
-  // stains: varied shapes and drips
+  // Precompute stable shape data for stains so they don't "shake"
+  function makeShapeData(shape, r) {
+    if(shape === 'ellipse') {
+      return { rx: r, ry: Math.round(r * (0.55 + Math.random()*0.25)) };
+    }
+    if(shape === 'drip') {
+      return { rx: Math.round(r * 0.6), ry: Math.round(r * 1.2) };
+    }
+    if(shape === 'splat') {
+      const pieces = 4 + Math.floor(Math.random()*4);
+      const parts = [];
+      for(let i=0;i<pieces;i++){
+        const angle = (i / pieces) * Math.PI * 2;
+        parts.push({ ox: Math.cos(angle) * (r * (0.25 + Math.random()*0.6)), oy: Math.sin(angle) * (r * (0.15 + Math.random()*0.45)), rr: Math.max(2, r * (0.2 + Math.random()*0.8)) });
+      }
+      return { pieces: parts };
+    }
+    if(shape === 'blob') {
+      // store a simple bezier control offsets for a blobby oval
+      const ctrl = [];
+      const count = 4 + Math.floor(Math.random()*3);
+      for(let i=0;i<count;i++){
+        const a = (i / count) * Math.PI * 2;
+        ctrl.push({ ox: Math.cos(a) * (r * (0.2 + Math.random()*0.7)), oy: Math.sin(a) * (r * (0.15 + Math.random()*0.6)) });
+      }
+      return { points: ctrl };
+    }
+    if(shape === 'polygon') {
+      const sides = 5 + Math.floor(Math.random()*3);
+      const pts = [];
+      for(let i=0;i<sides;i++){
+        const a = (i / sides) * Math.PI*2;
+        pts.push({ x: Math.cos(a) * r * (0.6 + Math.random()*0.6), y: Math.sin(a) * r * (0.6 + Math.random()*0.6) });
+      }
+      return { pts };
+    }
+    // fallback circular data
+    return { rx: r, ry: Math.round(r*0.6) };
+  }
+
   function addStain(x,y,r,color='#4a1a00', shape='ellipse'){
-    const s = { x, y, r: Math.max(6, r), color, shape, ts: Date.now(), vy: 0, drips: [] };
+    // clamp inside logical area
+    x = Math.max(4, Math.min(LOGICAL_W - 4, x));
+    y = Math.max(4, Math.min(LOGICAL_H - 4, y));
+    const s = {
+      x, y,
+      r: Math.max(6, r),
+      color,
+      shape,
+      ts: Date.now(),
+      vy: 0,
+      drips: [],
+      // sliding if large
+      sliding: (r > 28),
+      // persistent shape data so the render is stable
+      shapeData: makeShapeData(shape, Math.max(6, r)),
+      // a small internal timer for drip spawn control
+      _dripTimer: 0
+    };
+    // if sliding ensure a gentle downward velocity
+    if (s.sliding) s.vy = 0.06 + Math.random()*0.12;
     stains.push(s);
     if(stains.length > 300) stains.shift();
   }
@@ -145,11 +216,27 @@
     stains = [];
   }
 
-  // spawn thrown object (pumpkins, bombs, ghosts, candies)
+  // small helper to spawn a drip object
+  function spawnDripFrom(s){
+    const dx = (Math.random()-0.5) * s.r * 0.6;
+    const dy = s.y + s.r*0.6;
+    return { x: s.x + dx, y: dy, r: Math.max(2, s.r*0.06 + Math.random()*2), vy: 0.6 + Math.random()*0.8, color: s.color };
+  }
+
+  // collision helper unchanged
+  function segmentCircleHit(x1,y1,x2,y2, cx,cy, r){
+    const dx = x2-x1, dy = y2-y1;
+    const l2 = dx*dx + dy*dy;
+    if(l2 === 0) return Math.hypot(cx-x1, cy-y1) <= r;
+    let t = ((cx - x1)*dx + (cy - y1)*dy) / l2;
+    t = Math.max(0, Math.min(1, t));
+    const px = x1 + t*dx, py = y1 + t*dy;
+    return Math.hypot(cx - px, cy - py) <= r;
+  }
+
   function spawnThrown(x = null, opts = {}) {
     if (!running) return;
     const allowBombs = (typeof opts.allowBomb === 'boolean') ? opts.allowBomb : wave.allowBombs;
-    // candy chance
     let type = null;
     if (Math.random() < 0.24) {
       const c = CANDY_TYPES[Math.floor(Math.random()*CANDY_TYPES.length)];
@@ -190,7 +277,6 @@
     objects.push(obj);
   }
 
-  // spawn powerup horizontally
   function spawnPowerup(){
     if (!running) return;
     const types = ['life','candyStorm','bombInv'];
@@ -202,26 +288,9 @@
     powerups.push(p);
   }
 
-  function segmentCircleHit(x1,y1,x2,y2, cx,cy, r){
-    const dx = x2-x1, dy = y2-y1;
-    const l2 = dx*dx + dy*dy;
-    if(l2 === 0) return Math.hypot(cx-x1, cy-y1) <= r;
-    let t = ((cx - x1)*dx + (cy - y1)*dy) / l2;
-    t = Math.max(0, Math.min(1, t));
-    const px = x1 + t*dx, py = y1 + t*dy;
-    return Math.hypot(cx - px, cy - py) <= r;
-  }
+  function spawnCandyStorm(){ candyStormUntil = Math.max(candyStormUntil, Date.now() + 10000); }
+  function startBombInvincibility(){ bombInvincibleUntil = Math.max(bombInvincibleUntil, Date.now() + 15000); showToast('Bomb invincible!'); }
 
-  function spawnCandyStorm(){
-    const until = Date.now() + 10000;
-    candyStormUntil = Math.max(candyStormUntil, until);
-  }
-  function startBombInvincibility(){
-    bombInvincibleUntil = Math.max(bombInvincibleUntil, Date.now() + 15000);
-    showToast('Bomb invincible!');
-  }
-
-  // slice object (candies create colored stains/shapes with drips)
   function sliceObject(obj){
     if(!obj.alive) return;
     obj.alive = false;
@@ -231,7 +300,7 @@
       if (Date.now() < bombInvincibleUntil) {
         score += 8;
       } else {
-        loseLife(); // no 'life lost' toast per spec
+        loseLife();
         flashbangAndClearStains();
       }
       return;
@@ -240,29 +309,22 @@
     if (obj.type && obj.type.startsWith('candy_')) {
       const points = Math.round(obj.r * (1.0 + Math.random()*1.6));
       score += points;
-      const shape = ['ellipse','splat','blob','drip'][Math.floor(Math.random()*4)];
-      addStain(obj.x + (Math.random()-0.5)*6, obj.y + (Math.random()-0.5)*6, obj.r * (0.7 + Math.random()*0.8), obj.color || '#ffd84d', shape);
+      // choose shape per candy (use candyShape bias)
+      const shaped = obj.candyShape || ['ellipse','splat','blob','drip'][Math.floor(Math.random()*4)];
+      addStain(obj.x + (Math.random()-0.5)*6, obj.y + (Math.random()-0.5)*6, obj.r * (0.8 + Math.random()*0.8), obj.color || '#ffd84d', shaped);
       return;
     }
 
-    // pumpkins/ghosts
     if (obj.type === 'ghost') score += 10;
     else score += (obj.type === 'pumpkin_small' ? 6 : 12);
 
-    // pumpkin stain
     addStain(obj.x, obj.y, obj.r * (0.8 + Math.random()*0.8), '#4a1a00', Math.random() < 0.5 ? 'ellipse' : 'splat');
   }
 
   function activatePowerup(p){
-    if(p.type === 'life'){
-      lives = Math.min(5, lives + 1);
-      renderHearts();
-    } else if(p.type === 'candyStorm'){
-      spawnCandyStorm();
-      showToast('Candy Storm!');
-    } else if(p.type === 'bombInv'){
-      startBombInvincibility();
-    }
+    if(p.type === 'life'){ lives = Math.min(5, lives + 1); renderHearts(); }
+    else if(p.type === 'candyStorm'){ spawnCandyStorm(); showToast('Candy Storm!'); }
+    else if(p.type === 'bombInv'){ startBombInvincibility(); }
   }
 
   function loseLife(){
@@ -273,8 +335,8 @@
 
   function endGame(){
     running = false;
-    finalScoreEl.textContent = score;
-    submitNote.textContent = (Date.now() <= GAME_END_TS) ? 'This score is within the event window and can be submitted to the main leaderboard.' : 'Event window ended — score will be recorded in the day leaderboard only.';
+    if(finalScoreEl) finalScoreEl.textContent = score;
+    if(submitNote) submitNote.textContent = (Date.now() <= GAME_END_TS) ? 'This score is within the event window and can be submitted to the main leaderboard.' : 'Event window ended — score will be recorded in the day leaderboard only.';
     if(gameOverContent && playbound){
       if(gameOverContent.parentElement !== playbound) playbound.appendChild(gameOverContent);
       gameOverContent.style.position = 'absolute';
@@ -310,7 +372,7 @@
   function updateTimers(){
     if(!gameTimerHeader) return;
     const left = GAME_END_TS - Date.now();
-    gameTimerHeader.textContent = left <= 0 ? 'Game Ended' : (()=>{
+    gameTimerHeader.textContent = left <= 0 ? 'Game Ended' : (() => {
       const s = Math.floor(left/1000);
       const hh = String(Math.floor(s/3600)).padStart(2,'0');
       const mm = String(Math.floor((s%3600)/60)).padStart(2,'0');
@@ -319,91 +381,122 @@
     })();
   }
 
-  // stains update & draw with dripping
+  // Update & draw stains (stable shapes, sliding big stains, remove when off-bottom)
   function updateAndDrawStains(dtMs){
-    // update
+    // update phase: motion & drip generation
     for (let i = stains.length - 1; i >= 0; i--) {
       const s = stains[i];
-      s.vy = (s.vy || 0) + 0.03 * (dtMs/16.666);
-      if (s.y + s.r*0.6 < LOGICAL_H - 6) {
-        s.y += s.vy;
-        if (Math.random() < 0.02) {
-          s.drips.push({ x: s.x + (Math.random()-0.5)*s.r*0.6, y: s.y + s.r*0.6, r: Math.max(2, s.r*0.08 + Math.random()*2), vy: 0.6 + Math.random()*1.2 });
+      if (s.sliding) {
+        // constant slow slide
+        s.y += s.vy * (dtMs / 16.666);
+        // spawn small trail drips regularly
+        s._dripTimer += dtMs;
+        if (s._dripTimer > 220) {
+          s._dripTimer = 0;
+          s.drips.push(spawnDripFrom(s));
         }
       } else {
-        s.vy = 0;
+        // normal stain affected by gentle gravity (can drip as well)
+        s.vy = (s.vy || 0) + 0.03 * (dtMs/16.666);
+        if (s.y + s.r*0.6 < LOGICAL_H - 6) {
+          s.y += s.vy * (dtMs / 16.666);
+          if (Math.random() < 0.02) s.drips.push(spawnDripFrom(s));
+        } else {
+          s.vy = 0;
+        }
       }
-      // drips
+
+      // update drips for this stain
       for (let j = s.drips.length - 1; j >= 0; j--) {
         const d = s.drips[j];
         d.vy += 0.06 * (dtMs/16.666);
-        d.y += d.vy;
+        d.y += d.vy * (dtMs / 16.666);
         if (d.y > LOGICAL_H + 16) s.drips.splice(j,1);
+      }
+
+      // remove stain if entirely off bottom (including its size)
+      if (s.y - s.r > LOGICAL_H + 8) {
+        stains.splice(i,1);
       }
     }
 
-    // draw
+    // draw phase: shapes are deterministic using shapeData
     stains.forEach(s => {
       ctx.save();
-      ctx.globalAlpha = 0.85;
+      ctx.globalAlpha = 0.88;
       ctx.fillStyle = s.color || '#4a1a00';
+
       if (s.shape === 'ellipse') {
-        ctx.beginPath(); ctx.ellipse(s.x, s.y, s.r, s.r*0.6, 0, 0, Math.PI*2); ctx.fill();
+        const sd = s.shapeData;
+        ctx.beginPath(); ctx.ellipse(s.x, s.y, sd.rx, sd.ry, 0, 0, Math.PI*2); ctx.fill();
+      } else if (s.shape === 'drip') {
+        const sd = s.shapeData;
+        ctx.beginPath(); ctx.ellipse(s.x, s.y, sd.rx, sd.ry, 0, 0, Math.PI*2); ctx.fill();
       } else if (s.shape === 'splat') {
-        const pieces = 4 + Math.floor(Math.random()*3);
-        for(let p = 0; p < pieces; p++){
-          const angle = (p / pieces) * Math.PI * 2;
-          const rr = s.r * (0.3 + Math.random()*1.0);
-          ctx.beginPath(); ctx.arc(s.x + Math.cos(angle)*s.r*0.4, s.y + Math.sin(angle)*s.r*0.25, rr, 0, Math.PI*2); ctx.fill();
+        const pieces = s.shapeData.pieces;
+        for (let p of pieces) {
+          ctx.beginPath();
+          ctx.arc(s.x + p.ox, s.y + p.oy, p.rr, 0, Math.PI*2);
+          ctx.fill();
         }
       } else if (s.shape === 'blob') {
+        const pts = s.shapeData.points;
+        if (pts && pts.length) {
+          ctx.beginPath();
+          ctx.moveTo(s.x + pts[0].ox, s.y + pts[0].oy);
+          for (let k = 1; k < pts.length; k++) {
+            const a = pts[k-1], b = pts[k];
+            ctx.quadraticCurveTo(s.x + a.ox*0.6, s.y + a.oy*0.6, s.x + b.ox, s.y + b.oy);
+          }
+          // close back to start
+          ctx.quadraticCurveTo(s.x + pts[pts.length-1].ox*0.6, s.y + pts[pts.length-1].oy*0.6, s.x + pts[0].ox, s.y + pts[0].oy);
+          ctx.fill();
+        }
+      } else if (s.shape === 'polygon') {
+        const pts = s.shapeData.pts;
         ctx.beginPath();
-        ctx.moveTo(s.x - s.r*0.6, s.y);
-        ctx.quadraticCurveTo(s.x, s.y - s.r*1.0, s.x + s.r*0.6, s.y);
-        ctx.quadraticCurveTo(s.x, s.y + s.r*0.9, s.x - s.r*0.6, s.y);
-        ctx.fill();
-      } else if (s.shape === 'drip') {
-        ctx.beginPath(); ctx.ellipse(s.x, s.y, s.r*0.8, s.r*1.1, 0, 0, Math.PI*2); ctx.fill();
+        ctx.moveTo(s.x + pts[0].x, s.y + pts[0].y);
+        for (let k=1;k<pts.length;k++) ctx.lineTo(s.x + pts[k].x, s.y + pts[k].y);
+        ctx.closePath(); ctx.fill();
       } else {
-        ctx.beginPath(); ctx.ellipse(s.x, s.y, s.r, s.r*0.6, 0, 0, Math.PI*2); ctx.fill();
+        // fallback ellipse
+        const sd = s.shapeData;
+        ctx.beginPath(); ctx.ellipse(s.x, s.y, sd.rx || s.r, sd.ry || s.r*0.6, 0, 0, Math.PI*2); ctx.fill();
       }
 
-      // draw drips
+      // draw small drips
       if (s.drips && s.drips.length) {
         ctx.globalAlpha = 0.95;
-        s.drips.forEach(d => {
+        for (let d of s.drips) {
           ctx.beginPath();
           ctx.ellipse(d.x, d.y, d.r, d.r*1.6, 0, 0, Math.PI*2);
           ctx.fill();
-        });
+        }
       }
       ctx.restore();
     });
   }
 
-  // draw scene
+  // draw entire frame
   function draw(dtMs=16.666){
     // clear logical surface
     ctx.clearRect(0,0, LOGICAL_W, LOGICAL_H);
 
-    // subtle background gradient
     const g = ctx.createLinearGradient(0,0,0,LOGICAL_H);
     g.addColorStop(0,'#0b0506'); g.addColorStop(1,'#090305');
     ctx.fillStyle = g; ctx.fillRect(0,0,LOGICAL_W,LOGICAL_H);
 
-    // stains first
+    // stains under everything
     updateAndDrawStains(dtMs);
 
-    // objects
+    // objects (fruits/etc)
     objects.forEach(o => {
       if(!o.alive) return;
-      // shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.beginPath(); ctx.ellipse(o.x+4, o.y+6, o.r*0.9, o.r*0.5, 0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.30)';
+      ctx.beginPath(); ctx.ellipse(o.x+4, o.y+6, o.r*0.95, o.r*0.55, 0,0,Math.PI*2); ctx.fill();
 
       if(o.type === 'bomb'){
-        ctx.fillStyle = '#222';
-        ctx.beginPath(); ctx.arc(o.x,o.y,o.r,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(o.x,o.y,o.r,0,Math.PI*2); ctx.fill();
         ctx.fillStyle = '#f44'; ctx.fillRect(o.x-2, o.y - o.r - 8, 4, 6);
       } else if (o.type && o.type.startsWith('candy_')) {
         const c = o.color || '#ffd84d';
@@ -454,7 +547,6 @@
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
     }
 
-    // flash effect
     if(Date.now() < flashUntil){
       const alpha = (flashUntil - Date.now()) / 300;
       ctx.fillStyle = `rgba(255,255,255,${0.9 * alpha})`;
@@ -462,12 +554,11 @@
     }
   }
 
-  // physics & logic update
+  // update physics & logic
   function update(dtMs){
     const nowTs = Date.now();
     const stormActive = nowTs < candyStormUntil;
 
-    // spawn logic
     if(stormActive){
       if(Math.random() < 0.45) spawnThrown(80 + Math.random()*(LOGICAL_W-160));
     } else {
@@ -478,30 +569,26 @@
       }
     }
 
-    // objects physics
     for(let i = objects.length -1; i >=0; i--){
       const o = objects[i];
       if(!o.alive) continue;
       o.vy += GRAVITY * (dtMs / 16.666);
       o.x += o.vx * (dtMs / 16.666);
       o.y += o.vy * (dtMs / 16.666);
-      if(o.y > LOGICAL_H + 80) objects.splice(i,1);
+      if(o.y > LOGICAL_H + 100) objects.splice(i,1);
     }
 
-    // powerups physics
     for(let i = powerups.length -1; i >=0; i--){
       const p = powerups[i];
       p.x += p.vx * (dtMs / 16.666);
       if(p.x < -80 || p.x > LOGICAL_W + 80 || Date.now() - p.created > 22000) powerups.splice(i,1);
     }
 
-    // trail cleanup
-    const now = Date.now();
+    const nowt = Date.now();
     for(let i = trail.length -1; i >=0; i--){
-      if(now - trail[i].t > TRAIL_LIFETIME) trail.splice(i,1);
+      if(nowt - trail[i].t > TRAIL_LIFETIME) trail.splice(i,1);
     }
 
-    // slicing detection
     if(trail.length >= 2){
       for(let oi = objects.length -1; oi >= 0; oi--){
         const o = objects[oi];
@@ -528,11 +615,9 @@
       }
     }
 
-    // update UI
     if(bigScoreEl) bigScoreEl.textContent = `Score: ${score}`;
   }
 
-  // main loop
   function loop(nowTs){
     const dt = Math.min(40, nowTs - lastTime);
     lastTime = nowTs;
@@ -563,7 +648,6 @@
       const dx = x - lastPos.x, dy = y - lastPos.y;
       if(Math.hypot(dx,dy) < TRAIL_MIN_DIST) return;
     }
-    // clamp to logical canvas area
     trail.push({ x: Math.max(0, Math.min(LOGICAL_W, x)), y: Math.max(0, Math.min(LOGICAL_H, y)), t });
     lastPos = { x, y };
     if(trail.length > 64) trail.shift();
@@ -571,39 +655,21 @@
 
   function clientToCanvasPos(clientX, clientY){
     const rect = canvas.getBoundingClientRect();
-    const x = (clientX - rect.left) * (LOGICAL_W / rect.width);
-    const y = (clientY - rect.top) * (LOGICAL_H / rect.height);
+    // convert client coordinates to logical coordinates (0..LOGICAL_W/H)
+    const x = (clientX - rect.left) / rect.width * LOGICAL_W;
+    const y = (clientY - rect.top) / rect.height * LOGICAL_H;
     return { x, y };
   }
 
-  canvas.addEventListener('mousemove', e => {
-    const p = clientToCanvasPos(e.clientX, e.clientY);
-    pushTrail(p.x, p.y);
-  });
-  canvas.addEventListener('mousedown', e => {
-    const p = clientToCanvasPos(e.clientX, e.clientY);
-    pushTrail(p.x, p.y);
-  });
-  canvas.addEventListener('touchmove', e => {
-    const t = e.touches[0];
-    const p = clientToCanvasPos(t.clientX, t.clientY);
-    pushTrail(p.x, p.y);
-  }, { passive: true });
-  canvas.addEventListener('touchstart', e => {
-    const t = e.touches[0];
-    const p = clientToCanvasPos(t.clientX, t.clientY);
-    pushTrail(p.x, p.y);
-  }, { passive: true });
+  canvas.addEventListener('mousemove', e => { const p = clientToCanvasPos(e.clientX, e.clientY); pushTrail(p.x, p.y); });
+  canvas.addEventListener('mousedown', e => { const p = clientToCanvasPos(e.clientX, e.clientY); pushTrail(p.x, p.y); });
+  canvas.addEventListener('touchmove', e => { const t = e.touches[0]; const p = clientToCanvasPos(t.clientX, t.clientY); pushTrail(p.x, p.y); }, { passive: true });
+  canvas.addEventListener('touchstart', e => { const t = e.touches[0]; const p = clientToCanvasPos(t.clientX, t.clientY); pushTrail(p.x, p.y); }, { passive: true });
   window.addEventListener('mouseup', ()=> lastPos = null);
   window.addEventListener('touchend', ()=> lastPos = null);
 
-  // periodic powerup spawns
-  setInterval(()=> {
-    if(!running) return;
-    if(Math.random() < 0.12) spawnPowerup();
-  }, 2200);
+  setInterval(()=> { if(!running) return; if(Math.random() < 0.12) spawnPowerup(); }, 2200);
 
-  // game control
   function startGame(){
     initBackgroundElements();
     objects = []; powerups = []; trail = []; stains = [];
@@ -611,17 +677,14 @@
     lastSpawn = 0; candyStormUntil = 0; bombInvincibleUntil = 0; flashUntil = 0;
     running = true;
     lastTime = performance.now();
+    resizeCanvasToDisplay();
     if(!animationId) animationId = requestAnimationFrame(loop);
     hideGameOverContent();
     if(playOverlay) playOverlay.classList.add('hidden');
   }
 
-  function restartFromSave(){
-    hideGameOverContent();
-    startGame();
-  }
+  function restartFromSave(){ hideGameOverContent(); startGame(); }
 
-  // hearts UI
   const heartsEl = (() => {
     let el = document.getElementById('hearts');
     if (!el && playbound) {
@@ -649,7 +712,7 @@
     heartsEl.textContent = out.join(' ');
   }
 
-  // scoreboard & firebase save (copied/adapted from previous)
+  // firebase save / leaderboard handlers (unchanged, adapted from prior)
   async function submitScoreToFirestoreDocs(entry){
     try{
       if(!window.firebaseDb || !window.firebaseDoc || !window.firebaseSetDoc) return { ok:false, reason:'no-firebase' };
@@ -713,8 +776,8 @@
     setTimeout(()=> restartFromSave(), 600);
   }
 
-  // leaderboard UI
   dayLeaderboardBtn && dayLeaderboardBtn.addEventListener('click', async () => {
+    // ensure leaderboard uses day_1 CSS rules (modal full-page)
     if(dayLeaderboardModal.parentElement !== document.body) document.body.appendChild(dayLeaderboardModal);
     dayLeaderboardBody.innerHTML = '<tr><td colspan="5">Loading…</td></tr>';
     dayLeaderboardModal.classList.remove('hidden');
@@ -736,39 +799,24 @@
   });
   dayLeaderboardClose && dayLeaderboardClose.addEventListener('click', ()=> { dayLeaderboardModal.classList.add('hidden'); });
 
-  // UI wiring
   playBtn && playBtn.addEventListener('click', ()=> startGame());
   retryBtn && retryBtn.addEventListener('click', ()=> { hideGameOverContent(); startGame(); });
   submitScoreBtn && submitScoreBtn.addEventListener('click', async ()=> { await handleSubmitScore(); });
-
-  // fullscreen
-  async function toggleFullscreen(){
-    try{
-      if(!document.fullscreenElement) await playbound.requestFullscreen();
-      else await document.exitFullscreen();
-    }catch(e){}
-  }
   fullscreenBtn && fullscreenBtn.addEventListener('click', toggleFullscreen);
 
-  // escape
   function escapeHtml(str=''){ return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
 
-  // startup
-  function init() {
-    // set canvas CSS to fill playbound — CSS already controls layout; we ensure DPI-aware resolution
+  function init(){
     resizeCanvasToDisplay();
-    window.addEventListener('resize', () => {
-      resizeCanvasToDisplay();
-    });
+    window.addEventListener('resize', () => { resizeCanvasToDisplay(); });
+    document.addEventListener('fullscreenchange', () => { setTimeout(resizeCanvasToDisplay, 40); });
     initBackgroundElements();
     lastTime = performance.now();
     animationId = requestAnimationFrame(function frame(t){ lastTime = t; animationId = requestAnimationFrame(loop); });
     setInterval(updateTimers, 1000);
-    // render initial hearts
     renderHearts();
   }
 
-  // ensure canvas is sized after DOM/CSS applied
   setTimeout(init, 16);
 
 })();
