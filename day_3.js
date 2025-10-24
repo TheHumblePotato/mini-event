@@ -92,23 +92,52 @@
   function resizeCanvasToDisplay() {
     if (!canvas || !playbound) return;
 
-    // Use the playbound client size so the canvas CSS always fits the available play area (including after FS exit)
-    const cssW = Math.max(32, Math.floor(playbound.clientWidth));
-    const cssH = Math.max(32, Math.floor(playbound.clientHeight));
+    // compute available viewport area that the playbound/game should fit into.
+    // prefer explicit top-controls measurements so we always leave room for the header bar.
+    let topBarBottom = 0;
+    try {
+      const left = document.getElementById('left-controls');
+      const right = document.getElementById('right-controls');
+      topBarBottom = Math.max(
+        left ? left.getBoundingClientRect().bottom : 0,
+        right ? right.getBoundingClientRect().bottom : 0,
+        12
+      );
+    } catch (e) {
+      topBarBottom = 64;
+    }
+
+    // compute available width/height inside the window while keeping a small page margin
+    const availW = Math.max(120, window.innerWidth - 36);
+    const availH = Math.max(120, window.innerHeight - Math.round(topBarBottom) - 12);
+
+    // choose the largest scale that fits LOGICAL into availW x availH
+    const scaleCss = Math.min(availW / LOGICAL_W, availH / LOGICAL_H);
+
+    // compute final display size in CSS pixels (rounded to avoid blurriness)
+    const displayW = Math.max(64, Math.round(LOGICAL_W * scaleCss));
+    const displayH = Math.max(64, Math.round(LOGICAL_H * scaleCss));
+
+    // set playbound to visually contain the canvas at the chosen size (helps when entering/exiting fullscreen)
+    playbound.style.width = `${displayW}px`;
+    playbound.style.height = `${displayH}px`;
+
+    // device pixel ratio for crisp canvas backing store
     dpr = Math.max(1, window.devicePixelRatio || 1);
+    // backing store size in device pixels
+    canvas.width = Math.max(1, Math.round(displayW * dpr));
+    canvas.height = Math.max(1, Math.round(displayH * dpr));
 
-    // Make the canvas fill the playbound visually (CSS) and set backing store to device pixels
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.width = Math.max(1, Math.round(cssW * dpr));
-    canvas.height = Math.max(1, Math.round(cssH * dpr));
+    // set CSS size on canvas to match playbound area exactly
+    canvas.style.width = `${displayW}px`;
+    canvas.style.height = `${displayH}px`;
 
-    // compute uniform device-pixel scale so logical coords map to canvas pixels without distortion
-    const deviceScale = Math.min(canvas.width / LOGICAL_W, canvas.height / LOGICAL_H);
     // set transform so drawing commands operate in logical (LOGICAL_W x LOGICAL_H) coordinates
+    const deviceScale = canvas.width / LOGICAL_W; // should equal canvas.height / LOGICAL_H
     ctx.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
-    // store logical W/H unchanged; 'scale' holds CSS px per logical unit if needed
-    scale = deviceScale / dpr;
+
+    // keep logical world values unchanged
+    scale = scaleCss;
     W = LOGICAL_W; H = LOGICAL_H;
   }
 
@@ -386,9 +415,10 @@
     // update phase: motion & drip generation
     for (let i = stains.length - 1; i >= 0; i--) {
       const s = stains[i];
+
       if (s.sliding) {
-        // constant slow slide
-        s.y += s.vy * (dtMs / 16.666);
+        // constant slow slide (no shaking)
+        s.y += (s.vy || 0.08) * (dtMs / 16.666);
         // spawn small trail drips regularly
         s._dripTimer += dtMs;
         if (s._dripTimer > 220) {
@@ -398,12 +428,8 @@
       } else {
         // normal stain affected by gentle gravity (can drip as well)
         s.vy = (s.vy || 0) + 0.03 * (dtMs/16.666);
-        if (s.y + s.r*0.6 < LOGICAL_H - 6) {
-          s.y += s.vy * (dtMs / 16.666);
-          if (Math.random() < 0.02) s.drips.push(spawnDripFrom(s));
-        } else {
-          s.vy = 0;
-        }
+        s.y += s.vy * (dtMs / 16.666);
+        if (Math.random() < 0.02) s.drips.push(spawnDripFrom(s));
       }
 
       // update drips for this stain
@@ -414,9 +440,10 @@
         if (d.y > LOGICAL_H + 16) s.drips.splice(j,1);
       }
 
-      // remove stain if it has reached or passed the bottom of the playable area
-      // use a conservative test so stains disappear as soon as they are off-screen
-      if (s.y - s.r > LOGICAL_H) {
+      // Remove stains as soon as their visible bottom reaches the play area's bottom
+      // using a slightly conservative bottom margin prevents visible piling.
+      const visibleBottom = s.y + (s.r * 0.7);
+      if (visibleBottom >= LOGICAL_H - 6) {
         stains.splice(i,1);
         continue;
       }
@@ -450,7 +477,6 @@
             const a = pts[k-1], b = pts[k];
             ctx.quadraticCurveTo(s.x + a.ox*0.6, s.y + a.oy*0.6, s.x + b.ox, s.y + b.oy);
           }
-          // close back to start
           ctx.quadraticCurveTo(s.x + pts[pts.length-1].ox*0.6, s.y + pts[pts.length-1].oy*0.6, s.x + pts[0].ox, s.y + pts[0].oy);
           ctx.fill();
         }
@@ -679,13 +705,20 @@
     lastSpawn = 0; candyStormUntil = 0; bombInvincibleUntil = 0; flashUntil = 0;
     running = true;
     lastTime = performance.now();
+    // ensure canvas matches the current layout (handles un/fullscreen transition)
     resizeCanvasToDisplay();
+    // refresh hearts UI immediately so retry after game over shows correct hearts
+    renderHearts();
     if(!animationId) animationId = requestAnimationFrame(loop);
     hideGameOverContent();
     if(playOverlay) playOverlay.classList.add('hidden');
   }
 
-  function restartFromSave(){ hideGameOverContent(); startGame(); }
+  function restartFromSave(){
+    hideGameOverContent();
+    // restore lives display and start
+    startGame();
+  }
 
   const heartsEl = (() => {
     let el = document.getElementById('hearts');
@@ -809,15 +842,22 @@
   function escapeHtml(str=''){ return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
 
   function init(){
+    // initial sizing
     resizeCanvasToDisplay();
-    // resize when the window changes size
-    window.addEventListener('resize', () => { resizeCanvasToDisplay(); });
-    // handle multiple vendor fullscreen events to ensure canvas is resized on enter/exit
-    const _fsHandler = () => setTimeout(resizeCanvasToDisplay, 64);
+    // ensure resizing on window/orientation/fullscreen changes so canvas always fits below top bar
+    window.addEventListener('resize', resizeCanvasToDisplay);
+    window.addEventListener('orientationchange', () => setTimeout(resizeCanvasToDisplay, 120));
+    const _fsHandler = () => setTimeout(() => {
+      // after fullscreen change recalc layout and remove any leftover page scroll
+      resizeCanvasToDisplay();
+      // keep body overflow hidden so unfullscreen doesn't create scrollbars
+      try { document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; } catch(e){}
+    }, 64);
     document.addEventListener('fullscreenchange', _fsHandler);
     document.addEventListener('webkitfullscreenchange', _fsHandler);
     document.addEventListener('mozfullscreenchange', _fsHandler);
     document.addEventListener('MSFullscreenChange', _fsHandler);
+
     initBackgroundElements();
     lastTime = performance.now();
     animationId = requestAnimationFrame(function frame(t){ lastTime = t; animationId = requestAnimationFrame(loop); });
