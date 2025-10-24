@@ -59,40 +59,129 @@
   let flashUntil = 0;
   let animationId = null;
 
-  // UI helpers (copy pattern from day_1)
-  function showToast(msg, timeout=1800){
-    if(!playbound) return;
-    let t = playbound.querySelector('.save-toast');
-    if(!t){ t = document.createElement('div'); t.className='save-toast'; playbound.appendChild(t); }
-    t.textContent = msg;
-    clearTimeout(t._timeout);
-    t._timeout = setTimeout(()=> { t && t.remove(); }, timeout);
+  // --- Added: wave manager, gravity vector, hearts UI, modifier system and spawn/source changes ---
+  // gravity as vector (default down)
+  let gravityVec = { x: 0, y: GRAVITY };
+
+  // waves: choose random waves that affect spawn rate / sources / bombs
+  let wave = { type: 'normal', startedAt: 0, duration: 8000, spawnRate: SPAWN_INTERVAL, allowBombs: true, fromSidesProb: 0.25, burstCount: 0 };
+
+  function startNewWave() {
+    const t = Math.random();
+    const nowTs = Date.now();
+    if (t < 0.18) {
+      // fast wave: more frequent, sometimes from sides
+      wave = { type: 'fast', startedAt: nowTs, duration: 8000 + Math.random()*4000, spawnRate: 220, allowBombs: true, fromSidesProb: 0.35, burstCount: 0 };
+    } else if (t < 0.36) {
+      // shower: many fruits, no bombs
+      wave = { type: 'shower', startedAt: nowTs, duration: 7000 + Math.random()*5000, spawnRate: 90, allowBombs: false, fromSidesProb: 0.18, burstCount: 0 };
+    } else if (t < 0.6) {
+      // burst: lots at once from multiple sources
+      wave = { type: 'burst', startedAt: nowTs, duration: 4200, spawnRate: 700, allowBombs: false, fromSidesProb: 0.6, burstCount: 8 + Math.floor(Math.random()*6) };
+    } else {
+      // normal
+      wave = { type: 'normal', startedAt: nowTs, duration: 10000 + Math.random()*8000, spawnRate: 720 + Math.random()*320, allowBombs: true, fromSidesProb: 0.22, burstCount: 0 };
+    }
+    // no screen message per spec; we still notify on big modifier changes only
+    lastSpawn = 0;
   }
 
-  function updateTimers(){
-    if(!gameTimerHeader) return;
-    const left = GAME_END_TS - Date.now();
-    gameTimerHeader.textContent = left <= 0 ? 'Game Ended' : (()=>{
-      const s = Math.floor(left/1000);
-      const hh = String(Math.floor(s/3600)).padStart(2,'0');
-      const mm = String(Math.floor((s%3600)/60)).padStart(2,'0');
-      const ss = String(s%60).padStart(2,'0');
-      return `${hh}:${mm}:${ss}`;
-    })();
+  // modifier system: random modifiers that alter gravity or invert behaviour
+  let modifier = { active: false, kind: null, until: 0 };
+
+  function maybeStartModifier() {
+    if (modifier.active) return;
+    if (Math.random() < 0.045) {
+      const kinds = ['angle', 'reverse', 'flip', 'weird'];
+      const k = kinds[Math.floor(Math.random()*kinds.length)];
+      const nowTs = Date.now();
+      modifier.active = true;
+      modifier.kind = k;
+      modifier.until = nowTs + (8000 + Math.random()*10000); // 8-18s
+      // apply immediately
+      if (k === 'angle') {
+        // random diagonal gravity
+        const angle = (Math.random()*Math.PI*2);
+        const mag = 0.28 + Math.random()*0.5;
+        gravityVec = { x: Math.cos(angle)*mag, y: Math.sin(angle)*mag };
+        showToast('Gravity changed!');
+      } else if (k === 'flip') {
+        gravityVec = { x: 0, y: -Math.abs(GRAVITY) };
+        showToast('Gravity flipped!');
+      } else if (k === 'reverse') {
+        // reverse roles: bombs become good (points) and fruits harm
+        showToast('Danger reversed!');
+      } else if (k === 'weird') {
+        // weird small rotating gravity
+        gravityVec = { x: (Math.random()-0.5)*0.8, y: (Math.random()-0.2)*0.6 };
+        showToast('Weird gravity!');
+      }
+    }
+  }
+
+  function maybeEndModifier() {
+    if (!modifier.active) return;
+    if (Date.now() > modifier.until) {
+      modifier.active = false;
+      modifier.kind = null;
+      gravityVec = { x: 0, y: GRAVITY };
+      showToast('Gravity back to normal');
+    }
+  }
+
+  // hearts UI (max 5)
+  const heartsEl = (() => {
+    let el = document.getElementById('hearts');
+    if (!el && playbound) {
+      el = document.createElement('div');
+      el.id = 'hearts';
+      el.style.position = 'absolute';
+      el.style.top = '8px';
+      el.style.left = '50%';
+      el.style.transform = 'translateX(-50%)';
+      el.style.zIndex = '220';
+      el.style.pointerEvents = 'none';
+      el.style.display = 'flex';
+      el.style.gap = '6px';
+      playbound.appendChild(el);
+    }
+    return el;
+  })();
+
+  function renderHearts() {
+    if (!heartsEl) return;
+    const max = 5;
+    const cur = Math.max(0, Math.min(max, lives));
+    const out = [];
+    for (let i = 0; i < max; i++) {
+      if (i < cur) out.push('❤'); else out.push('♡');
+    }
+    heartsEl.textContent = out.join(' ');
   }
 
   // spawn a thrown object (pumpkin or bomb or spooky props)
-  function spawnThrown(x = null){
-    // x null => spawn from bottom center range
-    const types = ['pumpkin','pumpkin_small','ghost']; // pumpkins and other targets
-    const r = Math.random();
+  function spawnThrown(x = null, opts = {}) {
+    if (!running) return;
+    // opts.allowBomb overrides wave allowBombs
+    const allowBombs = (typeof opts.allowBomb === 'boolean') ? opts.allowBomb : wave.allowBombs;
+    const types = ['pumpkin','pumpkin_small','ghost'];
     let type = types[Math.floor(Math.random()*types.length)];
-    if(Math.random() < 0.12) type = 'bomb';
-    // spawn position at bottom with slight horizontal random
-    const sx = x !== null ? x : (100 + Math.random()*(W-200));
-    const sy = H + 20;
-    const vx = (Math.random() - 0.5) * 6;
-    const vy = -8 - Math.random()*8; // toss upward
+    if (allowBombs && Math.random() < 0.10) type = 'bomb';
+    // decide spawn source: bottom or sides (use wave.fromSidesProb)
+    const fromSide = Math.random() < wave.fromSidesProb;
+    let sx, sy, vx, vy;
+    if (fromSide) {
+      const left = Math.random() < 0.5;
+      sx = left ? -20 : W + 20;
+      sy = 120 + Math.random()*(H - 240);
+      vx = (left ? 3 + Math.random()*4 : -3 - Math.random()*4) * (1 + (wave.type === 'fast' ? 0.4 : 0));
+      vy = -3 - Math.random()*6;
+    } else {
+      sx = x !== null ? x : (80 + Math.random()*(W-160));
+      sy = H + 26;
+      vx = (Math.random() - 0.5) * (5 + (wave.type === 'fast' ? 2 : 0));
+      vy = -9 - Math.random()*9;
+    }
     const radius = (type === 'pumpkin') ? 28 : (type === 'pumpkin_small' ? 18 : 22);
     const obj = { x: sx, y: sy, vx, vy, type, r: radius, alive: true, sliced: false, created: Date.now() };
     objects.push(obj);
@@ -100,18 +189,19 @@
 
   // spawn powerup crossing screen horizontally
   function spawnPowerup(){
+    if (!running) return;
     const types = ['life','candyStorm','bombInv'];
     const type = types[Math.floor(Math.random()*types.length)];
     const fromLeft = Math.random() < 0.5;
     const y = 60 + Math.random()*(H - 120);
-    const speed = 2.2 + Math.random()*2.2;
+    const speed = 4.0 + Math.random()*3.2; // faster
     const p = {
       x: fromLeft ? -40 : W + 40,
       y,
       vx: fromLeft ? speed : -speed,
       type,
-      w: 34,
-      h: 20,
+      w: 20, // smaller -> harder to get
+      h: 14,
       created: Date.now()
     };
     powerups.push(p);
@@ -148,26 +238,40 @@
     stains = []; // wipe stains
   }
 
+  // sliceObject respects modifier.reverse (if active) and destruction while flying
   function sliceObject(obj){
     if(!obj.alive) return;
     obj.alive = false;
     obj.sliced = true;
     addStain(obj.x, obj.y, obj.r * (0.6 + Math.random()*0.8));
-    if(obj.type === 'bomb'){
-      if(Date.now() < bombInvincibleUntil){
-        score += 8; // harmless if invincible
+    const reverse = modifier.active && modifier.kind === 'reverse';
+    if (obj.type === 'bomb') {
+      if (Date.now() < bombInvincibleUntil) {
+        score += 8;
       } else {
-        loseLife();
-        flashbangAndClearStains();
+        if (reverse) {
+          // bomb becomes good during reverse
+          score += 18;
+        } else {
+          loseLife();
+          flashbangAndClearStains();
+        }
       }
     } else {
-      score += (obj.type === 'pumpkin_small' ? 6 : 12);
+      // fruits become harmful when reversed
+      if (reverse) {
+        loseLife();
+      } else {
+        score += (obj.type === 'pumpkin_small' ? 6 : 12);
+      }
     }
+    renderHearts();
   }
 
   function activatePowerup(p){
     if(p.type === 'life'){
-      lives = Math.min(9, lives + 1);
+      lives = Math.min(5, lives + 1);
+      renderHearts();
       showToast('+1 Life');
     } else if(p.type === 'candyStorm'){
       spawnCandyStorm();
@@ -199,6 +303,7 @@
     } else if (gameOverModal){
       gameOverModal.classList.remove('hidden');
     }
+    // freeze: running=false already; objects remain in place
   }
 
   function hideGameOverContent(){
@@ -211,6 +316,28 @@
     gameOverContent.style.left = '';
     gameOverContent.style.top = '';
     gameOverContent.style.transform = '';
+  }
+
+  // UI helpers (copy pattern from day_1)
+  function showToast(msg, timeout=1800){
+    if(!playbound) return;
+    let t = playbound.querySelector('.save-toast');
+    if(!t){ t = document.createElement('div'); t.className='save-toast'; playbound.appendChild(t); }
+    t.textContent = msg;
+    clearTimeout(t._timeout);
+    t._timeout = setTimeout(()=> { t && t.remove(); }, timeout);
+  }
+
+  function updateTimers(){
+    if(!gameTimerHeader) return;
+    const left = GAME_END_TS - Date.now();
+    gameTimerHeader.textContent = left <= 0 ? 'Game Ended' : (()=>{
+      const s = Math.floor(left/1000);
+      const hh = String(Math.floor(s/3600)).padStart(2,'0');
+      const mm = String(Math.floor((s%3600)/60)).padStart(2,'0');
+      const ss = String(s%60).padStart(2,'0');
+      return `${hh}:${mm}:${ss}`;
+    })();
   }
 
   // draw
@@ -374,7 +501,29 @@
   function loop(nowTs){
     const dt = Math.min(40, nowTs - lastTime);
     lastTime = nowTs;
-    update(dt);
+
+    // Manage waves & modifiers
+    if (!wave.startedAt || Date.now() - wave.startedAt > wave.duration) startNewWave();
+    maybeStartModifier();
+    maybeEndModifier();
+
+    if (running) {
+      // wave-driven spawn behavior
+      if (wave.type === 'burst' && wave.burstCount > 0 && Math.random() < 0.12) {
+        // spawn a burst group (simultaneous)
+        for (let i=0;i<wave.burstCount;i++) spawnThrown(null, { allowBomb: wave.allowBombs });
+        wave.burstCount = 0; // single burst
+      } else {
+        // probabilistic spawns based on wave.spawnRate
+        if (Date.now() - lastSpawn > wave.spawnRate + Math.random()*120) {
+          spawnThrown(null, { allowBomb: wave.allowBombs });
+          lastSpawn = Date.now();
+        }
+      }
+    }
+
+    // physics update only if running (freeze on game over)
+    if (running) update(dt);
     draw();
     animationId = requestAnimationFrame(loop);
   }
