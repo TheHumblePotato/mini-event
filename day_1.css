@@ -5,7 +5,9 @@
   --accent: #ff6b35;
   --accent-light: #ff9a3d;
   --dark: #0a0606;
-  --frame-bg: linear-gradient(135deg, rgba(10,5,5,0.9), rgba(20,8,8,0.95));
+  --accent-purple: #3b0d3b;       /* new: deep/dark purple */
+  --accent-purple-light: #6f2b6f; /* new: lighter purple for highlights */
+  --frame-bg: linear-gradient(135deg, rgba(10,5,5,0.9), var(--accent-purple) 55%, rgba(20,8,8,0.95));
   --canvas-w: 480;
   --canvas-h: 720;
 }
@@ -59,7 +61,7 @@ html, body {
   background: var(--frame-bg);
   border-radius: 12px;
   padding: 12px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7), 0 0 18px rgba(59,13,59,0.06);
   border: 6px solid rgba(255,107,53,0.12);
   display: flex;
   flex-direction: column;
@@ -75,7 +77,7 @@ html, body {
   border-radius: 8px;
   background: linear-gradient(180deg,#050405 0%, #0f0507 100%);
   border: 6px solid rgba(255,107,53,0.95);
-  box-shadow: 0 0 30px rgba(255,107,53,0.06), inset 0 0 20px rgba(0,0,0,0.6);
+  box-shadow: 0 0 30px rgba(255,107,53,0.06), 0 0 12px rgba(59,13,59,0.04), inset 0 0 20px rgba(0,0,0,0.6);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -84,7 +86,7 @@ html, body {
 /* fullscreen: keep a visible border so edges are obvious */
 .playbound:fullscreen {
   border: 6px solid rgba(255,107,53,1);
-  box-shadow: 0 0 40px rgba(255,107,53,0.18);
+  box-shadow: 0 0 40px rgba(255,107,53,0.18), 0 0 30px rgba(59,13,59,0.08);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -135,7 +137,7 @@ html, body {
   font-family: 'Creepster', cursive;
   font-size: 1.2rem;
   color: #ffcf6b;
-  background: rgba(0,0,0,0.65);
+  background: linear-gradient(180deg, rgba(0,0,0,0.65), rgba(28,6,30,0.36)); /* subtle purple tint */
   padding: 6px 12px;
   border-radius: 12px;
   border: 2px solid var(--accent);
