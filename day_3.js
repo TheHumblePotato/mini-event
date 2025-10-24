@@ -91,25 +91,24 @@
   // Resize so the canvas logical world remains LOGICAL_W x LOGICAL_H but is scaled to fit playbound area (preserving aspect)
   function resizeCanvasToDisplay() {
     if (!canvas || !playbound) return;
-    // prefer client sizes (stable, won't include fractional transforms from fullscreen)
+
+    // Use the playbound client size so the canvas CSS always fits the available play area (including after FS exit)
     const cssW = Math.max(32, Math.floor(playbound.clientWidth));
     const cssH = Math.max(32, Math.floor(playbound.clientHeight));
-    // compute scale to maximize size while preserving aspect and staying within the playbound
-    scale = Math.min(cssW / LOGICAL_W, cssH / LOGICAL_H);
-    // ensure scale not zero
-    scale = Math.max(scale, 0.01);
     dpr = Math.max(1, window.devicePixelRatio || 1);
-    // set CSS size to exact scaled logical pixel size (keeps crisp integer CSS px)
-    const displayW = Math.round(LOGICAL_W * scale);
-    const displayH = Math.round(LOGICAL_H * scale);
-    // set CSS size to exactly fill the playbound area allocated to the canvas
-    canvas.style.width = `${displayW}px`;
-    canvas.style.height = `${displayH}px`;
-    // actual backing store in device pixels
-    canvas.width = Math.round(LOGICAL_W * scale * dpr);
-    canvas.height = Math.round(LOGICAL_H * scale * dpr);
-    // set transform so drawing commands use logical coordinates (0..LOGICAL_W / LOGICAL_H)
-    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+
+    // Make the canvas fill the playbound visually (CSS) and set backing store to device pixels
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.width = Math.max(1, Math.round(cssW * dpr));
+    canvas.height = Math.max(1, Math.round(cssH * dpr));
+
+    // compute uniform device-pixel scale so logical coords map to canvas pixels without distortion
+    const deviceScale = Math.min(canvas.width / LOGICAL_W, canvas.height / LOGICAL_H);
+    // set transform so drawing commands operate in logical (LOGICAL_W x LOGICAL_H) coordinates
+    ctx.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+    // store logical W/H unchanged; 'scale' holds CSS px per logical unit if needed
+    scale = deviceScale / dpr;
     W = LOGICAL_W; H = LOGICAL_H;
   }
 
