@@ -1,138 +1,288 @@
+// ...existing code...
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const levelEl = document.getElementById('level');
+const restartBtn = document.getElementById('restart');
 
-/* Minimal Halloween Crossy Road — Phaser 3, single file game logic */
-(() => {
-  const W = 480, H = 720;
-  const config = {
-    type: Phaser.AUTO,
-    parent: 'game',
-    width: W,
-    height: H,
-    backgroundColor: 0x14081a,
-    physics: { default: 'arcade', arcade: { debug: false } },
-    scene: { preload, create, update }
-  };
-  const game = new Phaser.Game(config);
+const TILE = 60;
+const COLS = 7;
+const VISIBLE_ROWS = Math.floor(canvas.height / TILE); // ~12
+const START_ROWS = VISIBLE_ROWS + 6;
 
-  function preload() {
-    // no external assets; create textures in create()
-  }
+canvas.width = COLS * TILE;
 
-  function create() {
-    const s = this;
-    // UI overlay (outside canvas)
-    const ui = document.createElement('div'); ui.className = 'ui';
-    ui.innerHTML = `<div class="score">Score: <span id="score">0</span></div>`;
-    document.body.appendChild(ui);
-    const inst = document.createElement('div'); inst.className='instructions';
-    inst.textContent = 'Arrows / WASD or tap to move. Reach the top to score.';
-    document.body.appendChild(inst);
-    const footer = document.createElement('div'); footer.className='footer';
-    footer.textContent = 'Day 4 — Halloween MiniGame';
-    document.body.appendChild(footer);
+let rows = []; // array of row objects from bottom (0) upward
+let player;
+let keys = {};
+let running = true;
+let score = 0;
+let rowsPassed = 0;
+let highRowReached = 0; // highest row index the player has reached overall (for scoring)
+let tick = 0;
 
-    // generate simple sprites
-    const g = s.add.graphics();
-    // pumpkin player
-    g.fillStyle(0xff8c00,1); g.fillCircle(24,24,20);
-    g.fillStyle(0x000000,0.2); g.fillCircle(18,22,3);
-    g.generateTexture('pumpkin',48,48); g.clear();
-    // car textures
-    g.fillStyle(0xccccff,1); g.fillRoundedRect(0,0,64,32,6); g.generateTexture('car1',64,32); g.clear();
-    g.fillStyle(0x99ffcc,1); g.fillRoundedRect(0,0,64,32,6); g.generateTexture('car2',64,32); g.clear();
-    // lane decorations (grave)
-    g.fillStyle(0x444444,1); g.fillRect(0,0,20,28); g.generateTexture('grave',20,28); g.clear();
+const BASE_POINTS = 10;
+const BASE_CAR_SPEED = 1.2;
+const BASE_CAR_COUNT = 1;
+const ISLAND_PROB = 0.12; // chance a new row is an island
 
-    // player
-    s.player = s.physics.add.sprite(W/2, H-56, 'pumpkin').setDepth(3).setCollideWorldBounds(true);
-    s.player.setSize(30,30);
-    // grid and movement
-    s.grid = { xStep: 80, yStep: 80 };
-    s.moveLock = false;
-    s.moveTo = (dx,dy) => {
-      if (s.moveLock) return;
-      const tx = Phaser.Math.Clamp(s.player.x + dx*s.grid.xStep, 40, W-40);
-      const ty = Phaser.Math.Clamp(s.player.y + dy*s.grid.yStep, 40, H-40);
-      if (tx === s.player.x && ty === s.player.y) return;
-      s.moveLock = true;
-      s.tweens.add({ targets: s.player, x: tx, y: ty, ease:'Quad.easeOut', duration:120, onComplete:()=> s.moveLock=false });
+function randRange(a,b){ return a + Math.random()*(b-a); }
+
+function makeRow(indexFromBottom){
+    // random row generator with types: 'road', 'grass', 'island'
+    let type;
+    if (Math.random() < ISLAND_PROB) type = 'island';
+    else {
+        type = Math.random() < 0.55 ? 'road' : 'grass';
+    }
+    const level = Math.max(1, Math.floor(rowsPassed / 8) + 1);
+    const carCount = type === 'road'
+        ? BASE_CAR_COUNT + Math.floor(Math.random()* (1 + level))
+        : 0;
+    const speed = BASE_CAR_SPEED + level * 0.25 + Math.random() * 0.6;
+    const direction = Math.random() < 0.5 ? 1 : -1; // 1 -> right, -1 -> left
+    const cars = [];
+    if (type === 'road') {
+        for (let i=0;i<carCount;i++){
+            const w = TILE * (0.8 + Math.random()*0.8); // car width
+            const h = TILE * 0.6;
+            const x = Math.random() * (canvas.width + 200) - 100;
+            const y = 0;
+            cars.push({x,w,h,y, speed: speed * (0.7 + Math.random()*0.8), dir: direction});
+        }
+    }
+    return {type, cars, speed, dir: direction, indexFromBottom};
+}
+
+function init(){
+    rows = [];
+    score = 0;
+    rowsPassed = 0;
+    highRowReached = 0;
+    running = true;
+    tick = 0;
+    // create starting rows
+    for (let i=0;i<START_ROWS;i++){
+        rows.push(makeRow(i));
+    }
+    // place player on bottom-middle tile
+    player = {
+        col: Math.floor(COLS/2),
+        row: 0,
+        x: Math.floor(COLS/2) * TILE + TILE*0.15,
+        y: canvas.height - TILE + TILE*0.1,
+        w: TILE*0.7,
+        h: TILE*0.8,
+        alive: true
     };
+    updateHUD();
+    restartBtn.hidden = true;
+    loop();
+}
 
-    // lanes
-    s.lanesY = [560,500,440,380,320,260];
-    s.cars = s.physics.add.group();
-    s.carSpeed = 140;
-    s.spawnInterval = 900;
-    s.time.addEvent({ delay: s.spawnInterval, loop:true, callback: spawnCar, callbackScope: s });
+function updateHUD(){
+    scoreEl.textContent = `Score: ${score}`;
+    const level = Math.max(1, Math.floor(rowsPassed/8)+1);
+    levelEl.textContent = `Level: ${level}`;
+}
 
-    // spawn some graves for visuals
-    s.lanesY.forEach(y => {
-      const gcount = 3;
-      for (let i=0;i<gcount;i++){
-        const gx = 40 + i*(W-80)/(gcount-1);
-        s.add.image(gx, y+18, 'grave').setAlpha(0.9).setDepth(0.5).setScale(0.9);
-      }
-    });
+function worldYForRow(rowIndex){
+    // rowIndex 0 = bottom row. We draw rows stacked from bottom.
+    const offset = canvas.height - TILE * (rowIndex + 1);
+    return offset;
+}
 
-    // collisions
-    s.physics.add.overlap(s.player, s.cars, playerHit, null, s);
+function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // draw rows from bottom visible portion upwards
+    for (let i=0;i<rows.length;i++){
+        const r = rows[i];
+        const y = worldYForRow(i);
+        // background for row
+        if (r.type === 'road'){
+            ctx.fillStyle = '#4b4b4b';
+            ctx.fillRect(0,y,canvas.width,TILE);
+            // lane stripes
+            ctx.fillStyle = '#f0d000';
+            for (let s=0;s<8;s++){
+                const stripeW = 30;
+                const gap = 50;
+                const x = (s * (stripeW + gap) + ((tick* r.speed * r.dir) % (stripeW+gap)));
+                ctx.fillRect((x+canvas.width*10) % canvas.width, y + TILE*0.45, stripeW, 6);
+            }
+        } else if (r.type === 'island'){
+            ctx.fillStyle = '#88e08b';
+            ctx.fillRect(0,y,canvas.width,TILE);
+            // small palm shapes (simple)
+            ctx.fillStyle = '#056d16';
+            for (let p=0;p<3;p++){
+                const px = 20 + p*140;
+                ctx.beginPath();
+                ctx.ellipse(px,y+TILE*0.4,10,22, -0.4 + p*0.2, 0, Math.PI*2);
+                ctx.fill();
+            }
+        } else { // grass
+            ctx.fillStyle = '#6cc24a';
+            ctx.fillRect(0,y,canvas.width,TILE);
+        }
 
-    // input: keyboard and pointer
-    s.cursors = s.input.keyboard.createCursorKeys();
-    s.keys = s.input.keyboard.addKeys({ W:Phaser.Input.Keyboard.KeyCodes.W, A:Phaser.Input.Keyboard.KeyCodes.A, S:Phaser.Input.Keyboard.KeyCodes.S, D:Phaser.Input.Keyboard.KeyCodes.D });
-    s.input.on('pointerup', ptr => {
-      const dx = ptr.x - s.player.x, dy = ptr.y - s.player.y;
-      if (Math.abs(dx) > Math.abs(dy)) s.moveTo(dx>0?1:-1,0); else s.moveTo(0, dy>0?1:-1);
-    });
-
-    // score & reset
-    s.score = 0;
-    s.updateScore = () => { document.getElementById('score').textContent = String(s.score); };
-
-    // difficulty ramp
-    s.time.addEvent({ delay: 8000, loop:true, callback: ()=>{ s.carSpeed += 18; s.spawnInterval = Math.max(360, s.spawnInterval-60); }, callbackScope: s });
-
-    function spawnCar() {
-      const lane = Phaser.Math.RND.pick(s.lanesY);
-      const dir = Phaser.Math.Between(0,1) ? 1 : -1;
-      const x = dir === 1 ? -80 : W+80;
-      const tex = Phaser.Math.Between(0,1)?'car1':'car2';
-      const car = s.cars.create(x, lane, tex).setImmovable(true).setDepth(1);
-      car.body.allowGravity = false;
-      const v = s.carSpeed + Phaser.Math.Between(-40,40);
-      car.setVelocityX(v*dir);
-      car.setScale(1);
-      car.checkWorldBounds = true;
+        // draw cars
+        if (r.type === 'road'){
+            for (let c of r.cars){
+                const cy = y + (TILE - c.h)/2;
+                ctx.fillStyle = '#c22a2a';
+                ctx.fillRect(c.x, cy, c.w, c.h);
+                // windows
+                ctx.fillStyle = '#e6f7ff';
+                ctx.fillRect(c.x + c.w*0.12, cy + c.h*0.25, c.w*0.35, c.h*0.25);
+            }
+        }
     }
 
-    function playerHit(player, car) {
-      s.cameras.main.shake(160, 0.01);
-      s.score = Math.max(0, s.score - 1);
-      s.updateScore();
-      // reset
-      s.player.x = W/2; s.player.y = H-56;
+    // draw grid lines (optional subtle)
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    for (let c=0;c<=COLS;c++){
+        ctx.beginPath();
+        ctx.moveTo(c*TILE,0);
+        ctx.lineTo(c*TILE,canvas.height);
+        ctx.stroke();
     }
-  }
-
-  function update(time, dt) {
-    const s = this;
-    // keyboard single press movement
-    if (Phaser.Input.Keyboard.JustDown(s.cursors.left) || Phaser.Input.Keyboard.JustDown(s.keys.A)) s.moveTo(-1,0);
-    if (Phaser.Input.Keyboard.JustDown(s.cursors.right) || Phaser.Input.Keyboard.JustDown(s.keys.D)) s.moveTo(1,0);
-    if (Phaser.Input.Keyboard.JustDown(s.cursors.up) || Phaser.Input.Keyboard.JustDown(s.keys.W)) s.moveTo(0,-1);
-    if (Phaser.Input.Keyboard.JustDown(s.cursors.down) || Phaser.Input.Keyboard.JustDown(s.keys.S)) s.moveTo(0,1);
-
-    // remove off-screen cars
-    if (s && s.cars) {
-      s.cars.getChildren().forEach(c => {
-        if (c.x < -120 || c.x > W+120) c.destroy();
-      });
+    for (let r=0;r<=rows.length;r++){
+        ctx.beginPath();
+        ctx.moveTo(0, worldYForRow(r));
+        ctx.lineTo(canvas.width, worldYForRow(r));
+        ctx.stroke();
     }
 
-    // reached top?
-    if (s && s.player && s.player.y < 80) {
-      s.score += 1; s.updateScore();
-      // give small celebratory tween and reset
-      s.tweens.add({ targets: s.player, y: H-56, duration: 300, ease: 'Power2' });
+    // draw player
+    const playerScreenY = worldYForRow(player.row) + (TILE - player.h)/2;
+    const playerScreenX = player.col * TILE + (TILE - player.w)/2;
+    ctx.fillStyle = player.alive ? '#ffd166' : '#a0a0a0';
+    ctx.fillRect(playerScreenX, playerScreenY, player.w, player.h);
+    // simple face
+    ctx.fillStyle = '#4b2e83';
+    ctx.fillRect(playerScreenX + player.w*0.18, playerScreenY + player.h*0.25, player.w*0.12, player.h*0.12);
+    ctx.fillRect(playerScreenX + player.w*0.6, playerScreenY + player.h*0.25, player.w*0.12, player.h*0.12);
+}
+
+function update(dt){
+    tick++;
+    // update cars
+    for (let i=0;i<rows.length;i++){
+        const r = rows[i];
+        if (r.type !== 'road') continue;
+        for (let c of r.cars){
+            c.x += c.speed * c.dir * (dt*0.06);
+            // wrap around nicely
+            if (c.dir > 0 && c.x > canvas.width + 150) c.x = -c.w - Math.random()*80;
+            if (c.dir < 0 && c.x < -c.w - 150) c.x = canvas.width + Math.random()*80;
+        }
     }
-  }
-})();
+
+    // collision detection: check cars on player's row
+    if (player.alive){
+        const prow = rows[player.row];
+        if (prow && prow.type === 'road'){
+            for (let c of prow.cars){
+                const carX = c.x;
+                const carY = worldYForRow(player.row) + (TILE - c.h)/2;
+                const px = player.col * TILE + (TILE - player.w)/2;
+                const py = worldYForRow(player.row) + (TILE - player.h)/2;
+                if (rectIntersect(px,py,player.w,player.h, carX, carY, c.w, c.h)){
+                    player.alive = false;
+                    running = false;
+                    restartBtn.hidden = false;
+                }
+            }
+        }
+    }
+
+    // if player moved up past highest row reached, award points and generate more rows if needed
+    if (player.row > highRowReached){
+        // player moved down (shouldn't happen normally), ignore
+        highRowReached = player.row;
+    }
+    if (player.row > rows.length - 3){
+        // ensure buffer
+        while (rows.length < START_ROWS + rowsPassed + 6){
+            rows.push(makeRow(rows.length));
+        }
+    }
+
+    if (player.row > highRowReached) {
+        highRowReached = player.row;
+    }
+
+    // scoring: when player moves up relative to previous best (rowsPassed tracks total passed)
+    if (player.row > rowsPassed){
+        // player progressed to a new row index value (passed another row)
+        rowsPassed = player.row;
+        const level = Math.max(1, Math.floor(rowsPassed/8)+1);
+        const pointsGained = Math.floor(BASE_POINTS * (1 + rowsPassed*0.08) * level);
+        score += pointsGained;
+        // if we want to increase difficulty more explicitly, modify existing roads near top
+        // also when passing rows we can spawn more cars in upcoming roads by simply letting makeRow use rowsPassed
+        updateHUD();
+    }
+}
+
+function rectIntersect(x1,y1,w1,h1,x2,y2,w2,h2){
+    return !(x1 + w1 < x2 || x1 > x2 + w2 || y1 + h1 < y2 || y1 > y2 + h2);
+}
+
+// input handling
+window.addEventListener('keydown', (e)=>{
+    if (!player.alive) return;
+    if (keys[e.key]) return;
+    keys[e.key] = true;
+    if (e.key === 'ArrowUp'){
+        if (player.row < rows.length - 1){
+            player.row += 1;
+        } else {
+            // extend rows and move
+            rows.push(makeRow(rows.length));
+            player.row += 1;
+        }
+    } else if (e.key === 'ArrowDown'){
+        if (player.row > 0) player.row -= 1;
+    } else if (e.key === 'ArrowLeft'){
+        if (player.col > 0) player.col -= 1;
+    } else if (e.key === 'ArrowRight'){
+        if (player.col < COLS-1) player.col += 1;
+    }
+    // clamp player position update into screen coordinates
+});
+
+window.addEventListener('keyup', (e)=>{
+    keys[e.key] = false;
+});
+
+// simple game loop
+let last = performance.now();
+function loop(now){
+    const dt = now - last;
+    last = now;
+    if (running){
+        update(dt);
+        draw();
+        requestAnimationFrame(loop);
+    } else {
+        draw();
+        // show "dead" overlay
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = '22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('You Died', canvas.width/2, canvas.height/2 - 20);
+        ctx.font = '16px sans-serif';
+        ctx.fillText(`Final Score: ${score}`, canvas.width/2, canvas.height/2 + 6);
+    }
+}
+
+restartBtn.addEventListener('click', ()=>{
+    init();
+});
+
+init();
+// ...existing code...
