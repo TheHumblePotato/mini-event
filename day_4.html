@@ -1,17 +1,19 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Day 4 — Halloween Crossy Road</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="./day_4.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Crossy Road - Day4 Infinite</title>
+    <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div id="game"></div>
-
-  <!-- Phaser 3 -->
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-  <script src="./day_4.js"></script>
+    <div id="hud">
+        <div id="score">Score: 0</div>
+        <div id="level">Level: 1</div>
+        <div id="info">Use arrow keys to move. Reach as high as you can. Islands are safe!</div>
+        <button id="restart" hidden>Restart</button>
+    </div>
+    <canvas id="game" width="420" height="720"></canvas>
+    <script src="./day4.js"></script>
 </body>
 </html>
-
