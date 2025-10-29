@@ -3,14 +3,7 @@
 const PT_TZ = 'America/Los_Angeles';
 const nowPT = () => new Date(new Date().toLocaleString('en-US', { timeZone: PT_TZ }));
 
-// Blocked weekday ranges
-const BLOCKED_RANGES = [[8*60 + 15, 11*60], [12*60 + 50, 15*60 + 20]];
-function isWeekday(d){ const day = d.getDay(); return day >= 1 && day <= 5; }
-function inBlockedWindow(ptDate){
-  if(!isWeekday(ptDate)) return false;
-  const mins = ptDate.getHours()*60 + ptDate.getMinutes();
-  return BLOCKED_RANGES.some(([a,b]) => mins >= a && mins < b);
-}
+
 
 function showTimeLockOverlay(message){
   if(document.getElementById('time-lock-overlay')) return;
