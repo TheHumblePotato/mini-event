@@ -205,7 +205,7 @@
         }
         if (!treeId){
             notify('No tree ID provided', 'error');
-            setTimeout(() => window.location.href = 'decomytree.html', 2000);
+            setTimeout(() => window.location.href = 'decomytree_picker.html', 2000);
             return;
         }
 
@@ -218,7 +218,7 @@
             const snap = await window.firebaseGetDoc(treeRef);
             if (!snap.exists()){
                 notify('Tree not found', 'error');
-                setTimeout(() => window.location.href = 'decomytree.html', 2000);
+                setTimeout(() => window.location.href = 'decomytree_picker.html', 2000);
                 return;
             }
 
@@ -232,7 +232,7 @@
             
             if (!isOwnTree && !isPublic && !isShared) {
                 notify('You do not have permission to view this tree', 'error');
-                setTimeout(() => window.location.href = 'decomytree.html', 2000);
+                setTimeout(() => window.location.href = 'decomytree_picker.html', 2000);
                 return;
             }
             
@@ -1114,7 +1114,7 @@
         setInterval(updateCountdown, 1000);
 
         if (backBtn) backBtn.addEventListener('click', () => {
-            window.location.href = 'decomytree.html';
+            window.location.href = 'decomytree_picker.html';
         });
 
         // Initialize view weather canvas for aurora/rain
