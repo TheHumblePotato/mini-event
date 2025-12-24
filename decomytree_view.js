@@ -124,7 +124,8 @@
         // Attempt to remove other format/control characters using Unicode properties (if supported)
         try {
             t = t.replace(/\p{Cf}/gu, '');
-            t = t.replace(/\p{Cc}/gu, '');
+            // Remove other control characters (Category Cc) BUT preserve LF and TAB
+            t = t.replace(/\p{Cc}/gu, (m) => (m === '\n' || m === '\t') ? m : '');
         } catch (e) {
             // ignore if JS engine doesn't support \p properties
         }
