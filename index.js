@@ -390,19 +390,8 @@ function setupButtonHandlers() {
         window.location.href = 'decomytree.html';
     });
 
-    // Handle locked game buttons
-    const releaseModal = document.getElementById('release-modal');
-    const closeRelease = document.getElementById('close-release');
-    const collatzBtn = document.getElementById('collatz-btn');
-    const hexBtn = document.getElementById('hex-btn');
-
-    function openRelease() {
-        releaseModal.classList.remove('hidden');
-    }
-
-    if (collatzBtn) collatzBtn.addEventListener('click', (e) => { e.preventDefault(); openRelease(); });
-    if (hexBtn) hexBtn.addEventListener('click', (e) => { e.preventDefault(); openRelease(); });
-    if (closeRelease) closeRelease.addEventListener('click', () => releaseModal.classList.add('hidden'));
+    // Small game links are direct anchors and available permanently; no release modal behavior required.
+    // Nothing to do here — the <a> elements handle navigation directly.
 
     // Background settings
     const bgSettingsBtn = document.getElementById('bg-settings-btn');
