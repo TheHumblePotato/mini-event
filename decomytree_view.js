@@ -104,6 +104,12 @@
             const c = ch.charCodeAt(0);
             // CR -> LF
             if (c === 0x0D){ out += '\n'; continue; }
+            // Unicode line/paragraph separators -> LF
+            if (c === 0x2028 || c === 0x2029){ out += '\n'; continue; }
+            // Visible arrow '↵' (U+21B5) often appears in pasted text as a newline marker
+            if (c === 0x21B5){ out += '\n'; continue; }
+            // Non-breaking space -> normal space
+            if (c === 0x00A0){ out += ' '; continue; }
             // Skip zero-width / invisible
             if (zeroWidthSet.has(c)) continue;
             // Skip C0 control chars except TAB (0x09) and LF (0x0A)
