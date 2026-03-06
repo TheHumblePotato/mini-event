@@ -1,0 +1,880 @@
+/* ==================== Root Variables ==================== */
+:root {
+    --primary-blue: #1e3a8a;
+    --light-blue: #3b82f6;
+    --ice-white: #f0f9ff;
+    --snow-white: #ffffff;
+    --accent-gold: #fbbf24;
+    --frost: #e0f2fe;
+    --dark-night: #0f172a;
+    --night-blue: #1e293b;
+    --cardinal-red: #dc2626;
+    --forest-green: #15803d;
+}
+
+/* ==================== Global Styles ==================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(180deg, #87ceeb 0%, #e0f6ff 50%, #ffffff 100%);
+    color: var(--primary-blue);
+    min-height: 100vh;
+    position: relative;
+    transition: background 60s ease-in-out;
+}
+
+body.night-mode {
+    background: linear-gradient(180deg, var(--dark-night) 0%, var(--night-blue) 50%, #1a2f4a 100%);
+    color: var(--frost);
+}
+
+/* ==================== Background & Canvas ==================== */
+#background-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+#snow-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#stars-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 8s ease-in-out;
+}
+
+/* Aurora / weather canvas: sits above background but below content */
+#weather-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+body.night-mode #stars-container {
+    opacity: 1;
+}
+
+.star {
+    position: absolute;
+    background: var(--snow-white);
+    border-radius: 50%;
+    box-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
+    will-change: transform, opacity;
+}
+
+/* Small subtle twinkle variations are handled inline through style.animation on each star */
+
+/* Rain effect (canvas-drawn), but provide a fallback subtle CSS shimmer for low-end devices */
+.rain-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: linear-gradient(transparent, rgba(255,255,255,0.02));
+}
+
+#floating-elements {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.floating-ornament {
+    position: absolute;
+    font-size: 2rem;
+    /* Floating ornaments disabled to prevent movement (user requested static ornaments) */
+    animation: none !important;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+    transition: all 0.2s ease;
+}
+
+.floating-ornament:hover {
+    /* No transform on hover either to avoid any motion */
+    transform: none !important;
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.3));
+}
+
+@keyframes float-gentle {
+    0%, 100% { transform: translateY(0px) rotateZ(0deg); }
+    50% { transform: translateY(0px) rotateZ(0deg); }
+}
+
+/* ==================== Sky Overlay (Day/Night) ==================== */
+#sky-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% -50%, rgba(255, 200, 100, 0.1), transparent);
+    transition: background 8s ease-in-out;
+}
+
+body.night-mode #sky-overlay {
+    background: radial-gradient(circle at 50% 50%, rgba(100, 150, 255, 0.05), transparent);
+}
+
+/* ==================== Celestial Body (Sun/Moon) ==================== */
+#celestial-body {
+    position: fixed;
+    width: 120px;
+    height: 120px;
+    top: 60px;
+    right: 60px;
+    z-index: 2;
+    pointer-events: none;
+}
+
+#celestial-body.sun {
+    background: radial-gradient(circle at 35% 35%, #FFD700, #FFA500);
+    border-radius: 50%;
+    box-shadow: 0 0 60px rgba(255, 200, 0, 0.6);
+    opacity: 1;
+    transition: opacity 60s ease-in-out;
+}
+
+#celestial-body.moon {
+    background: radial-gradient(circle at 35% 35%, #F0F0F0, #C0C0C0);
+    border-radius: 50%;
+    box-shadow: 0 0 40px rgba(200, 200, 255, 0.4);
+    opacity: 0;
+    transition: opacity 60s ease-in-out;
+}
+
+body.night-mode #celestial-body.sun {
+    opacity: 0;
+}
+
+body.night-mode #celestial-body.moon {
+    opacity: 1;
+}
+
+/* ==================== Corner Countdowns ==================== */
+#countdowns-corners {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.corner-countdown {
+    position: fixed;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(8px);
+    border: 2px solid var(--light-blue);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    pointer-events: auto;
+    z-index: 5;
+}
+
+body.night-mode .corner-countdown {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: var(--light-blue);
+}
+
+.corner-countdown:hover {
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+}
+
+.corner-icon {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+}
+
+.corner-title {
+    font-weight: 600;
+    color: var(--primary-blue);
+    font-size: 0.85rem;
+}
+
+body.night-mode .corner-title {
+    color: var(--accent-gold);
+}
+
+.corner-display {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--cardinal-red);
+    letter-spacing: 1px;
+}
+
+/* Corner positions */
+#christmas-corner {
+    top: 20px;
+    left: 20px;
+}
+
+#hanukkah-corner {
+    top: 20px;
+    right: 20px;
+}
+
+#kwanzaa-corner {
+    bottom: 20px;
+    left: 20px;
+}
+
+#newyear-corner {
+    bottom: 20px;
+    right: 20px;
+}
+#content-wrapper {
+    position: relative;
+    z-index: 10;
+    padding: 40px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ==================== Header ==================== */
+#main-header {
+    text-align: center;
+    margin-bottom: 60px;
+    animation: fade-in 0.8s ease-out;
+}
+
+#main-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 4rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, var(--primary-blue), var(--light-blue), var(--cardinal-red));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+body.night-mode #main-title {
+    background: linear-gradient(135deg, var(--frost), var(--light-blue), var(--cardinal-red));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+#subtitle {
+    font-size: 1.3rem;
+    color: var(--primary-blue);
+    font-weight: 300;
+    letter-spacing: 1px;
+}
+
+body.night-mode #subtitle {
+    color: var(--frost);
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== Action Section (Main Button) ==================== */
+#action-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    margin-bottom: 100px;
+}
+
+/* ==================== Buttons ==================== */
+.btn {
+    border: none;
+    border-radius: 12px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-blue), var(--light-blue));
+    color: var(--snow-white);
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+}
+
+.btn-primary:active {
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--primary-blue);
+    border: 2px solid var(--light-blue);
+}
+
+.btn-secondary:hover {
+    background: var(--snow-white);
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+body.night-mode .btn-secondary {
+    background: rgba(30, 41, 59, 0.8);
+    color: var(--frost);
+    border-color: var(--light-blue);
+}
+
+.btn-large {
+    padding: 25px 60px;
+    font-size: 1.3rem;
+}
+
+.btn-huge {
+    padding: 40px 80px;
+    font-size: 1.8rem;
+    margin: 40px auto;
+    position: relative;
+}
+
+.btn-huge.decomytree-detail {
+    padding: 50px 100px;
+    font-size: 2.2rem;
+    background: linear-gradient(135deg, var(--primary-blue), var(--light-blue), var(--forest-green));
+    border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-huge.decomytree-detail:hover {
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 12px 40px rgba(59, 130, 246, 0.6) !important;
+}
+
+.btn-detail {
+    display: inline-block;
+    margin-left: 8px;
+    animation: sparkle 1.5s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.15); }
+}
+
+.btn-emoji {
+    font-size: 1.6rem;
+}
+
+.btn-text {
+    display: inline-block;
+}
+
+/* ==================== Games Section ==================== */
+#games-section {
+    margin-top: 80px;
+    display: none;
+}
+
+#games-section h2 {
+    text-align: center;
+    font-size: 2.5rem;
+    margin-bottom: 40px;
+    color: var(--primary-blue);
+}
+
+body.night-mode #games-section h2 {
+    color: var(--accent-gold);
+}
+
+.games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+    margin-top: 30px;
+    display: none;
+}
+
+.game-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(224, 242, 254, 0.8));
+    border: 2px solid var(--light-blue);
+    border-radius: 15px;
+    padding: 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    font-family: 'Poppins', sans-serif;
+}
+
+body.night-mode .game-card {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8));
+    border-color: var(--light-blue);
+}
+
+.game-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 40px rgba(59, 130, 246, 0.4);
+    border-color: var(--accent-gold);
+}
+
+.game-icon {
+    font-size: 3rem;
+    transition: transform 0.3s ease;
+}
+
+.game-card:hover .game-icon {
+    transform: scale(1.2) rotateZ(10deg);
+}
+
+.game-card h3 {
+    font-size: 1.4rem;
+    color: var(--primary-blue);
+    margin: 0;
+}
+
+body.night-mode .game-card h3 {
+    color: var(--accent-gold);
+}
+
+.game-card p {
+    font-size: 0.95rem;
+    color: var(--primary-blue);
+    opacity: 0.7;
+    margin: 0;
+}
+
+body.night-mode .game-card p {
+    color: var(--frost);
+}
+
+.game-card:active {
+    transform: translateY(-4px);
+}
+/* ==================== Minigame Trigger ==================== */
+/* REMOVED - Minigame system deprecated */
+
+.hidden {
+    display: none !important;
+}
+
+/* ==================== Small Games Area ==================== */
+#small-games-area {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.btn-game {
+    padding: 20px 40px;
+    font-size: 1.1rem;
+    min-width: 200px;
+}
+
+.btn-locked {
+    position: relative;
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: auto;
+}
+
+.btn-locked:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    transform: none !important;
+}
+
+.lock-icon {
+    font-size: 1.2rem;
+    margin-right: 4px;
+}
+
+/* ==================== Release Modal ==================== */
+#release-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.release-overlay {
+    background: linear-gradient(135deg, var(--frost), var(--snow-white));
+    padding: 32px 48px;
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    max-width: 400px;
+}
+
+.release-text {
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+    color: var(--primary-blue);
+    font-weight: 600;
+}
+
+.release-overlay .btn {
+    margin-top: 12px;
+}
+
+.btn-release-ok {
+    padding: 16px 48px !important;
+    font-size: 1.2rem !important;
+    min-width: 150px;
+}
+
+/* ==================== General Modal ==================== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, var(--frost), var(--snow-white));
+    padding: 32px 40px;
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-content h2 {
+    color: var(--primary-blue);
+    margin-bottom: 12px;
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.modal-content p {
+    color: var(--primary-blue);
+    margin-bottom: 20px;
+    text-align: center;
+    opacity: 0.8;
+}
+
+.designs {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.designs label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.designs label:hover {
+    background: rgba(255, 255, 255, 0.8);
+    transform: translateX(4px);
+}
+
+.designs input[type="radio"] {
+    cursor: pointer;
+    accent-color: var(--primary-blue);
+}
+
+.designs span {
+    color: var(--primary-blue);
+    font-weight: 500;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.modal-buttons .cancel {
+    background: rgba(200, 200, 200, 0.3) !important;
+    color: var(--primary-blue) !important;
+    border: 2px solid rgba(200, 200, 200, 0.5) !important;
+}
+
+.modal-buttons .cancel:hover {
+    background: rgba(200, 200, 200, 0.5) !important;
+}
+
+/* ==================== Responsive Design ==================== */
+@media (max-width: 768px) {
+    #main-title {
+        font-size: 2.5rem;
+    }
+
+    #subtitle {
+        font-size: 1rem;
+    }
+
+    #countdowns-section {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin-bottom: 50px;
+    }
+
+    .countdown-item {
+        padding: 15px;
+    }
+
+    .countdown-icon {
+        font-size: 2rem;
+    }
+
+    #games-section h2 {
+        font-size: 1.8rem;
+    }
+
+    .games-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .btn-large {
+        padding: 18px 40px;
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    #main-header {
+        margin-bottom: 40px;
+    }
+
+    #main-title {
+        font-size: 1.8rem;
+    }
+
+    #subtitle {
+        font-size: 0.9rem;
+    }
+
+    #countdowns-section {
+        grid-template-columns: 1fr;
+        margin-bottom: 30px;
+    }
+
+    .countdown-item {
+        padding: 12px;
+    }
+
+    .countdown-icon {
+        font-size: 1.5rem;
+    }
+
+    .countdown-content h3 {
+        font-size: 1rem;
+    }
+
+    .countdown-display {
+        font-size: 0.9rem;
+    }
+
+    #action-section {
+        margin-bottom: 50px;
+    }
+
+    .btn-large {
+        padding: 15px 30px;
+        font-size: 1rem;
+    }
+
+    .game-card {
+        padding: 20px;
+    }
+
+    .game-icon {
+        font-size: 2rem;
+    }
+
+    .game-card h3 {
+        font-size: 1.1rem;
+    }
+}
+
+/* ==================== Animations ==================== */
+@keyframes snowflake-fall {
+    0% {
+        transform: translateY(-10vh) rotateZ(0deg);
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotateZ(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes shimmer {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+.shimmer {
+    animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Smooth scroll behavior */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Selection colors */
+::selection {
+    background: var(--light-blue);
+    color: var(--snow-white);
+}
+
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--light-blue);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-blue);
+}
+
+body.night-mode::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Print styles */
+@media print {
+    #background-container,
+    #sky-overlay,
+    #ambient-particles {
+        display: none;
+    }
+}
+
+/* Background Settings Button */
+.bg-settings-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(30, 58, 138, 0.6);
+    border: 2px solid var(--accent-gold);
+    cursor: pointer;
+    font-size: 1.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    z-index: 500;
+}
+
+.bg-settings-btn:hover {
+    background: rgba(30, 58, 138, 0.8);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+    transform: scale(1.1);
+}
+
+/* Website background themes for main page */
+body.bg-default {
+    background: linear-gradient(180deg, #87ceeb 0%, #e0f6ff 50%, #ffffff 100%);
+}
+
+body.bg-colorful {
+    background: linear-gradient(180deg, #a78bfa 0%, #c4b5fd 40%, #f3d5ff 100%);
+}
+
+body.bg-snowy {
+    background: linear-gradient(180deg, #cfe9f3 0%, #e0f2fe 50%, #f0f9ff 100%);
+}
+
+body.bg-aurora {
+    background: linear-gradient(180deg, #0f172a 0%, #1a3a4a 40%, #2a4a6a 100%);
+}
+
+body.bg-sunset {
+    background: linear-gradient(180deg, #7c2d12 0%, #b45309 40%, #f59e0b 100%);
+}
+
+/* Hide celestial body for certain website backgrounds */
+body.bg-aurora .celestial-body,
+body.bg-sunset .celestial-body {
+    display: none;
+}

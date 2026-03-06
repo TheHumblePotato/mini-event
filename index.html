@@ -3,106 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Winter Celebrations 2025 - Celebrate the Season</title>
+    <title>37 Day - Clicker Game</title>
     <link rel="stylesheet" href="index.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>❄️</text></svg>">
-    <style>
-        /* Prevent layout shift during load */
-        html { scroll-behavior: smooth; }
-    </style>
 </head>
 <body>
-    <!-- Background canvas for snow and effects -->
-    <div id="background-container">
-        <canvas id="snow-canvas"></canvas>
-        <canvas id="weather-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;"></canvas>
-        <div id="stars-container"></div>
-        <div id="floating-elements"></div>
-    </div>
-
-    <!-- Day/Night cycle overlay -->
-    <div id="sky-overlay"></div>
+    <div class="background-symbols"></div>
     
-    <!-- Sun/Moon display -->
-    <div id="celestial-body"></div>
-
-    <!-- Website Background Settings -->
-    <div id="bg-settings-btn" class="bg-settings-btn">⚙️</div>
-    <div id="bg-settings-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2>Website Background</h2>
-            <p>Choose your preferred background for the main page:</p>
-            <div class="designs" id="bg-theme-options">
-                <label><input type="radio" name="bg-theme" value="default" checked> <span>Classic</span></label>
-                <label><input type="radio" name="bg-theme" value="colorful"> <span>Colorful</span></label>
-                <label><input type="radio" name="bg-theme" value="snowy"> <span>Snowy</span></label>
-                <label><input type="radio" name="bg-theme" value="aurora"> <span>Aurora</span></label>
-                <label><input type="radio" name="bg-theme" value="sunset"> <span>Sunset</span></label>
-            </div>
-            <div class="modal-buttons">
-                <button id="close-bg-settings" class="cancel">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Corner countdown displays -->
-    <div id="countdowns-corners">
-        <div class="corner-countdown" id="christmas-corner">
-            <div class="corner-icon">🎄</div>
-            <div class="corner-title">Christmas</div>
-            <div class="corner-display" id="christmas-countdown">--:--:--</div>
-        </div>
-        <div class="corner-countdown" id="hanukkah-corner">
-            <div class="corner-icon">🕯️</div>
-            <div class="corner-title">Hanukkah</div>
-            <div class="corner-display" id="hanukkah-countdown">--:--:--</div>
-        </div>
-        <div class="corner-countdown" id="kwanzaa-corner">
-            <div class="corner-icon">🐑</div>
-            <div class="corner-title">Kwanzaa</div>
-            <div class="corner-display" id="kwanzaa-countdown">--:--:--</div>
-        </div>
-        <div class="corner-countdown" id="newyear-corner">
-            <div class="corner-icon">🎆</div>
-            <div class="corner-title">New Year</div>
-            <div class="corner-display" id="newyear-countdown">--:--:--</div>
-        </div>
-    </div>
-
-    <!-- Main content -->
-    <div id="content-wrapper">
-        <!-- Header with title -->
-        <header id="main-header">
-            <h1 id="main-title">Winter Celebrations 2025</h1>
-            <p id="subtitle">Celebrate the Season with your Classmates (NOT FRIENDS)</p>
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+    
+    <div class="game-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>✨ 37 Day ✨</h1>
+            <p class="subtitle">Embrace the Randomness</p>
+            <button id="themeToggle" class="theme-toggle">🌓 Theme</button>
         </header>
 
-        <!-- Main action button - Decomytree as primary focus -->
-        <section id="action-section">
-            <button id="decomytree-btn" class="btn btn-primary btn-huge decomytree-detail">
-                <span class="btn-emoji">🎄</span>
-                <span class="btn-text">Deco My Tree (Lakeside Edition)</span>
-                <span class="btn-detail">✨</span>
-            </button>
-            <!-- Small game links (available) - below main button -->
-            <div id="small-games-area">
-                <a id="collatz-btn" class="btn btn-secondary btn-game" href="https://lihanfriend.github.io/Collatz-Racing/" target="_blank" rel="noopener noreferrer">
-                    <span class="btn-text">Collatz Racing</span>
-                </a>
-                <a id="hex-btn" class="btn btn-secondary btn-game" href="https://lazypanda5050.github.io/Hexagonal-Chess/" target="_blank" rel="noopener noreferrer">
-                    <span class="btn-text">Hexagonal Chess</span>
-                </a>
-                <a id="aristocrat-btn" class="btn btn-secondary btn-game" href="https://politikl.github.io/aristocrat/" target="_blank" rel="noopener noreferrer">
-                    <span class="btn-text">Aristocrat Puzzle</span>
-                </a>
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left side: Clicker -->
+            <div class="clicker-section">
+                <div class="stats-display">
+                    <div class="stat">
+                        <span class="stat-label">Randomness</span>
+                        <span class="stat-value" id="randomness">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Per Click</span>
+                        <span class="stat-value" id="rpc">1</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Per Second</span>
+                        <span class="stat-value" id="rps">0</span>
+                    </div>
+                </div>
+
+                <div class="golden-dice-container" id="goldenDiceContainer">
+                    <div class="golden-dice-indicator">🎲 GOLDEN DICE!</div>
+                </div>
+
+                <div class="clicker-area">
+                    <div class="clicker-symbol" id="clickerSymbol">🎲</div>
+                    <div class="click-feedback" id="clickFeedback"></div>
+                </div>
+
+                <p class="progress-text" id="progressText">Dice rolling...</p>
+                
+                <div class="tier-progress">
+                    <p style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 8px;">
+                        Tier <span id="currentTier">0</span> - Next at <span id="nextTierTarget">1K</span> Randomness
+                    </p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
             </div>
-        </section>
+
+            <!-- Right side: Shop -->
+            <div class="shop-section">
+                <div class="shop-header">
+                    <h2>Randomness Generators</h2>
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" data-tab="upgrades">Upgrades</button>
+                        <button class="tab-btn" data-tab="buildings">Generators</button>
+                    </div>
+                </div>
+
+                <!-- Upgrades Tab -->
+                <div class="shop-tab active" id="upgrades-tab">
+                    <div class="shop-items" id="upgradesList">
+                        <!-- Upgraded list populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Buildings Tab -->
+                <div class="shop-tab" id="buildings-tab">
+                    <div class="shop-items" id="buildingsList">
+                        <!-- Building list populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Ascension Section -->
+                <div class="ascension-section" id="ascensionSection" style="display: none;">
+                    <h3>Ascension</h3>
+                    <p id="ascensionInfo">Ascension Level: <span id="ascensionLevel">0</span></p>
+                    <button id="ascendButton" class="ascend-btn">Ascend</button>
+                </div>
+
+                <!-- Minigame Section -->
+                <div class="minigame-section" id="minigameSection" style="display: none;">
+                    <h3>Lucky Spin</h3>
+                    <button id="minigameBtn" class="minigame-btn">Play Mini-Game</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Ambient particle system overlay -->
-    <div id="ambient-particles"></div>
+    <!-- Minigame Modal -->
+    <div id="minigameModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Lucky Spin</h2>
+            <div class="minigame-wheel" id="minigameWheel">
+                <div class="wheel-segment" style="--segment: 0; background: #ff6b6b;">2x</div>
+                <div class="wheel-segment" style="--segment: 1; background: #4ecdc4;">3x</div>
+                <div class="wheel-segment" style="--segment: 2; background: #45b7d1;">1.5x</div>
+                <div class="wheel-segment" style="--segment: 3; background: #96ceb4;">4x</div>
+                <div class="wheel-segment" style="--segment: 4; background: #ffeaa7;">5x</div>
+                <div class="wheel-segment" style="--segment: 5; background: #dfe6e9;">Lose</div>
+            </div>
+            <button id="spinButton" class="spin-btn">Spin!</button>
+            <p id="minigameResult"></p>
+        </div>
+    </div>
 
+    <!-- Firebase SDK (compat version for global access) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+    
+    <!-- Game Script -->
     <script src="index.js"></script>
 </body>
 </html>
