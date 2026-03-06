@@ -528,7 +528,6 @@ function createGeminiPrompt(context) {
         
         "OUTPUT: Respond with ONLY the JSON objects, no other text, no markdown, no explanations.";
 }
-}
 
 function parseAIResponse(response, tier) {
     try {

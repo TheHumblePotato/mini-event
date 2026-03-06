@@ -645,6 +645,44 @@ body {
     }
 }
 
+/* Golden Dice Spawn Area */
+.golden-dice-spawn-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.golden-dice-spawn {
+    position: absolute;
+    font-size: 48px;
+    cursor: pointer;
+    pointer-events: all;
+    animation: goldenDiceFloat 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 10px #f59e0b) drop-shadow(0 0 20px #f59e0b);
+    transition: transform 0.1s;
+    user-select: none;
+}
+
+.golden-dice-spawn:hover {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 15px #f59e0b) drop-shadow(0 0 30px #f59e0b);
+}
+
+.golden-dice-spawn:active {
+    transform: scale(0.95);
+}
+
+@keyframes goldenDiceFloat {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    25% { transform: translateY(-10px) rotate(5deg); }
+    50% { transform: translateY(-5px) rotate(-5deg); }
+    75% { transform: translateY(-15px) rotate(3deg); }
+}
+
 .toast.removing {
     animation: slideOut 0.3s ease-out;
 }
