@@ -84,18 +84,18 @@ function applyTitleAndTheme() {
     document.title = 'April 0th';
   } else if (phase === 'april1') {
     // Remove -, make "1st" red
-    mainTitle.innerHTML = 'APRIL <span style="color:#ff4141;text-shadow:0 0 20px #ff4141,0 0 40px #ff414180;">1st</span>';
+    mainTitle.innerHTML = 'APRIL <span style="color:#ff4141;text-shadow:0 0 20px #ff4141,0 0 40px #ff414180;">1</span>st';
     mainTitle.dataset.text = 'APRIL 1st';
     document.body.classList.add('april-fools');
     document.title = '???? Mini Event';
   } else if (phase === 'after') {
     // April -1st but "1st" bold red
-    mainTitle.innerHTML = 'APRIL <span style="color:#ff4141;text-shadow:0 0 20px #ff4141;">-1st</span>';
+    mainTitle.innerHTML = 'APRIL <span style="color:#ff4141;text-shadow:0 0 20px #ff4141;">-1</span>st';
     mainTitle.dataset.text = 'APRIL -1st';
     document.title = 'April -1st';
   } else {
     // Normal: make the minus red
-    mainTitle.innerHTML = 'APRIL <span style="color:#ff4141;text-shadow:0 0 14px #ff414199;">-</span>1st';
+    mainTitle.innerHTML = 'APRIL <span style="color:#ff4141;text-shadow:0 0 14px #ff414199;">-1</span>st';
     mainTitle.dataset.text = 'APRIL -1st';
     document.title = 'April -1st';
   }
