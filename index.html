@@ -1,131 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>37 Day - Clicker Game</title>
-    <link rel="stylesheet" href="index.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>April -1st Mini Event</title>
+  <link rel="stylesheet" href="index.css" />
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>" />
 </head>
 <body>
-    <div class="background-symbols"></div>
-    
-    <!-- Toast Notifications -->
-    <div id="toastContainer" class="toast-container"></div>
-    
-    <div class="game-container">
-        <!-- Header -->
-        <header class="header">
-            <h1>✨ 37 Day ✨</h1>
-            <p class="subtitle">Embrace the Randomness</p>
-            <button id="themeToggle" class="theme-toggle">🌓 Theme</button>
-        </header>
+  <div id="scanlines"></div>
+  <div id="noise-overlay"></div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Left side: Clicker -->
-            <div class="clicker-section">
-                <div class="stats-display">
-                    <div class="stat">
-                        <span class="stat-label">Randomness</span>
-                        <span class="stat-value" id="randomness">0</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-label">Per Click</span>
-                        <span class="stat-value" id="rpc">1</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-label">Per Second</span>
-                        <span class="stat-value" id="rps">0</span>
-                    </div>
-                </div>
-
-                <div class="golden-dice-container" id="goldenDiceContainer">
-                    <div class="golden-dice-indicator">🎲 GOLDEN DICE!</div>
-                </div>
-
-                <!-- Golden Dice Spawn Area -->
-                <div class="golden-dice-spawn-area" id="goldenDiceSpawnArea"></div>
-
-                <div class="clicker-area">
-                    <div class="clicker-symbol" id="clickerSymbol">🎲</div>
-                    <div class="click-feedback" id="clickFeedback"></div>
-                </div>
-
-                <p class="progress-text" id="progressText">Dice rolling...</p>
-                
-                <div class="tier-progress">
-                    <p style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 8px;">
-                        Tier <span id="currentTier">0</span> - Next at <span id="nextTierTarget">1K</span> Randomness
-                    </p>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right side: Shop -->
-            <div class="shop-section">
-                <div class="shop-header">
-                    <h2>Randomness Generators</h2>
-                    <div class="tab-buttons">
-                        <button class="tab-btn active" data-tab="upgrades">Upgrades</button>
-                        <button class="tab-btn" data-tab="buildings">Generators</button>
-                    </div>
-                </div>
-
-                <!-- Upgrades Tab -->
-                <div class="shop-tab active" id="upgrades-tab">
-                    <div class="shop-items" id="upgradesList">
-                        <!-- Upgraded list populated by JS -->
-                    </div>
-                </div>
-
-                <!-- Buildings Tab -->
-                <div class="shop-tab" id="buildings-tab">
-                    <div class="shop-items" id="buildingsList">
-                        <!-- Building list populated by JS -->
-                    </div>
-                </div>
-
-                <!-- Ascension Section -->
-                <div class="ascension-section" id="ascensionSection" style="display: none;">
-                    <h3>Ascension</h3>
-                    <p id="ascensionInfo">Ascension Level: <span id="ascensionLevel">0</span></p>
-                    <button id="ascendButton" class="ascend-btn">Ascend</button>
-                </div>
-
-                <!-- Minigame Section -->
-                <div class="minigame-section" id="minigameSection" style="display: none;">
-                    <h3>Lucky Spin</h3>
-                    <button id="minigameBtn" class="minigame-btn">Play Mini-Game</button>
-                </div>
-            </div>
-        </div>
+  <div id="auth-container">
+    <div id="user-info" class="hidden">
+      <span id="username-display"></span>
+      <button id="sign-out-btn">Sign Out</button>
     </div>
+    <button id="sign-in-btn" class="hidden">Sign In</button>
+  </div>
 
-    <!-- Minigame Modal -->
-    <div id="minigameModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Lucky Spin</h2>
-            <div class="minigame-wheel" id="minigameWheel">
-                <div class="wheel-segment" style="--segment: 0; background: #ff6b6b;">2x</div>
-                <div class="wheel-segment" style="--segment: 1; background: #4ecdc4;">3x</div>
-                <div class="wheel-segment" style="--segment: 2; background: #45b7d1;">1.5x</div>
-                <div class="wheel-segment" style="--segment: 3; background: #96ceb4;">4x</div>
-                <div class="wheel-segment" style="--segment: 4; background: #ffeaa7;">5x</div>
-                <div class="wheel-segment" style="--segment: 5; background: #dfe6e9;">Lose</div>
-            </div>
-            <button id="spinButton" class="spin-btn">Spin!</button>
-            <p id="minigameResult"></p>
-        </div>
+  <div id="header-controls">
+    <button id="leaderboard-btn" class="header-btn">🏆 Leaderboard</button>
+    <div id="countdown-container">
+      <span id="countdown-label">Event Ends:</span>
+      <span id="countdown">--:--:--</span>
     </div>
+  </div>
 
-    <!-- Firebase SDK (compat version for global access) -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
-    
-    <!-- Game Script -->
-    <script src="index.js"></script>
+  <div id="background"></div>
+
+  <header>
+    <div class="glitch-wrapper">
+      <h1 class="glitch" data-text="APRIL -1st">APRIL -1st</h1>
+    </div>
+    <p class="subtitle">Mini Event &mdash; An Escape Room</p>
+    <p class="subsubtitle">Something is slightly wrong. Figure it out.</p>
+  </header>
+
+  <main>
+    <div class="games-container">
+      <div class="game-card" id="play-card">
+        <div class="card-icon">🚪</div>
+        <h2 class="game-title">The Escape Room</h2>
+        <p class="game-date">March 30 – April 30</p>
+        <button class="btn-play" id="start-game-btn">Enter</button>
+      </div>
+      <div class="game-card info-card">
+        <div class="card-icon">📋</div>
+        <h2 class="game-title">How It Works</h2>
+        <p class="card-body">Solve puzzles, find clues, escape. Your time is recorded on first completion only. On April 1st… something changes.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>First clear times count. Replays don't. Something is slightly wrong on April 1st.</p>
+  </footer>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Access Required</h2>
+      <p>Sign in to record your escape time and compete on the leaderboard.</p>
+      <div class="modal-buttons">
+        <button id="login-accept" class="btn-primary">Sign In with Google</button>
+        <button id="login-deny" class="btn-secondary">Play Anonymously</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Username Modal -->
+  <div id="username-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Choose a Codename</h2>
+      <p>This will appear on the leaderboard:</p>
+      <input type="text" id="username-input" placeholder="Enter codename" maxlength="20" />
+      <div class="modal-buttons">
+        <button id="username-submit" class="btn-primary">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaderboard Modal -->
+  <div id="leaderboard-modal" class="modal hidden">
+    <div class="modal-content leaderboard-content">
+      <h2>🏆 Leaderboard</h2>
+      <div class="lb-tabs">
+        <button class="lb-tab active" data-tab="normal">Normal Run</button>
+        <button class="lb-tab" data-tab="april">April 1st Run</button>
+      </div>
+      <div class="leaderboard-container">
+        <table id="leaderboard-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Codename</th>
+              <th>Time</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body"></tbody>
+        </table>
+      </div>
+      <div class="modal-buttons">
+        <button id="leaderboard-close" class="btn-primary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, getDocs, orderBy, query, where } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyARY96nrH2Aio8rOiLkewSXtTS40TZLrAw",
+      authDomain: "nerd-mini-events.firebaseapp.com",
+      projectId: "nerd-mini-events",
+      storageBucket: "nerd-mini-events.firebasestorage.app",
+      messagingSenderId: "974357416633",
+      appId: "1:974357416633:web:e190de60553a685d03e968",
+      measurementId: "G-V9NGCSEY8J"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    window.firebaseApp = app;
+    window.firebaseAuth = auth;
+    window.firebaseDb = db;
+    window.googleProvider = provider;
+    window.firebaseSignInWithPopup = signInWithPopup;
+    window.firebaseSignOut = signOut;
+    window.firebaseOnAuthStateChanged = onAuthStateChanged;
+    window.firebaseDoc = doc;
+    window.firebaseSetDoc = setDoc;
+    window.firebaseGetDoc = getDoc;
+    window.firebaseCollection = collection;
+    window.firebaseGetDocs = getDocs;
+    window.firebaseQuery = query;
+    window.firebaseWhere = where;
+    window.firebaseOrderBy = orderBy;
+    window.firebaseReady = true;
+    if (window.initApp) window.initApp();
+  </script>
+
+  <script src="index.js"></script>
 </body>
 </html>
