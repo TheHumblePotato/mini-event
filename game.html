@@ -3,21 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Escape Room — April -1st</title>
+  <title>The Escape Room</title>
   <link rel="stylesheet" href="game.css" />
-  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share Tech Mono&display=swap" rel="stylesheet" />
 </head>
 <body>
 
 <!-- ===== TUTORIAL OVERLAY ===== -->
-<div id="tutorial-overlay">
+<div id="tutorial-overlay" style="display:none;">
   <div id="tutorial-box">
     <div id="tutorial-step-indicator"></div>
     <div id="tutorial-content"></div>
     <div id="tutorial-buttons">
-      <button id="tutorial-skip" class="btn-secondary">Skip Tutorial</button>
+      <button id="tutorial-skip" class="btn-secondary">Skip</button>
       <button id="tutorial-next" class="btn-primary">Next →</button>
     </div>
+  </div>
+</div>
+
+<!-- ===== INTRO OVERLAY (first-entry) ===== -->
+<div id="intro-overlay" class="hidden">
+  <div id="intro-box">
+    <div id="intro-icon">🔒</div>
+    <div id="intro-text">You find yourself locked in a room.</div>
+    <div id="intro-sub">Escape as fast as you can.</div>
+    <div id="intro-tap">[ click to dismiss ]</div>
   </div>
 </div>
 
@@ -27,136 +37,107 @@
   <!-- Top HUD -->
   <div id="top-hud">
     <button id="back-to-hub" class="hud-btn">← Hub</button>
-    <div id="room-label">ROOM: <span id="room-name-display">—</span></div>
-    <div id="timer-display">⏱ <span id="timer-text">00:00</span></div>
-    <button id="hud-inventory-btn" class="hud-btn">🎒 Inventory</button>
-    <button id="hud-notes-btn" class="hud-btn">📋 Notes</button>
-    <button id="hud-hint-btn" class="hud-btn">💡 Hint</button>
+    <div id="room-label">[ <span id="room-name-display">—</span> ]</div>
+    <div id="timer-display">⏱ <span id="timer-text">0:00.00</span></div>
   </div>
 
-  <!-- Game viewport -->
-  <div id="game-viewport">
-    <canvas id="game-canvas"></canvas>
+  <!-- Main area: viewport + sidebar -->
+  <div id="main-area">
 
-    <!-- Room navigation arrows -->
-    <button id="nav-left"  class="nav-arrow hidden">◀</button>
-    <button id="nav-right" class="nav-arrow hidden">▶</button>
-    <button id="nav-up"    class="nav-arrow hidden">▲</button>
-    <button id="nav-down"  class="nav-arrow hidden">▼</button>
+    <!-- Game Viewport -->
+    <div id="game-viewport">
+      <canvas id="game-canvas"></canvas>
 
-    <!-- Interaction tooltip -->
-    <div id="hover-tooltip" class="hidden"></div>
-  </div>
+      <!-- Nav arrows -->
+      <button id="nav-left"  class="nav-arrow hidden">◀</button>
+      <button id="nav-right" class="nav-arrow hidden">▶</button>
+      <button id="nav-up"    class="nav-arrow hidden">▲</button>
+      <button id="nav-down"  class="nav-arrow hidden">▼</button>
 
-  <!-- Sidebar -->
-  <div id="sidebar">
-    <div id="sidebar-header">ESCAPE ROOM</div>
-    <div id="objective-box">
-      <div class="sidebar-label">OBJECTIVE</div>
-      <div id="objective-text">Find a way out.</div>
+      <!-- Hover tooltip -->
+      <div id="hover-tooltip" class="hidden"></div>
     </div>
-    <div id="quick-log">
-      <div class="sidebar-label">LOG</div>
-      <div id="log-entries"></div>
-    </div>
-  </div>
-</div>
 
-<!-- ===== INVENTORY PANEL ===== -->
-<div id="inventory-panel" class="panel hidden">
-  <div class="panel-header">
-    <span>🎒 INVENTORY &amp; BULLETIN BOARD</span>
-    <button class="panel-close" data-panel="inventory-panel">✕</button>
-  </div>
-  <div id="inventory-body">
-    <!-- Left: item list -->
-    <div id="item-list-col">
-      <div class="col-label">ITEMS</div>
-      <div id="item-slots"></div>
-    </div>
-    <!-- Right: bulletin board -->
-    <div id="bulletin-col">
-      <div class="col-label">BULLETIN BOARD</div>
-      <div id="bulletin-board">
-        <div id="bulletin-canvas-wrap">
-          <canvas id="bulletin-canvas"></canvas>
+    <!-- Side panel area (notice/puzzle/code shown here) -->
+    <div id="side-panel-area">
+      <!-- Notice / interact popup -->
+      <div id="notice-popup" class="side-panel hidden">
+        <div class="side-panel-header">
+          <span id="notice-title">—</span>
+          <button class="panel-close-x" onclick="document.getElementById('notice-popup').classList.add('hidden');window._gameClosePanel&&window._gameClosePanel('notice-popup');">✕</button>
         </div>
-        <div id="bulletin-notes"></div>
-        <div id="bulletin-toolbar">
-          <button class="tool-btn active" data-tool="note">📝 Note</button>
-          <button class="tool-btn" data-tool="string">🔗 Connect</button>
-          <button class="tool-btn" data-tool="erase">🗑 Erase</button>
+        <div id="notice-body" class="side-panel-body"></div>
+        <!-- Item use sidebar -->
+        <div id="item-use-sidebar" class="item-use-sidebar"></div>
+        <div id="notice-actions" class="side-panel-actions"></div>
+      </div>
+
+      <!-- Puzzle popup -->
+      <div id="puzzle-popup" class="side-panel hidden">
+        <div class="side-panel-header">
+          <span id="puzzle-title">Puzzle</span>
+          <button class="panel-close-x" onclick="document.getElementById('puzzle-popup').classList.add('hidden');window._gameClosePanel&&window._gameClosePanel('puzzle-popup');">✕</button>
+        </div>
+        <div id="puzzle-body" class="side-panel-body"></div>
+      </div>
+
+      <!-- Code popup -->
+      <div id="code-popup" class="side-panel hidden">
+        <div class="side-panel-header">
+          <span id="code-popup-title">Enter Code</span>
+          <button class="panel-close-x" onclick="document.getElementById('code-popup').classList.add('hidden');window._gameClosePanel&&window._gameClosePanel('code-popup');">✕</button>
+        </div>
+        <div id="code-popup-body">
+          <div id="code-display"></div>
+          <div id="code-keypad"></div>
+          <div id="code-feedback"></div>
+          <button id="code-submit" class="btn-primary">Confirm</button>
+        </div>
+      </div>
+
+      <!-- Confirm dialog -->
+      <div id="confirm-popup" class="side-panel hidden">
+        <div class="side-panel-header"><span>Confirm</span></div>
+        <div class="side-panel-body" style="padding:16px;">
+          <p id="confirm-message" style="margin-bottom:16px;line-height:1.6;"></p>
+          <div style="display:flex;gap:8px;">
+            <button id="confirm-yes" class="btn-primary">Yes</button>
+            <button id="confirm-no" class="btn-secondary">No</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- ===== NOTES PANEL ===== -->
-<div id="notes-panel" class="panel hidden">
-  <div class="panel-header">
-    <span>📋 NOTES</span>
-    <button class="panel-close" data-panel="notes-panel">✕</button>
-  </div>
-  <textarea id="notes-textarea" placeholder="Type your notes here…&#10;&#10;Clues, codes, observations…"></textarea>
-</div>
+  </div><!-- /main-area -->
 
-<!-- ===== INTERACTION POPUP (examine / input) ===== -->
-<div id="interact-popup" class="panel hidden">
-  <div class="panel-header">
-    <span id="interact-title">Object</span>
-    <button class="panel-close" data-panel="interact-popup">✕</button>
+  <!-- ===== ALWAYS-VISIBLE INVENTORY ===== -->
+  <div id="inventory-bar">
+    <div id="inventory-label">INVENTORY</div>
+    <div id="inventory-grid"></div>
   </div>
-  <div id="interact-body">
-    <div id="interact-image-wrap"><img id="interact-image" src="" alt="" /></div>
-    <div id="interact-description"></div>
-    <div id="interact-controls"></div>
-  </div>
-</div>
 
-<!-- ===== CODE INPUT POPUP ===== -->
-<div id="code-popup" class="panel hidden">
-  <div class="panel-header">
-    <span id="code-popup-title">Enter Code</span>
-    <button class="panel-close" data-panel="code-popup">✕</button>
-  </div>
-  <div id="code-popup-body">
-    <div id="code-display"></div>
-    <div id="code-keypad"></div>
-    <div id="code-feedback"></div>
-    <button id="code-submit" class="btn-primary">Confirm</button>
-  </div>
-</div>
+</div><!-- /game-shell -->
 
-<!-- ===== PUZZLE POPUP ===== -->
-<div id="puzzle-popup" class="panel hidden">
-  <div class="panel-header">
-    <span id="puzzle-title">Puzzle</span>
-    <button class="panel-close" data-panel="puzzle-popup">✕</button>
+<!-- ===== ITEM RECEIVED POPUP ===== -->
+<div id="item-popup" class="hidden">
+  <div id="item-popup-inner">
+    <button id="item-popup-close">✕</button>
+    <div id="item-popup-icon"></div>
+    <div id="item-popup-name"></div>
+    <div id="item-popup-desc"></div>
   </div>
-  <div id="puzzle-body"></div>
-</div>
-
-<!-- ===== DIALOGUE / NOTICE POPUP ===== -->
-<div id="notice-popup" class="panel hidden">
-  <div class="panel-header">
-    <span id="notice-title">Notice</span>
-    <button class="panel-close" data-panel="notice-popup">✕</button>
-  </div>
-  <div id="notice-body"></div>
-  <div id="notice-actions"></div>
 </div>
 
 <!-- ===== WIN SCREEN ===== -->
 <div id="win-screen" class="hidden">
   <div id="win-box">
-    <div id="win-ascii"></div>
+    <pre id="win-ascii"></pre>
     <h2 id="win-title">ESCAPED</h2>
     <div id="win-time-display"></div>
     <div id="win-message"></div>
     <div id="win-actions">
       <button id="win-save" class="btn-primary">Save Time</button>
-      <button id="win-replay" class="btn-secondary">Play Again (time won't save)</button>
+      <button id="win-replay" class="btn-secondary">Play Again</button>
       <button id="win-hub" class="btn-secondary">← Hub</button>
     </div>
   </div>
@@ -195,5 +176,8 @@
 
 <script src="game-data.js"></script>
 <script src="game.js"></script>
+
+
+
 </body>
 </html>

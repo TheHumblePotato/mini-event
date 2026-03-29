@@ -1,12 +1,8 @@
-// ===== game.js — Escape Room Engine =====
-// Handles: tutorial, rendering, interaction, puzzles, inventory, timer, win, save.
-
+// ===== game.js — Escape Room Engine (v2) =====
 (function() {
 'use strict';
 
-// ===== CONFIGURATION =====
-const APRIL_FOOLS_START = new Date('2025-04-01T00:00:00-07:00');
-const APRIL_FOOLS_END   = new Date('2025-04-07T00:00:00-07:00');
+// ===== CONFIG =====
 const START_ROOM_NORMAL = 'study';
 const START_ROOM_FOOL   = 'fool_study';
 
@@ -14,56 +10,53 @@ const START_ROOM_FOOL   = 'fool_study';
 const S = {
   isFool: false,
   currentRoom: null,
-  inventory: [],        // array of item ids
-  unlockedDoors: {},    // doorId → true
-  solvedPuzzles: {},    // puzzleId → true
-  searchedCovers: {},   // objId → true
-  openedSafes: {},      // safeId → true
-  flags: {},            // general purpose flags
+  rooms: {},          // deep cloned room data
+  inventory: [],
+  unlockedDoors: {},
+  solvedPuzzles: {},
+  searchedCovers: {},
+  openedSafes: {},
+  flags: {},
+  easterEggClicks: {}, // objId → count
+  easterEggTriggered: {},
+  wrongSafeAttempts: {},
   timer: { running: false, start: 0, elapsed: 0 },
   completed: false,
   savedTime: false,
-  uid: '',
-  codename: 'Agent',
-  hintIndex: {},        // roomId → hint index
-  hoverObj: null,
+  uid: '', codename: 'Agent',
+  activePanel: null,   // only one panel open at a time
   selectedItem: null,
   tutorialActive: true,
   tutorialStep: 0,
-  // Bulletin board
-  bulletin: { notes: [], strings: [], tool: 'note' },
-  notes: '',
-  // Code entry
-  codeEntry: { current: '', target: null, maxLen: 4, callback: null },
+  interactTarget: null, // current object being viewed
+  introShown: false,
 };
 
 // ===== DOM =====
 const $ = id => document.getElementById(id);
-const tutOverlay  = $('tutorial-overlay');
-const tutContent  = $('tutorial-content');
-const tutStepInd  = $('tutorial-step-indicator');
-const tutNext     = $('tutorial-next');
-const tutSkip     = $('tutorial-skip');
-const gameShell   = $('game-shell');
-const canvas      = $('game-canvas');
-const ctx         = canvas.getContext('2d');
-const roomLabel   = $('room-name-display');
-const timerText   = $('timer-text');
-const logEntries  = $('log-entries');
-const objectiveEl = $('objective-text');
-const hoverTip    = $('hover-tooltip');
-const navLeft     = $('nav-left');
-const navRight    = $('nav-right');
-const navUp       = $('nav-up');
-const navDown     = $('nav-down');
-const winScreen   = $('win-screen');
-const winTimeDisp = $('win-time-display');
-const winMsg      = $('win-message');
-const bulletinCanvas = $('bulletin-canvas');
-const bctx        = bulletinCanvas ? bulletinCanvas.getContext('2d') : null;
-const notesTa     = $('notes-textarea');
-const itemSlots   = $('item-slots');
-const bulletinNotes=$('bulletin-notes');
+const canvas = $('game-canvas');
+const ctx = canvas.getContext('2d');
+
+// ===== TOAST SYSTEM =====
+function toast(msg, type = 'info', duration = 3000) {
+  let container = $('game-toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'game-toast-container';
+    container.style.cssText = 'position:fixed;bottom:120px;right:20px;z-index:9000;display:flex;flex-direction:column;gap:8px;pointer-events:none;';
+    document.body.appendChild(container);
+  }
+  const el = document.createElement('div');
+  const colors = { success: 'var(--green)', error: 'var(--red)', info: 'var(--muted)', item: 'var(--amber)' };
+  el.style.cssText = `background:rgba(2,14,6,0.97);border:1px solid ${colors[type]||colors.info};color:${colors[type]||colors.info};padding:10px 16px;border-radius:4px;font-family:'Share Tech Mono',monospace;font-size:0.82rem;opacity:0;transform:translateX(20px);transition:all 0.3s;max-width:260px;box-shadow:0 0 20px rgba(0,0,0,0.7);`;
+  el.textContent = msg;
+  container.appendChild(el);
+  requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translateX(0)'; });
+  setTimeout(() => {
+    el.style.opacity = '0'; el.style.transform = 'translateX(20px)';
+    setTimeout(() => el.remove(), 400);
+  }, duration);
+}
 
 // ===== UTILS =====
 function formatTime(ms) {
@@ -73,172 +66,144 @@ function formatTime(ms) {
   const cs = Math.floor((ms % 1000) / 10).toString().padStart(2, '0');
   return `${m}:${sc}.${cs}`;
 }
-
-function log(msg, important) {
-  const div = document.createElement('div');
-  div.className = 'log-entry' + (important ? ' important' : '');
-  div.textContent = '> ' + msg;
-  logEntries.prepend(div);
-  while (logEntries.children.length > 40) logEntries.lastChild.remove();
-}
-
-function isAprilFools() {
-  const now = new Date();
-  return now >= APRIL_FOOLS_START && now < APRIL_FOOLS_END;
-}
-
 function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
+function isAprilFools() { return sessionStorage.getItem('april_is_fool') === '1'; }
 
 // ===== PANEL SYSTEM =====
-const openPanels = new Set();
-
+// Only one panel open at a time
 function openPanel(id) {
+  if (S.activePanel && S.activePanel !== id) closePanel(S.activePanel);
   const el = $(id);
   if (!el) return;
   el.classList.remove('hidden');
-  openPanels.add(id);
-  bringToFront(el);
+  S.activePanel = id;
 }
 function closePanel(id) {
   const el = $(id);
-  if (!el) return;
-  el.classList.add('hidden');
-  openPanels.delete(id);
+  if (el) el.classList.add('hidden');
+  if (S.activePanel === id) S.activePanel = null;
+  S.interactTarget = null;
+  S.selectedItem = null;
+  renderInventory();
 }
-function bringToFront(el) {
-  let max = 500;
-  document.querySelectorAll('.panel').forEach(p => {
-    const z = parseInt(p.style.zIndex) || 500;
-    if (z > max) max = z;
-  });
-  el.style.zIndex = max + 1;
+function closeActivePanel() {
+  if (S.activePanel) closePanel(S.activePanel);
 }
-
-// Make panels draggable
-function makeDraggable(panel) {
-  const header = panel.querySelector('.panel-header');
-  if (!header) return;
-  let ox, oy, dragging = false;
-  header.addEventListener('mousedown', e => {
-    if (e.target.classList.contains('panel-close')) return;
-    dragging = true;
-    const rect = panel.getBoundingClientRect();
-    ox = e.clientX - rect.left;
-    oy = e.clientY - rect.top;
-    bringToFront(panel);
-    e.preventDefault();
-  });
-  document.addEventListener('mousemove', e => {
-    if (!dragging) return;
-    panel.style.left = (e.clientX - ox) + 'px';
-    panel.style.top  = (e.clientY - oy) + 'px';
-    panel.style.right = 'auto';
-  });
-  document.addEventListener('mouseup', () => { dragging = false; });
-}
-
-document.querySelectorAll('.panel').forEach(p => {
-  makeDraggable(p);
-  p.querySelector('.panel-close') && p.querySelector('.panel-close').addEventListener('click', function() {
-    closePanel(this.dataset.panel);
-  });
-});
-
-// Close all .panel-close buttons
-document.querySelectorAll('.panel-close').forEach(btn => {
-  btn.addEventListener('click', () => closePanel(btn.dataset.panel));
-});
+// Expose to global scope for inline onclick handlers
+window._gameClosePanel = closePanel;
 
 // ===== TUTORIAL =====
 function showTutorial() {
   S.tutorialActive = true;
   S.tutorialStep = 0;
   renderTutStep();
-  tutOverlay.style.display = 'flex';
+  $('tutorial-overlay').style.display = 'flex';
 }
-
 function renderTutStep() {
   const steps = window.GAME_TUTORIAL;
   const step = steps[S.tutorialStep];
-  tutStepInd.textContent = `STEP ${S.tutorialStep + 1} / ${steps.length}`;
-  tutContent.innerHTML = step.html;
-  tutNext.textContent = S.tutorialStep === steps.length - 1 ? 'Start Game →' : 'Next →';
+  $('tutorial-step-indicator').textContent = `STEP ${S.tutorialStep + 1} / ${steps.length}`;
+  $('tutorial-content').innerHTML = step.html;
+  $('tutorial-next').textContent = S.tutorialStep === steps.length - 1 ? 'Start →' : 'Next →';
 }
-
-tutNext && tutNext.addEventListener('click', () => {
+$('tutorial-next').addEventListener('click', () => {
   const steps = window.GAME_TUTORIAL;
-  if (S.tutorialStep < steps.length - 1) {
-    S.tutorialStep++;
-    renderTutStep();
-  } else {
-    endTutorial();
-  }
+  if (S.tutorialStep < steps.length - 1) { S.tutorialStep++; renderTutStep(); }
+  else endTutorial();
 });
-tutSkip && tutSkip.addEventListener('click', endTutorial);
-
+$('tutorial-skip').addEventListener('click', endTutorial);
 function endTutorial() {
-  tutOverlay.style.display = 'none';
+  $('tutorial-overlay').style.display = 'none';
   S.tutorialActive = false;
   startGameEngine();
 }
 
-// ===== GAME INIT =====
+// ===== INIT =====
 function startGameEngine() {
   S.isFool = isAprilFools();
   if (S.isFool) document.body.classList.add('april-fools');
-
   S.uid = sessionStorage.getItem('april_uid') || '';
   S.codename = sessionStorage.getItem('april_codename') || 'Agent';
-
-  // Init hint indices
-  Object.keys(window.GAME_HINTS).forEach(r => { S.hintIndex[r] = 0; });
-
-  // Deep clone rooms so state mutations are local
   S.rooms = deepClone(window.GAME_ROOMS);
 
   const startId = S.isFool ? START_ROOM_FOOL : START_ROOM_NORMAL;
-  loadRoom(startId);
-
-  gameShell.classList.remove('hidden');
+  $('game-shell').classList.remove('hidden');
   resizeCanvas();
+  loadRoom(startId);
   startTimer();
   requestAnimationFrame(renderLoop);
 
-  log('You find yourself locked in a room.', true);
+  // First-entry intro overlay
+  if (!S.introShown) {
+    S.introShown = true;
+    showIntroOverlay();
+  }
+}
+
+// ===== INTRO OVERLAY =====
+function showIntroOverlay() {
+  const overlay = $('intro-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('hidden');
+  setTimeout(() => {
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.classList.add('hidden'), 800);
+  }, 3000);
+  overlay.addEventListener('click', () => {
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.classList.add('hidden'), 400);
+  });
 }
 
 // ===== ROOM LOADING =====
 function loadRoom(roomId) {
   S.currentRoom = roomId;
   const room = S.rooms[roomId];
-  if (!room) { console.error('Room not found:', roomId); return; }
-
-  roomLabel.textContent = room.label;
-  objectiveEl.textContent = room.objective || 'Look around.';
-
+  if (!room) return;
+  $('room-name-display').textContent = room.label;
   updateNavArrows();
-  renderRoom();
-  log(`Entered: ${room.label}`);
+  closeActivePanel();
 }
 
 function updateNavArrows() {
   const room = S.rooms[S.currentRoom];
   const c = room.connections || {};
-  navLeft.classList.toggle('hidden', !c.left);
-  navRight.classList.toggle('hidden', !c.right);
-  navUp.classList.toggle('hidden', !c.up);
-  navDown.classList.toggle('hidden', !c.down);
+  ['left','right','up','down'].forEach(dir => {
+    const btn = $('nav-' + dir);
+    if (!btn) return;
+    const dest = c[dir];
+    if (!dest) { btn.classList.add('hidden'); return; }
+    // Check if door leading that way is unlocked
+    const door = getDoorToRoom(dest);
+    if (door && door.locked && !S.unlockedDoors[door.id]) {
+      btn.classList.add('hidden');
+    } else {
+      btn.classList.remove('hidden');
+    }
+  });
 }
 
-navLeft.addEventListener('click',  () => navigate('left'));
-navRight.addEventListener('click', () => navigate('right'));
-navUp.addEventListener('click',    () => navigate('up'));
-navDown.addEventListener('click',  () => navigate('down'));
+function getDoorToRoom(destRoomId) {
+  const room = S.rooms[S.currentRoom];
+  return room.objects.find(o => o.type === 'door' && o.leadsTo === destRoomId) || null;
+}
+
+['left','right','up','down'].forEach(dir => {
+  const btn = $('nav-' + dir);
+  if (btn) btn.addEventListener('click', () => navigate(dir));
+});
 
 function navigate(dir) {
   const room = S.rooms[S.currentRoom];
   const dest = room.connections && room.connections[dir];
-  if (dest) loadRoom(dest);
+  if (!dest) return;
+  const door = getDoorToRoom(dest);
+  if (door && door.locked && !S.unlockedDoors[door.id]) {
+    toast('That way is locked.', 'error');
+    return;
+  }
+  closeActivePanel();
+  loadRoom(dest);
 }
 
 // ===== CANVAS RENDERING =====
@@ -248,110 +213,224 @@ function resizeCanvas() {
   const rect = vp.getBoundingClientRect();
   const aspect = 16 / 9;
   let w = rect.width - 60, h = rect.height - 40;
-  if (w / h > aspect) w = h * aspect;
-  else h = w / aspect;
+  if (w / h > aspect) w = h * aspect; else h = w / aspect;
   canvas.width = Math.floor(w);
   canvas.height = Math.floor(h);
   canvas.style.width = canvas.width + 'px';
   canvas.style.height = canvas.height + 'px';
 }
+window.addEventListener('resize', () => { resizeCanvas(); });
 
-window.addEventListener('resize', () => { resizeCanvas(); renderRoom(); });
-
-function renderLoop() {
+let lastTime = 0;
+function renderLoop(ts) {
   updateTimer();
-  renderRoom();
+  const dt = ts - lastTime; lastTime = ts;
+  renderRoom(dt);
   requestAnimationFrame(renderLoop);
 }
 
-function renderRoom() {
+const spriteCache = {};
+function getSprite(path) {
+  if (!path || !spriteCache[path]) {
+    if (path) { const img = new Image(); img.src = path; spriteCache[path] = img; }
+    return null;
+  }
+  return spriteCache[path];
+}
+
+let _morseTime = 0; // global animation clock for morse display
+let _windowAnim = {}; // per-window animation state
+
+function renderRoom(dt) {
   if (!S.currentRoom) return;
   const room = S.rooms[S.currentRoom];
   const W = canvas.width, H = canvas.height;
+  _morseTime += (dt || 16);
 
-  // Background
-  ctx.fillStyle = room.bg || '#0b1a0b';
+  ctx.fillStyle = room.bg || '#080f08';
   ctx.fillRect(0, 0, W, H);
 
-  if (room.bgSprite) {
-    // Draw background sprite if provided
-    const img = getSprite(room.bgSprite);
-    if (img && img.complete) ctx.drawImage(img, 0, 0, W, H);
-  }
-
-  // Draw grid texture (subtle)
-  ctx.strokeStyle = 'rgba(0,255,65,0.03)';
+  // Subtle grid
+  ctx.strokeStyle = 'rgba(0,255,65,0.025)';
   ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  for (let x = 0; x < W; x += 48) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 48) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
 
-  // Draw each object
   room.objects.forEach(obj => {
+    if (obj.type === 'window') { drawWindow(obj, W, H); return; }
     drawObject(obj, W, H);
   });
 
   // Hover highlight
-  if (S.hoverObj) {
+  if (S.hoverObj && S.hoverObj.type !== 'prop') {
     const obj = S.hoverObj;
     const ox = obj.x * W, oy = obj.y * H, ow = obj.w * W, oh = obj.h * H;
-    ctx.strokeStyle = 'rgba(0,255,65,0.7)';
+    ctx.strokeStyle = 'rgba(0,255,65,0.6)';
     ctx.lineWidth = 2;
     ctx.strokeRect(ox - 1, oy - 1, ow + 2, oh + 2);
   }
 }
 
-const spriteCache = {};
-function getSprite(path) {
-  if (!path) return null;
-  if (!spriteCache[path]) {
-    const img = new Image();
-    img.src = path;
-    img.onload = () => renderRoom();
-    spriteCache[path] = img;
-  }
-  return spriteCache[path];
-}
-
 function drawObject(obj, W, H) {
   const ox = obj.x * W, oy = obj.y * H, ow = obj.w * W, oh = obj.h * H;
+  if (ow <= 0 || oh <= 0) return;
 
-  if (obj.sprite) {
-    const img = getSprite(obj.sprite);
-    if (img && img.complete) {
-      ctx.drawImage(img, ox, oy, ow, oh);
-    } else {
-      drawPlaceholder(obj, ox, oy, ow, oh);
-    }
+  if (obj.sprite && getSprite(obj.sprite)?.complete) {
+    ctx.drawImage(getSprite(obj.sprite), ox, oy, ow, oh);
   } else {
     drawPlaceholder(obj, ox, oy, ow, oh);
   }
 
-  // Overlay indicators
+  // Special animation for device/morse
+  if (obj.type === 'device' && obj.animationType === 'morse_display') {
+    drawMorseAnim(obj, ox, oy, ow, oh);
+  }
+
   drawObjectIndicator(obj, ox, oy, ow, oh);
 }
 
+function drawWindow(obj, W, H) {
+  const wx = obj.windowX * W, wy = obj.windowY * H;
+  const ww = obj.windowW * W, wh = obj.windowH * H;
+  if (!ww || !wh) return;
+
+  const scene = obj.scene && window.WINDOW_SCENES ? window.WINDOW_SCENES[obj.scene] : null;
+
+  // Window frame
+  ctx.fillStyle = '#030810';
+  ctx.fillRect(wx, wy, ww, wh);
+  ctx.strokeStyle = 'rgba(0,255,65,0.3)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(wx, wy, ww, wh);
+
+  if (scene) {
+    // Animated sky gradient
+    const t = _morseTime / 1000;
+    const grd = ctx.createLinearGradient(wx, wy, wx, wy + wh);
+    const sky = scene.skyColor || ['#0a1a3a','#1a0a2a'];
+    sky.forEach((c, i) => grd.addColorStop(i / (sky.length - 1), c));
+    ctx.fillStyle = grd;
+    ctx.fillRect(wx, wy, ww, wh);
+
+    // Stars if applicable
+    if (scene.stars) {
+      ctx.fillStyle = 'rgba(255,255,220,0.6)';
+      const seed = 42;
+      for (let i = 0; i < 15; i++) {
+        const sx = wx + ((seed * (i+1) * 37) % 100) / 100 * ww;
+        const sy = wy + ((seed * (i+1) * 53) % 100) / 100 * (wh * 0.7);
+        const pulse = 0.4 + 0.3 * Math.sin(t * 1.5 + i);
+        ctx.globalAlpha = pulse;
+        ctx.fillRect(sx, sy, 1, 1);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Clock tower silhouette
+    const tw = ww * 0.15, th = wh * 0.6;
+    const tx = wx + ww * 0.5 - tw / 2, ty = wy + wh - th;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(tx, ty, tw, th);
+    // Tower top
+    ctx.beginPath();
+    ctx.moveTo(tx, ty); ctx.lineTo(tx + tw / 2, ty - wh * 0.1); ctx.lineTo(tx + tw, ty);
+    ctx.fill();
+
+    // Clock face on tower
+    if (scene.clockTime) {
+      const cr = tw * 0.4;
+      const cx2 = tx + tw / 2, cy2 = ty + th * 0.25;
+      ctx.beginPath(); ctx.arc(cx2, cy2, cr, 0, Math.PI * 2);
+      ctx.fillStyle = '#ddd8b8'; ctx.fill();
+      ctx.strokeStyle = '#888'; ctx.lineWidth = 1; ctx.stroke();
+      // Hour hand
+      const { h, m } = scene.clockTime;
+      const ha = ((h % 12 + m / 60) / 12) * Math.PI * 2 - Math.PI / 2;
+      const ma = (m / 60) * Math.PI * 2 - Math.PI / 2;
+      ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(cx2, cy2); ctx.lineTo(cx2 + Math.cos(ha) * cr * 0.55, cy2 + Math.sin(ha) * cr * 0.55); ctx.stroke();
+      ctx.strokeStyle = '#555'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx2, cy2); ctx.lineTo(cx2 + Math.cos(ma) * cr * 0.75, cy2 + Math.sin(ma) * cr * 0.75); ctx.stroke();
+    }
+
+    // Ground
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(wx, wy + wh * 0.75, ww, wh * 0.25);
+  }
+
+  // Crosshatch (window pane lines)
+  ctx.strokeStyle = 'rgba(100,100,80,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(wx + ww/2, wy); ctx.lineTo(wx + ww/2, wy + wh); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(wx, wy + wh/2); ctx.lineTo(wx + ww, wy + wh/2); ctx.stroke();
+
+  // Label
+  if (S.hoverObj?.id === obj.id) {
+    ctx.fillStyle = 'rgba(0,255,65,0.6)';
+    ctx.font = '11px Share Tech Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Window', wx + ww/2, wy + wh + 14);
+    ctx.textAlign = 'left';
+  }
+}
+
+// Morse animation for device objects
+function drawMorseAnim(obj, ox, oy, ow, oh) {
+  const puzzle = window.GAME_PUZZLES['morse_lamp'];
+  if (!puzzle) return;
+  // Build morse sequence
+  const morse = { S:'...',U:'..-',N:'-.' };
+  const msg = puzzle.message; // 'SUN'
+  const morseLookup = {A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..'};
+  const fullSeq = msg.split('').map(c => morseLookup[c] || '').join(' / ');
+  // Full sequence timing (units: dot=1, dash=3, intra=1, inter=3, word=7)
+  const DOT=200, DASH=600, INTRA=200, INTER=600;
+  let seq = [];
+  fullSeq.split('').forEach(ch => {
+    if (ch === '.') seq.push({ on: true, dur: DOT }, { on: false, dur: INTRA });
+    else if (ch === '-') seq.push({ on: true, dur: DASH }, { on: false, dur: INTRA });
+    else if (ch === ' ') seq.push({ on: false, dur: INTER });
+    else if (ch === '/') seq.push({ on: false, dur: INTER });
+  });
+  const totalDur = seq.reduce((a, s) => a + s.dur, 0) + 1000; // 1s pause at end
+  const t = _morseTime % totalDur;
+  let acc = 0, lit = false;
+  for (const step of seq) {
+    if (t < acc + step.dur) { lit = step.on; break; }
+    acc += step.dur;
+  }
+  // Draw lamp glow
+  const cx = ox + ow / 2, cy = oy + ow / 2;
+  const r = ow * 0.4;
+  const lampColor = lit ? 'rgba(255,255,0,0.95)' : 'rgba(40,40,0,0.6)';
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = lampColor; ctx.fill();
+  if (lit) {
+    ctx.shadowColor = '#ffff00'; ctx.shadowBlur = ow;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,180,0.5)'; ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
 function drawPlaceholder(obj, ox, oy, ow, oh) {
-  const col = obj.colour || '#1a3320';
-  ctx.fillStyle = col;
+  ctx.fillStyle = obj.colour || '#0f1a0f';
   ctx.fillRect(ox, oy, ow, oh);
-  ctx.strokeStyle = 'rgba(0,255,65,0.15)';
+  ctx.strokeStyle = 'rgba(0,255,65,0.12)';
   ctx.lineWidth = 1;
   ctx.strokeRect(ox, oy, ow, oh);
 
-  // Label in placeholder
-  ctx.fillStyle = 'rgba(0,255,65,0.5)';
-  ctx.font = `${Math.max(9, Math.min(14, ow / 8))}px 'Share Tech Mono', monospace`;
+  ctx.fillStyle = 'rgba(0,255,65,0.4)';
+  ctx.font = `${Math.max(8, Math.min(13, ow / 8))}px Share Tech Mono, monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-
-  // Word-wrap the label
   const words = obj.label.split(' ');
-  const lineH = 14;
+  const lineH = 13;
   const lines = [];
   let cur = '';
   words.forEach(w => {
     const test = cur ? cur + ' ' + w : w;
-    if (ctx.measureText(test).width > ow - 8) { lines.push(cur); cur = w; }
+    if (ctx.measureText(test).width > ow - 6) { if (cur) lines.push(cur); cur = w; }
     else cur = test;
   });
   if (cur) lines.push(cur);
@@ -359,67 +438,59 @@ function drawPlaceholder(obj, ox, oy, ow, oh) {
   lines.forEach((line, i) => {
     ctx.fillText(line, ox + ow / 2, oy + oh / 2 - totalH / 2 + i * lineH + lineH / 2);
   });
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
 
 function drawObjectIndicator(obj, ox, oy, ow, oh) {
-  const now = Date.now();
-  // Pulse indicator based on type
-  let icon = '';
-  let col = 'rgba(0,255,65,0.8)';
-
+  let icon = '', col = 'rgba(0,255,65,0.8)';
   if (obj.type === 'door') {
-    const solved = S.unlockedDoors[obj.id];
-    icon = solved ? '✓' : '🔒';
-    col = solved ? 'rgba(0,255,65,0.9)' : 'rgba(255,179,0,0.9)';
+    const unlocked = S.unlockedDoors[obj.id] || !obj.locked;
+    icon = unlocked ? '✓' : '🔒'; col = unlocked ? 'rgba(0,255,65,0.9)' : 'rgba(255,179,0,0.9)';
   } else if (obj.type === 'safe') {
-    icon = S.openedSafes[obj.id] ? '✓' : '🔐';
-    col = S.openedSafes[obj.id] ? 'rgba(0,255,65,0.9)' : 'rgba(255,179,0,0.9)';
+    const solved = S.openedSafes[obj.id];
+    const hidden = obj.requiresPuzzle && !S.solvedPuzzles[obj.requiresPuzzle];
+    if (hidden) return; // don't show indicator for hidden safe
+    icon = solved ? '✓' : '🔐'; col = solved ? 'rgba(0,255,65,0.9)' : 'rgba(255,179,0,0.9)';
   } else if (obj.type === 'cover') {
     icon = S.searchedCovers[obj.id] ? '✓' : '🔍';
     col = S.searchedCovers[obj.id] ? 'rgba(100,100,100,0.5)' : 'rgba(0,255,65,0.8)';
   } else if (obj.type === 'puzzle') {
-    icon = S.solvedPuzzles[obj.puzzleId] ? '✓' : '⚙';
-    col = S.solvedPuzzles[obj.puzzleId] ? 'rgba(0,255,65,0.9)' : 'rgba(0,200,255,0.9)';
+    const solved = S.solvedPuzzles[obj.puzzleId];
+    icon = solved ? '✓' : '⚙'; col = solved ? 'rgba(0,255,65,0.9)' : 'rgba(0,200,255,0.9)';
   } else if (obj.type === 'note') {
     icon = '📝';
-  } else if (obj.type === 'pickup') {
-    icon = '◈';
-    // pulsing glow
-    const pulse = 0.5 + 0.5 * Math.sin(now / 400);
-    col = `rgba(255,179,0,${0.6 + 0.4 * pulse})`;
+  } else if (obj.type === 'device') {
+    icon = ''; // animated, no indicator needed
   }
-
   if (icon) {
-    ctx.font = '12px monospace';
-    ctx.fillStyle = col;
+    ctx.font = '11px monospace'; ctx.fillStyle = col;
     ctx.fillText(icon, ox + 3, oy + 13);
   }
 }
 
-// ===== MOUSE INTERACTION =====
+// ===== MOUSE =====
+let _hoverTipTimeout;
 canvas.addEventListener('mousemove', e => {
+  if (S.tutorialActive) return;
   const rect = canvas.getBoundingClientRect();
   const mx = (e.clientX - rect.left) / (rect.right - rect.left);
   const my = (e.clientY - rect.top) / (rect.bottom - rect.top);
-  const obj = getObjectAt(mx, my);
-  S.hoverObj = obj;
-  if (obj && obj.type !== 'prop') {
-    hoverTip.textContent = obj.label + (obj.type === 'cover' && S.searchedCovers[obj.id] ? ' (searched)' : '');
-    hoverTip.classList.remove('hidden');
+  S.hoverObj = getObjectAt(mx, my);
+  const tip = $('hover-tooltip');
+  if (S.hoverObj && S.hoverObj.type !== 'prop') {
+    tip.textContent = S.hoverObj.label;
+    tip.classList.remove('hidden');
     canvas.style.cursor = 'pointer';
   } else {
-    hoverTip.classList.add('hidden');
+    tip.classList.add('hidden');
     canvas.style.cursor = 'crosshair';
   }
 });
-
 canvas.addEventListener('mouseleave', () => {
   S.hoverObj = null;
-  hoverTip.classList.add('hidden');
+  const tip = $('hover-tooltip');
+  if (tip) tip.classList.add('hidden');
 });
-
 canvas.addEventListener('click', e => {
   if (S.tutorialActive) return;
   const rect = canvas.getBoundingClientRect();
@@ -432,18 +503,38 @@ canvas.addEventListener('click', e => {
 function getObjectAt(mx, my) {
   const room = S.rooms[S.currentRoom];
   if (!room) return null;
-  // Iterate in reverse to hit top-drawn objects first
   for (let i = room.objects.length - 1; i >= 0; i--) {
     const obj = room.objects[i];
-    if (mx >= obj.x && mx <= obj.x + obj.w && my >= obj.y && my <= obj.y + obj.h) {
-      return obj;
+    // Window type uses different coords
+    if (obj.type === 'window') {
+      if (mx >= obj.windowX && mx <= obj.windowX + obj.windowW &&
+          my >= obj.windowY && my <= obj.windowY + obj.windowH) return obj;
+      continue;
     }
+    if (!obj.x && obj.x !== 0) continue;
+    if (mx >= obj.x && mx <= obj.x + obj.w && my >= obj.y && my <= obj.y + obj.h) return obj;
   }
   return null;
 }
 
 // ===== INTERACTION DISPATCH =====
 function interactWith(obj) {
+  S.interactTarget = obj;
+
+  // Easter egg: multi-click props
+  if (obj.easterEggClicks) {
+    S.easterEggClicks[obj.id] = (S.easterEggClicks[obj.id] || 0) + 1;
+    if (S.easterEggClicks[obj.id] >= obj.easterEggClicks && !S.easterEggTriggered[obj.easterEggId]) {
+      S.easterEggTriggered[obj.easterEggId] = true;
+      const egg = window.GAME_EASTER_EGGS[obj.easterEggId];
+      if (egg) {
+        const msg = (S.isFool && egg.foolMessage) ? egg.foolMessage : egg.message;
+        showNotice(obj.label, msg);
+        return;
+      }
+    }
+  }
+
   switch (obj.type) {
     case 'cover':   interactCover(obj); break;
     case 'safe':    interactSafe(obj); break;
@@ -452,163 +543,275 @@ function interactWith(obj) {
     case 'note':    interactNote(obj); break;
     case 'pickup':  interactPickup(obj); break;
     case 'device':  interactDevice(obj); break;
-    default:        showNotice(obj.label, obj.description || 'Nothing interesting.', []); break;
+    case 'window':  interactWindow(obj); break;
+    case 'prop':    showNotice(obj.label, obj.description || 'Nothing of interest.'); break;
+    default:        showNotice(obj.label, obj.description || '...'); break;
   }
 }
 
-// ---- COVER ----
+// ===== INTERACTION HANDLERS =====
 function interactCover(obj) {
   if (S.searchedCovers[obj.id]) {
-    showNotice(obj.label, obj.description + '\n\n[Already searched — nothing more here.]', []);
+    showNotice(obj.label, obj.description + '\n\n[Already searched — nothing more here.]');
     return;
   }
-  const actions = [
-    { label: '🔍 Search', cb: () => doSearch(obj) },
-  ];
-  // Use item if compatible
-  if (S.selectedItem) {
-    const item = window.GAME_ITEMS[S.selectedItem];
-    if (item && item.useWith && item.useWith.includes(obj.id)) {
-      actions.push({ label: `Use ${item.name}`, cb: () => useItemOn(S.selectedItem, obj), cls: 'pickup-btn' });
-    }
-  }
-  showNotice(obj.label, obj.description, actions);
+  showNotice(obj.label, obj.description, [{ label: '🔍 Search', cb: () => doSearch(obj) }]);
 }
 
 function doSearch(obj) {
-  closePanel('notice-popup');
   S.searchedCovers[obj.id] = true;
   if (!obj.contains || obj.contains.length === 0) {
-    log(`Searched ${obj.label} — nothing found.`);
-    showNotice(obj.label, 'You search thoroughly. Nothing here.', []);
-    return;
-  }
-  const found = obj.contains.filter(entry => !S.flags['found_' + entry.item]);
-  if (found.length === 0) {
-    showNotice(obj.label, 'Already taken everything from here.', []);
-    return;
-  }
-  let msg = 'You find: ';
-  const names = [];
-  found.forEach(entry => {
-    addItem(entry.item);
-    S.flags['found_' + entry.item] = true;
-    names.push(window.GAME_ITEMS[entry.item]?.name || entry.item);
-  });
-  msg += names.join(', ') + '.';
-  log(`Found: ${names.join(', ')}`, true);
-  showNotice(obj.label, msg, []);
-}
-
-// ---- SAFE ----
-function interactSafe(obj) {
-  if (S.openedSafes[obj.id]) {
-    showNotice(obj.label, 'Already open. You already took what was inside.', []);
-    return;
-  }
-  const actions = [
-    { label: '🔢 Enter Code', cb: () => { closePanel('notice-popup'); openCodePopup(obj); } },
-  ];
-  if (S.selectedItem) {
-    const item = window.GAME_ITEMS[S.selectedItem];
-    if (item && item.useWith && item.useWith.includes(obj.id)) {
-      actions.push({ label: `Use ${item.name}`, cb: () => useItemOn(S.selectedItem, obj), cls: 'pickup-btn' });
+    showNotice(obj.label, 'You search carefully. Nothing here.');
+    // Easter egg for desk
+    if (obj.easterEggId && !S.easterEggTriggered['desk_searched']) {
+      S.easterEggTriggered['desk_searched'] = true;
+      const egg = window.GAME_EASTER_EGGS[obj.easterEggId];
+      if (egg) {
+        const msg = (S.isFool && egg.foolMessage) ? egg.foolMessage : egg.message;
+        setTimeout(() => showNotice(obj.label + ' — Hidden Detail', msg), 1500);
+      }
     }
-  }
-  showNotice(obj.label, obj.description, actions);
-}
-
-// ---- DOOR ----
-function interactDoor(obj) {
-  if (S.unlockedDoors[obj.id] || !obj.locked) {
-    navigate(directionOf(obj.leadsTo));
-    if (obj.leadsTo === '__EXIT__') triggerWin();
     return;
   }
-  // Check if unlocked by puzzle
+  const found = obj.contains.filter(e => !S.flags['found_' + e.item]);
+  if (!found.length) { showNotice(obj.label, 'Nothing more here.'); return; }
+
+  const names = [];
+  found.forEach(e => {
+    addItem(e.item, true);
+    S.flags['found_' + e.item] = true;
+    names.push(window.GAME_ITEMS[e.item]?.name || e.item);
+  });
+
+  // Desk easter egg after search
+  if (obj.easterEggId === 'desk_secret') {
+    setTimeout(() => {
+      if (!S.easterEggTriggered['desk_searched']) {
+        S.easterEggTriggered['desk_searched'] = true;
+        const egg = window.GAME_EASTER_EGGS['desk_secret'];
+        if (egg) {
+          const msg = (S.isFool && egg.foolMessage) ? egg.foolMessage : egg.message;
+          showNotice(obj.label + ' — Hidden Detail', msg);
+        }
+      }
+    }, 1200);
+  }
+
+  // Show item popup for each found item
+  found.forEach((e, i) => {
+    setTimeout(() => showItemPopup(e.item), i === 0 ? 200 : 0);
+  });
+}
+
+function interactSafe(obj) {
+  // Check if hidden behind puzzle requirement
+  if (obj.requiresPuzzle && !S.solvedPuzzles[obj.requiresPuzzle]) {
+    showNotice(obj.label, obj.lockedDescription || 'A blank panel. Nothing here yet.');
+    return;
+  }
+  if (S.openedSafes[obj.id]) {
+    showNotice(obj.label, 'Already opened. Empty.');
+    return;
+  }
+  showNotice(obj.label, obj.description, [
+    { label: '🔢 Enter Code', cb: () => openCodePopup(obj) }
+  ]);
+}
+
+function interactDoor(obj) {
+  const unlocked = S.unlockedDoors[obj.id] || !obj.locked;
+  if (unlocked) {
+    if (obj.leadsTo === '__EXIT__') { triggerWin(); return; }
+    const dir = directionOf(obj.leadsTo);
+    if (dir) navigate(dir);
+    return;
+  }
+  // Check if puzzle unlocks it
   if (obj.unlockedBy && S.solvedPuzzles[obj.unlockedBy]) {
     S.unlockedDoors[obj.id] = true;
-    log(obj.unlockedMessage || 'Door opened.', true);
-    if (obj.leadsTo === '__EXIT__') { triggerWin(); return; }
-    if (obj.leadsTo) loadRoom(obj.leadsTo);
+    toast(obj.unlockedMessage || 'Unlocked!', 'success');
+    updateNavArrows();
+    if (obj.leadsTo === '__EXIT__') triggerWin();
+    closeActivePanel();
     return;
   }
-  // Check key item
+  // Key item
   if (obj.keyItem && S.inventory.includes(obj.keyItem)) {
-    const actions = [
-      { label: `🗝️ Use ${window.GAME_ITEMS[obj.keyItem]?.name || obj.keyItem}`, cb: () => { unlockDoorWithKey(obj); closePanel('notice-popup'); }, cls: 'pickup-btn' },
-    ];
-    showNotice(obj.label, obj.description, actions);
+    const item = window.GAME_ITEMS[obj.keyItem];
+    showNotice(obj.label, obj.description, [
+      { label: `🗝️ Use ${item?.name || obj.keyItem}`, cb: () => { unlockDoorWithKey(obj); closeActivePanel(); } }
+    ]);
     return;
   }
-  // Check code
-  if (obj.code) {
-    const actions = [
-      { label: '🔢 Enter Code', cb: () => { closePanel('notice-popup'); openCodePopup(obj); } },
-    ];
-    showNotice(obj.label, obj.lockedMessage || 'Locked.', actions);
-    return;
-  }
-  showNotice(obj.label, obj.lockedMessage || 'Locked.', []);
-}
-
-function directionOf(roomId) {
-  if (roomId === '__EXIT__') return null;
-  const room = S.rooms[S.currentRoom];
-  const c = room.connections || {};
-  for (const [dir, id] of Object.entries(c)) {
-    if (id === roomId) return dir;
-  }
-  return null;
+  // Locked — no key
+  showNotice(obj.label, obj.lockedMessage || 'Locked.');
 }
 
 function unlockDoorWithKey(obj) {
   S.unlockedDoors[obj.id] = true;
-  // Consume key? (optional — for this design we keep it)
-  log(obj.unlockedMessage || 'Door unlocked with key.', true);
-  if (obj.leadsTo === '__EXIT__') { triggerWin(); return; }
-  if (obj.leadsTo) loadRoom(obj.leadsTo);
+  toast(obj.unlockedMessage || 'Unlocked!', 'success');
+  updateNavArrows();
+  if (obj.leadsTo === '__EXIT__') triggerWin();
 }
 
-// ---- NOTE ----
+function directionOf(roomId) {
+  const room = S.rooms[S.currentRoom];
+  const c = room.connections || {};
+  for (const [dir, id] of Object.entries(c)) { if (id === roomId) return dir; }
+  return null;
+}
+
 function interactNote(obj) {
   const hasUV = S.inventory.includes('uv_light');
   let text = obj.description || '';
-  if (obj.uvText && hasUV) text += '\n\n🔦 [UV Light reveals]: ' + obj.uvText;
-  const actions = [];
-  if (obj.uvText && !hasUV) text += '\n\n[Some writing is faint — maybe you need something to see it better.]';
-  showNotice(obj.label, text, actions);
+  if (obj.uvText && hasUV) {
+    text += '\n\n🔦 ' + obj.uvText;
+    if (obj.uvEasterEgg) S.easterEggTriggered['painting_uv'] = true;
+  } else if (obj.uvText && !hasUV) {
+    text += '\n\n[Some markings are too faint to read.]';
+  }
+  showNotice(obj.label, text);
 }
 
-// ---- PICKUP ----
 function interactPickup(obj) {
-  if (S.flags['picked_' + obj.id]) {
-    showNotice(obj.label, 'Already taken.', []);
+  if (S.flags['picked_' + obj.id]) { showNotice(obj.label, 'Already taken.'); return; }
+  addItem(obj.itemId, true);
+  S.flags['picked_' + obj.id] = true;
+  showItemPopup(obj.itemId);
+}
+
+function interactDevice(obj) {
+  // Device is a visual-only animation linked to a puzzle elsewhere
+  showNotice(obj.label, obj.description || 'An active device. The input for this might be elsewhere.');
+}
+
+function interactWindow(obj) {
+  showNotice(obj.label, obj.description || 'A window. You can see outside but cannot interact.');
+}
+
+// ===== NOTICE POPUP =====
+function showNotice(title, body, actions) {
+  $('notice-title').textContent = title;
+  const bodyEl = $('notice-body');
+  bodyEl.innerHTML = '';
+  const p = document.createElement('p');
+  p.innerHTML = (body || '').replace(/\n/g, '<br>');
+  bodyEl.appendChild(p);
+
+  // Item use sidebar
+  const actEl = $('notice-actions');
+  actEl.innerHTML = '';
+
+  if (actions && actions.length) {
+    actions.forEach(a => {
+      const btn = document.createElement('button');
+      btn.className = 'interact-btn';
+      btn.textContent = a.label;
+      btn.onclick = () => { a.cb(); };
+      actEl.appendChild(btn);
+    });
+  }
+
+  // Close btn
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'interact-btn close-btn';
+  closeBtn.textContent = 'Close';
+  closeBtn.onclick = () => closePanel('notice-popup');
+  actEl.appendChild(closeBtn);
+
+  openPanel('notice-popup');
+  renderItemSidebar();
+}
+
+// Render item sidebar in notice popup
+function renderItemSidebar() {
+  const sidebar = $('item-use-sidebar');
+  if (!sidebar) return;
+  sidebar.innerHTML = '';
+  if (!S.inventory.length) {
+    sidebar.innerHTML = '<div class="sidebar-empty">No items</div>';
     return;
   }
-  addItem(obj.itemId);
-  S.flags['picked_' + obj.id] = true;
-  log(`Picked up: ${window.GAME_ITEMS[obj.itemId]?.name || obj.itemId}`, true);
-  showNotice(obj.label, `You pick up the ${window.GAME_ITEMS[obj.itemId]?.name || obj.itemId}.`, []);
+  const label = document.createElement('div');
+  label.className = 'sidebar-label';
+  label.textContent = 'USE ITEM:';
+  sidebar.appendChild(label);
+
+  S.inventory.forEach(id => {
+    const item = window.GAME_ITEMS[id];
+    if (!item) return;
+    const btn = document.createElement('button');
+    btn.className = 'item-use-btn';
+    btn.innerHTML = `<span class="item-use-icon">${item.icon}</span><span class="item-use-name">${item.name}</span>`;
+    btn.title = item.description;
+    btn.onclick = () => tryUseItemOnTarget(id);
+    sidebar.appendChild(btn);
+  });
 }
 
-// ---- DEVICE ----
-function interactDevice(obj) {
-  // Extensible — forward to puzzle or custom handler
-  if (obj.puzzleId) interactPuzzle(obj);
-  else showNotice(obj.label, obj.description || 'A device.', []);
+function tryUseItemOnTarget(itemId) {
+  const obj = S.interactTarget;
+  const item = window.GAME_ITEMS[itemId];
+  if (!item) return;
+
+  // UV flashlight — special: reveals uvText on notes
+  if (itemId === 'uv_light' && obj) {
+    if (obj.uvText) {
+      const bodyEl = $('notice-body');
+      if (bodyEl) {
+        bodyEl.innerHTML = '';
+        const p = document.createElement('p');
+        const fullText = obj.description + '\n\n🔦 ' + obj.uvText;
+        p.innerHTML = fullText.replace(/\n/g, '<br>');
+        bodyEl.appendChild(p);
+      }
+      toast('UV light reveals hidden text!', 'item');
+      return;
+    } else {
+      toast('Nothing hidden here.', 'info');
+      return;
+    }
+  }
+
+  // Wire fragment on fusebox
+  if (itemId === 'wire_fragment' && obj?.id === 'fusebox_obj') {
+    toast('The wire is compatible. Open the fuse box to connect it.', 'info');
+    return;
+  }
+
+  // Key items on doors
+  if (obj?.type === 'door' && obj.keyItem === itemId) {
+    unlockDoorWithKey(obj);
+    closeActivePanel();
+    return;
+  }
+
+  // Keycard on exit
+  if (obj?.type === 'door' && obj.keyItem === itemId) {
+    unlockDoorWithKey(obj);
+    closeActivePanel();
+    return;
+  }
+
+  // Check useWith
+  if (item.useWith && item.useWith.includes(obj?.id)) {
+    if (obj.type === 'door') { unlockDoorWithKey(obj); closeActivePanel(); return; }
+  }
+
+  toast(`Can't use ${item.name} here.`, 'info');
 }
 
 // ===== PUZZLE ENGINE =====
 function interactPuzzle(obj) {
   const puzzleId = obj.puzzleId;
-  if (!puzzleId) { showNotice(obj.label, obj.description || '...', []); return; }
+  if (!puzzleId) { showNotice(obj.label, obj.description); return; }
   if (S.solvedPuzzles[puzzleId]) {
-    showNotice(obj.label, (obj.description || '') + '\n\n[Already solved ✓]', []);
+    showNotice(obj.label, obj.solvedDescription || obj.description + '\n\n[Already solved ✓]');
     return;
   }
   const puzzle = window.GAME_PUZZLES[puzzleId];
-  if (!puzzle) { showNotice(obj.label, obj.description || '...', []); return; }
+  if (!puzzle) return;
+  closeActivePanel();
 
   switch (puzzle.type) {
     case 'morse':    openMorsePuzzle(puzzle, obj); break;
@@ -616,7 +819,7 @@ function interactPuzzle(obj) {
     case 'wires':    openWiresPuzzle(puzzle, obj); break;
     case 'slider':   openSliderPuzzle(puzzle, obj); break;
     case 'clock':    openClockPuzzle(puzzle, obj); break;
-    default:         showNotice(obj.label, obj.description + '\n[Puzzle type: ' + puzzle.type + ']', []); break;
+    default:         showNotice(obj.label, obj.description); break;
   }
 }
 
@@ -624,89 +827,55 @@ function interactPuzzle(obj) {
 function openMorsePuzzle(puzzle, obj) {
   $('puzzle-title').textContent = puzzle.label;
   const body = $('puzzle-body');
-  body.innerHTML = '';
+  const morseLookup = {A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..'};
+  const msg = puzzle.message;
+  const sequence = msg.split('').map(c => morseLookup[c] || '').join(' / ');
 
-  const msg = puzzle.message; // e.g. 'SUN'
-  const morse = { A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..' };
-  const sequence = msg.split('').map(c => morse[c] || '').join(' / ');
-
-  const lampDiv = document.createElement('div');
-  lampDiv.style.cssText = 'text-align:center;padding:16px;';
-  lampDiv.innerHTML = `
-    <div id="morse-lamp" style="width:60px;height:60px;border-radius:50%;background:#222;border:2px solid var(--border);margin:0 auto 16px;transition:background 0.05s;"></div>
-    <div style="font-size:0.82rem;color:var(--muted);margin-bottom:16px;">Watch the lamp and decode the message.</div>
-    <div style="font-size:0.8rem;color:var(--muted);margin-bottom:16px;">· = short &nbsp;&nbsp; — = long &nbsp;&nbsp; / = new letter</div>
-    <button id="morse-play" class="btn-primary" style="margin-bottom:12px;">▶ Play Signal</button>
-    <div style="margin-top:12px;">
-      <input id="morse-answer" placeholder="Type decoded word" style="background:rgba(0,255,65,0.05);border:1px solid var(--border);color:var(--accent);font-family:monospace;padding:8px 12px;width:180px;text-transform:uppercase;text-align:center;" />
-      <button id="morse-submit" class="btn-secondary" style="margin-left:8px;">Check</button>
-    </div>
-    <div id="morse-feedback" style="margin-top:10px;font-size:0.82rem;min-height:16px;"></div>
-    <div style="margin-top:8px;font-size:0.75rem;color:var(--muted);">Hint: ${puzzle.hint}</div>
-  `;
-  body.appendChild(lampDiv);
+  body.innerHTML = `
+    <div style="padding:16px;text-align:center;">
+      <p style="font-size:0.82rem;color:var(--muted);margin-bottom:12px;">The signal lamp in another room is sending a message.<br>Decode it here.</p>
+      <div style="font-size:0.75rem;color:var(--muted);margin-bottom:6px;">· = short dot &nbsp;&nbsp; — = long dash</div>
+      <div id="morse-preview" style="font-family:'VT323',monospace;font-size:1.2rem;color:var(--muted);letter-spacing:4px;margin-bottom:16px;min-height:24px;border:1px dashed var(--border);padding:8px;border-radius:4px;">${sequence}</div>
+      <div style="display:flex;gap:8px;justify-content:center;align-items:center;margin-bottom:12px;">
+        <input id="morse-answer" placeholder="Type decoded word" style="background:rgba(0,255,65,0.05);border:1px solid var(--border);color:var(--accent);font-family:monospace;padding:8px 12px;width:180px;text-transform:uppercase;text-align:center;border-radius:4px;font-size:1rem;"/>
+        <button id="morse-submit" class="btn-primary">Check</button>
+      </div>
+      <div id="morse-feedback" style="font-size:0.82rem;min-height:16px;"></div>
+    </div>`;
   openPanel('puzzle-popup');
 
-  const lamp = document.getElementById('morse-lamp');
-  let animId = null;
+  document.getElementById('morse-submit').onclick = checkMorse;
+  document.getElementById('morse-answer').addEventListener('keypress', e => { if (e.key === 'Enter') checkMorse(); });
 
-  function flashMorse(seq, done) {
-    let i = 0;
-    const parts = seq.split('');
-    function step() {
-      if (i >= parts.length) { lamp.style.background = '#222'; done && done(); return; }
-      const ch = parts[i++];
-      if (ch === '.') {
-        lamp.style.background = '#ffff00';
-        animId = setTimeout(() => { lamp.style.background = '#222'; animId = setTimeout(step, 120); }, 160);
-      } else if (ch === '-') {
-        lamp.style.background = '#ffff00';
-        animId = setTimeout(() => { lamp.style.background = '#222'; animId = setTimeout(step, 120); }, 480);
-      } else if (ch === ' ') {
-        lamp.style.background = '#222';
-        animId = setTimeout(step, 300);
-      } else if (ch === '/') {
-        lamp.style.background = '#222';
-        animId = setTimeout(step, 500);
-      } else {
-        step();
-      }
-    }
-    step();
-  }
-
-  document.getElementById('morse-play').onclick = () => {
-    if (animId) { clearTimeout(animId); lamp.style.background = '#222'; }
-    flashMorse(sequence, null);
-  };
-
-  document.getElementById('morse-submit').onclick = () => {
+  function checkMorse() {
     const ans = document.getElementById('morse-answer').value.trim().toUpperCase();
     const fb = document.getElementById('morse-feedback');
     if (ans === puzzle.message.toUpperCase()) {
-      fb.style.color = 'var(--green)';
-      fb.textContent = '✓ Correct! ' + puzzle.message;
+      fb.style.color = 'var(--green)'; fb.textContent = '✓ Correct!';
       solvePuzzle(puzzle, obj);
+      // Reward: wire fragment drops from compartment
+      if (!S.inventory.includes('wire_fragment')) {
+        setTimeout(() => { addItem('wire_fragment'); showItemPopup('wire_fragment'); }, 800);
+      }
       setTimeout(() => closePanel('puzzle-popup'), 1200);
     } else {
-      fb.style.color = 'var(--red)';
-      fb.textContent = '✗ Not quite. Try again.';
+      fb.style.color = 'var(--red)'; fb.textContent = '✗ Not right. Try again.';
     }
-  };
+  }
 }
 
 // ---- SEQUENCE PUZZLE ----
 function openSequencePuzzle(puzzle, obj) {
   $('puzzle-title').textContent = puzzle.label;
   const body = $('puzzle-body');
-  body.innerHTML = '';
   const entered = [];
 
-  const container = document.createElement('div');
-  container.style.cssText = 'padding:16px;';
+  body.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'padding:16px;';
 
   const display = document.createElement('div');
-  display.style.cssText = 'font-size:2rem;letter-spacing:8px;min-height:48px;text-align:center;margin-bottom:16px;border:1px solid var(--border);padding:8px;border-radius:4px;background:rgba(0,0,0,0.3);';
+  display.style.cssText = 'font-size:2rem;letter-spacing:8px;min-height:52px;text-align:center;margin-bottom:16px;border:1px solid var(--border);padding:8px;border-radius:4px;background:rgba(0,0,0,0.3);';
   display.textContent = '—';
 
   const grid = document.createElement('div');
@@ -714,7 +883,7 @@ function openSequencePuzzle(puzzle, obj) {
   puzzle.symbols.forEach((sym, idx) => {
     const btn = document.createElement('button');
     btn.textContent = sym;
-    btn.style.cssText = 'font-size:1.8rem;background:rgba(0,255,65,0.05);border:1px solid var(--border);padding:10px;cursor:pointer;border-radius:4px;transition:all 0.1s;';
+    btn.style.cssText = 'font-size:1.8rem;background:rgba(0,255,65,0.05);border:1px solid var(--border);padding:12px;cursor:pointer;border-radius:4px;transition:all 0.1s;';
     btn.onmouseenter = () => btn.style.background = 'rgba(0,255,65,0.15)';
     btn.onmouseleave = () => btn.style.background = 'rgba(0,255,65,0.05)';
     btn.onclick = () => {
@@ -727,17 +896,11 @@ function openSequencePuzzle(puzzle, obj) {
 
   const row = document.createElement('div');
   row.style.cssText = 'display:flex;gap:8px;';
-
   const clearBtn = document.createElement('button');
-  clearBtn.textContent = 'Clear';
-  clearBtn.className = 'btn-secondary';
-  clearBtn.style.flex = '1';
-  clearBtn.onclick = () => { entered.length = 0; display.textContent = '—'; };
-
+  clearBtn.textContent = 'Clear'; clearBtn.className = 'btn-secondary'; clearBtn.style.flex = '1';
+  clearBtn.onclick = () => { entered.length = 0; display.textContent = '—'; fb.textContent = ''; };
   const submitBtn = document.createElement('button');
-  submitBtn.textContent = 'Confirm';
-  submitBtn.className = 'btn-primary';
-  submitBtn.style.flex = '1';
+  submitBtn.textContent = 'Confirm'; submitBtn.className = 'btn-primary'; submitBtn.style.flex = '1';
   submitBtn.onclick = () => {
     const correct = puzzle.solution.every((v, i) => entered[i] === v) && entered.length === puzzle.solution.length;
     if (correct) {
@@ -745,7 +908,7 @@ function openSequencePuzzle(puzzle, obj) {
       solvePuzzle(puzzle, obj);
       setTimeout(() => closePanel('puzzle-popup'), 1000);
     } else {
-      fb.style.color = 'var(--red)'; fb.textContent = '✗ Wrong order. Try again.';
+      fb.style.color = 'var(--red)'; fb.textContent = '✗ Wrong sequence.';
       entered.length = 0; display.textContent = '—';
     }
   };
@@ -753,13 +916,9 @@ function openSequencePuzzle(puzzle, obj) {
 
   const fb = document.createElement('div');
   fb.style.cssText = 'margin-top:10px;font-size:0.82rem;min-height:16px;text-align:center;';
-  const hint = document.createElement('div');
-  hint.style.cssText = 'margin-top:8px;font-size:0.75rem;color:var(--muted);text-align:center;';
-  hint.textContent = puzzle.hint;
 
-  container.appendChild(display); container.appendChild(grid); container.appendChild(row);
-  container.appendChild(fb); container.appendChild(hint);
-  body.appendChild(container);
+  wrap.appendChild(display); wrap.appendChild(grid); wrap.appendChild(row); wrap.appendChild(fb);
+  body.appendChild(wrap);
   openPanel('puzzle-popup');
 }
 
@@ -768,17 +927,16 @@ function openWiresPuzzle(puzzle, obj) {
   $('puzzle-title').textContent = puzzle.label;
   const body = $('puzzle-body');
   body.innerHTML = `<div style="padding:16px;">
-    <div style="font-size:0.85rem;color:var(--text);margin-bottom:12px;">${puzzle.pairs.map(p=>`<span style="color:${p.colour}">■ ${p.label}</span>`).join(' &nbsp; ')}</div>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:10px;">Connect each wire to its matching terminal.</p>
     <canvas id="wire-canvas" width="420" height="200" style="border:1px solid var(--border);border-radius:4px;display:block;margin:0 auto;cursor:crosshair;background:rgba(0,0,0,0.3);"></canvas>
-    <div style="display:flex;justify-content:space-between;padding:8px 16px;font-size:0.75rem;color:var(--muted);">
-      <span>LEFT (connect from)</span><span>RIGHT (connect to)</span>
+    <div style="display:flex;justify-content:space-between;padding:6px 16px;font-size:0.72rem;color:var(--muted);">
+      <span>FROM</span><span>TO</span>
     </div>
     <div style="text-align:center;margin-top:8px;">
-      <button id="wire-submit" class="btn-primary">Confirm Connections</button>
+      <button id="wire-submit" class="btn-primary">Confirm</button>
       <button id="wire-clear" class="btn-secondary" style="margin-left:8px;">Reset</button>
     </div>
     <div id="wire-fb" style="text-align:center;margin-top:8px;font-size:0.82rem;min-height:16px;"></div>
-    <div style="color:var(--muted);font-size:0.75rem;text-align:center;margin-top:6px;">${puzzle.hint}</div>
   </div>`;
   openPanel('puzzle-popup');
 
@@ -786,39 +944,35 @@ function openWiresPuzzle(puzzle, obj) {
   const wctx = wc.getContext('2d');
   const W = wc.width, H = wc.height;
   const pairs = puzzle.pairs;
-  const connections = {}; // leftIdx → rightIdx
-  let dragging = null; // { fromIdx, currentX, currentY }
-
+  const connections = {};
+  let dragging = null;
   const leftX = 60, rightX = W - 60;
   const spacing = H / (pairs.length + 1);
-
-  function termY(idx) { return spacing * (idx + 1); }
+  const termY = idx => spacing * (idx + 1);
 
   function drawWires() {
     wctx.clearRect(0, 0, W, H);
-    // Draw terminals
     pairs.forEach((p, i) => {
       [leftX, rightX].forEach(tx => {
-        wctx.beginPath(); wctx.arc(tx, termY(i), 10, 0, Math.PI*2);
+        wctx.beginPath(); wctx.arc(tx, termY(i), 10, 0, Math.PI * 2);
         wctx.fillStyle = p.colour; wctx.fill();
-        wctx.strokeStyle = 'rgba(255,255,255,0.3)'; wctx.lineWidth = 2; wctx.stroke();
+        wctx.strokeStyle = 'rgba(255,255,255,0.2)'; wctx.lineWidth = 2; wctx.stroke();
       });
-      wctx.fillStyle = p.colour; wctx.font = '12px monospace';
-      wctx.fillText(p.label, leftX + 15, termY(i) + 4);
-      wctx.fillText(p.label, rightX - 60, termY(i) + 4);
+      wctx.fillStyle = p.colour; wctx.font = '11px monospace';
+      wctx.fillText(p.label, leftX + 14, termY(i) + 4);
+      wctx.fillText(p.label, rightX - 55, termY(i) + 4);
     });
-    // Draw connections
     Object.entries(connections).forEach(([li, ri]) => {
       const p = pairs[li];
       wctx.beginPath(); wctx.moveTo(leftX, termY(li)); wctx.lineTo(rightX, termY(ri));
       wctx.strokeStyle = p.colour; wctx.lineWidth = 3; wctx.stroke();
     });
-    // Draw dragging wire
     if (dragging) {
       const p = pairs[dragging.fromIdx];
       wctx.beginPath(); wctx.moveTo(leftX, termY(dragging.fromIdx));
       wctx.lineTo(dragging.x, dragging.y);
-      wctx.strokeStyle = p.colour; wctx.lineWidth = 3; wctx.setLineDash([6,4]); wctx.stroke(); wctx.setLineDash([]);
+      wctx.strokeStyle = p.colour; wctx.lineWidth = 3;
+      wctx.setLineDash([6, 4]); wctx.stroke(); wctx.setLineDash([]);
     }
   }
 
@@ -827,8 +981,7 @@ function openWiresPuzzle(puzzle, obj) {
     const mx = e.clientX - rect.left, my = e.clientY - rect.top;
     pairs.forEach((p, i) => {
       if (Math.hypot(mx - leftX, my - termY(i)) < 14) {
-        delete connections[i]; // remove old connection
-        dragging = { fromIdx: i, x: mx, y: my };
+        delete connections[i]; dragging = { fromIdx: i, x: mx, y: my };
       }
     });
   });
@@ -843,9 +996,7 @@ function openWiresPuzzle(puzzle, obj) {
     const rect = wc.getBoundingClientRect();
     const mx = e.clientX - rect.left, my = e.clientY - rect.top;
     pairs.forEach((p, i) => {
-      if (Math.hypot(mx - rightX, my - termY(i)) < 14) {
-        connections[dragging.fromIdx] = i;
-      }
+      if (Math.hypot(mx - rightX, my - termY(i)) < 14) connections[dragging.fromIdx] = i;
     });
     dragging = null; drawWires();
   });
@@ -853,14 +1004,13 @@ function openWiresPuzzle(puzzle, obj) {
   document.getElementById('wire-clear').onclick = () => { Object.keys(connections).forEach(k => delete connections[k]); drawWires(); };
   document.getElementById('wire-submit').onclick = () => {
     const fb = document.getElementById('wire-fb');
-    const sol = puzzle.solution;
-    let correct = pairs.every((p, i) => connections[i] !== undefined && pairs[connections[i]].label === sol[p.label]);
+    const correct = pairs.every((p, i) => connections[i] !== undefined && pairs[connections[i]].label === puzzle.solution[p.label]);
     if (correct) {
-      fb.style.color = 'var(--green)'; fb.textContent = '✓ All wires connected correctly!';
+      fb.style.color = 'var(--green)'; fb.textContent = '✓ All wires connected!';
       solvePuzzle(puzzle, obj);
       setTimeout(() => closePanel('puzzle-popup'), 1000);
     } else {
-      fb.style.color = 'var(--red)'; fb.textContent = '✗ Something is wrong. Check your connections.';
+      fb.style.color = 'var(--red)'; fb.textContent = '✗ Something is wrong.';
     }
   };
   drawWires();
@@ -873,39 +1023,30 @@ function openSliderPuzzle(puzzle, obj) {
   const size = puzzle.size || 3;
   const cells = Array.from({ length: size * size }, (_, i) => (i + 1) % (size * size));
 
-  function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
+  // Shuffle with solvability check (simple: just shuffle)
+  for (let i = cells.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cells[i], cells[j]] = [cells[j], cells[i]];
   }
-  shuffle(cells);
 
   function render() {
     body.innerHTML = '';
     const wrap = document.createElement('div');
     wrap.style.cssText = 'padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px;';
     const grid = document.createElement('div');
-    grid.style.cssText = `display:grid;grid-template-columns:repeat(${size},1fr);gap:4px;width:${size*70}px;`;
+    grid.style.cssText = `display:grid;grid-template-columns:repeat(${size},1fr);gap:4px;width:${size * 72}px;`;
 
     cells.forEach((val, idx) => {
       const cell = document.createElement('div');
-      cell.style.cssText = `width:70px;height:70px;display:flex;align-items:center;justify-content:center;
-        font-family:'VT323',monospace;font-size:2rem;border-radius:4px;cursor:pointer;transition:all 0.1s;
-        ${val === 0 ? 'background:rgba(0,0,0,0.3);border:1px dashed rgba(0,255,65,0.15);' : 'background:rgba(0,255,65,0.08);border:1px solid rgba(0,255,65,0.3);color:var(--accent);'}`;
+      cell.style.cssText = `width:72px;height:72px;display:flex;align-items:center;justify-content:center;font-family:'VT323',monospace;font-size:2rem;border-radius:4px;cursor:${val === 0 ? 'default' : 'pointer'};transition:all 0.1s;${val === 0 ? 'background:rgba(0,0,0,0.2);border:1px dashed rgba(0,255,65,0.1);' : 'background:rgba(0,255,65,0.08);border:1px solid rgba(0,255,65,0.25);color:var(--accent);'}`;
       cell.textContent = val === 0 ? '' : val;
       if (val !== 0) cell.onclick = () => trySlide(idx);
       grid.appendChild(cell);
     });
 
-    const hint = document.createElement('div');
-    hint.style.cssText = 'font-size:0.75rem;color:var(--muted);text-align:center;';
-    hint.textContent = puzzle.hint;
     const fb = document.createElement('div');
     fb.id = 'slider-fb'; fb.style.cssText = 'font-size:0.82rem;min-height:16px;text-align:center;';
-
-    wrap.appendChild(grid); wrap.appendChild(hint); wrap.appendChild(fb);
+    wrap.appendChild(grid); wrap.appendChild(fb);
     body.appendChild(wrap);
   }
 
@@ -916,20 +1057,17 @@ function openSliderPuzzle(puzzle, obj) {
     if ((Math.abs(row - eRow) === 1 && col === eCol) || (Math.abs(col - eCol) === 1 && row === eRow)) {
       [cells[idx], cells[emptyIdx]] = [cells[emptyIdx], cells[idx]];
       render();
-      checkSliderWin();
+      if (cells.every((v, i) => v === puzzle.solution[i])) {
+        const fb = document.getElementById('slider-fb');
+        if (fb) { fb.style.color = 'var(--green)'; fb.textContent = '✓ Solved!'; }
+        solvePuzzle(puzzle, obj);
+        if (puzzle.reward) {
+          setTimeout(() => { addItem(puzzle.reward); showItemPopup(puzzle.reward); }, 600);
+        }
+        setTimeout(() => closePanel('puzzle-popup'), 1200);
+      }
     }
   }
-
-  function checkSliderWin() {
-    const sol = puzzle.solution;
-    if (cells.every((v, i) => v === sol[i])) {
-      const fb = document.getElementById('slider-fb');
-      if (fb) { fb.style.color = 'var(--green)'; fb.textContent = '✓ Solved!'; }
-      solvePuzzle(puzzle, obj);
-      setTimeout(() => closePanel('puzzle-popup'), 1200);
-    }
-  }
-
   render();
   openPanel('puzzle-popup');
 }
@@ -942,27 +1080,28 @@ function openClockPuzzle(puzzle, obj) {
   const sol = puzzle.solution;
 
   body.innerHTML = `<div style="padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px;">
-    <canvas id="clock-canvas" width="200" height="200" style="border:1px solid var(--border);border-radius:50%;cursor:crosshair;"></canvas>
+    <canvas id="clock-canvas" width="200" height="200" style="border:1px solid var(--border);border-radius:50%;"></canvas>
     <div style="display:flex;gap:12px;align-items:center;">
-      <div><div style="font-size:0.75rem;color:var(--muted);margin-bottom:4px;">HOURS</div>
-        <div style="display:flex;gap:4px;">
-          <button class="btn-secondary" id="h-dec" style="padding:4px 10px;">◄</button>
-          <span id="h-val" style="font-family:'VT323',monospace;font-size:1.8rem;color:var(--accent);min-width:32px;text-align:center;">12</span>
-          <button class="btn-secondary" id="h-inc" style="padding:4px 10px;">►</button>
+      <div style="text-align:center;">
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px;">HRS</div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button class="btn-secondary" id="h-dec" style="padding:4px 8px;">◄</button>
+          <span id="h-val" style="font-family:'VT323',monospace;font-size:1.8rem;color:var(--accent);min-width:30px;text-align:center;">12</span>
+          <button class="btn-secondary" id="h-inc" style="padding:4px 8px;">►</button>
         </div>
       </div>
-      <div style="font-size:2rem;color:var(--muted);">:</div>
-      <div><div style="font-size:0.75rem;color:var(--muted);margin-bottom:4px;">MINUTES</div>
-        <div style="display:flex;gap:4px;">
-          <button class="btn-secondary" id="m-dec" style="padding:4px 10px;">◄</button>
-          <span id="m-val" style="font-family:'VT323',monospace;font-size:1.8rem;color:var(--accent);min-width:32px;text-align:center;">00</span>
-          <button class="btn-secondary" id="m-inc" style="padding:4px 10px;">►</button>
+      <div style="font-size:1.8rem;color:var(--muted);">:</div>
+      <div style="text-align:center;">
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px;">MIN</div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button class="btn-secondary" id="m-dec" style="padding:4px 8px;">◄</button>
+          <span id="m-val" style="font-family:'VT323',monospace;font-size:1.8rem;color:var(--accent);min-width:30px;text-align:center;">00</span>
+          <button class="btn-secondary" id="m-inc" style="padding:4px 8px;">►</button>
         </div>
       </div>
     </div>
     <button id="clock-submit" class="btn-primary">Set Time</button>
-    <div id="clock-fb" style="font-size:0.82rem;min-height:16px;"></div>
-    <div style="font-size:0.75rem;color:var(--muted);">${puzzle.hint}</div>
+    <div id="clock-fb" style="font-size:0.82rem;min-height:16px;text-align:center;"></div>
   </div>`;
   openPanel('puzzle-popup');
 
@@ -973,25 +1112,22 @@ function openClockPuzzle(puzzle, obj) {
     const cx = 100, cy = 100, r = 90;
     cctx.clearRect(0, 0, 200, 200);
     cctx.fillStyle = '#000'; cctx.beginPath(); cctx.arc(cx, cy, r, 0, Math.PI*2); cctx.fill();
-    cctx.strokeStyle = 'var(--border)'; cctx.lineWidth = 2;
+    cctx.strokeStyle = 'rgba(0,255,65,0.3)'; cctx.lineWidth = 2;
     cctx.beginPath(); cctx.arc(cx, cy, r, 0, Math.PI*2); cctx.stroke();
-    // Tick marks
     for (let i = 0; i < 12; i++) {
       const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
-      cctx.beginPath(); cctx.moveTo(cx + Math.cos(a) * 80, cy + Math.sin(a) * 80);
-      cctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
-      cctx.strokeStyle = 'rgba(0,255,65,0.4)'; cctx.lineWidth = 2; cctx.stroke();
+      cctx.beginPath(); cctx.moveTo(cx + Math.cos(a)*78, cy + Math.sin(a)*78);
+      cctx.lineTo(cx + Math.cos(a)*r, cy + Math.sin(a)*r);
+      cctx.strokeStyle = 'rgba(0,255,65,0.35)'; cctx.lineWidth = 2; cctx.stroke();
     }
-    // Hour hand
     const ha = ((selH % 12 + selM / 60) / 12) * Math.PI * 2 - Math.PI / 2;
-    cctx.beginPath(); cctx.moveTo(cx, cy); cctx.lineTo(cx + Math.cos(ha) * 52, cy + Math.sin(ha) * 52);
-    cctx.strokeStyle = 'var(--accent)'; cctx.lineWidth = 4; cctx.stroke();
-    // Minute hand
     const ma = (selM / 60) * Math.PI * 2 - Math.PI / 2;
-    cctx.beginPath(); cctx.moveTo(cx, cy); cctx.lineTo(cx + Math.cos(ma) * 76, cy + Math.sin(ma) * 76);
+    cctx.beginPath(); cctx.moveTo(cx, cy); cctx.lineTo(cx + Math.cos(ha)*52, cy + Math.sin(ha)*52);
+    cctx.strokeStyle = 'var(--accent)'; cctx.lineWidth = 4; cctx.stroke();
+    cctx.beginPath(); cctx.moveTo(cx, cy); cctx.lineTo(cx + Math.cos(ma)*74, cy + Math.sin(ma)*74);
     cctx.strokeStyle = '#fff'; cctx.lineWidth = 2; cctx.stroke();
-    // Centre
-    cctx.beginPath(); cctx.arc(cx, cy, 4, 0, Math.PI*2); cctx.fillStyle = 'var(--accent)'; cctx.fill();
+    cctx.beginPath(); cctx.arc(cx, cy, 4, 0, Math.PI*2);
+    cctx.fillStyle = 'var(--accent)'; cctx.fill();
   }
   drawClock();
 
@@ -1008,11 +1144,13 @@ function openClockPuzzle(puzzle, obj) {
   document.getElementById('clock-submit').onclick = () => {
     const fb = document.getElementById('clock-fb');
     if (selH === sol.h && selM === sol.m) {
-      fb.style.color = 'var(--green)'; fb.textContent = '✓ Correct time set!';
+      fb.style.color = 'var(--green)'; fb.textContent = '✓ Correct time set.';
       solvePuzzle(puzzle, obj);
+      // Reveal the safe in lab
+      toast('Something clicked in the room.', 'success');
       setTimeout(() => closePanel('puzzle-popup'), 1000);
     } else {
-      fb.style.color = 'var(--red)'; fb.textContent = `✗ Not right. The clock reads ${selH}:${selM.toString().padStart(2,'0')}.`;
+      fb.style.color = 'var(--red)'; fb.textContent = `✗ ${selH.toString().padStart(2,'0')}:${selM.toString().padStart(2,'0')} — not right.`;
     }
   };
 }
@@ -1020,33 +1158,38 @@ function openClockPuzzle(puzzle, obj) {
 // ===== SOLVE PUZZLE =====
 function solvePuzzle(puzzle, obj) {
   S.solvedPuzzles[puzzle.id] = true;
-  log(`Solved: ${puzzle.label}`, true);
-  if (puzzle.reward) {
-    addItem(puzzle.reward);
-    log(`Received: ${window.GAME_ITEMS[puzzle.reward]?.name || puzzle.reward}`, true);
-  }
+  toast(`${puzzle.label} solved!`, 'success');
+
   if (puzzle.unlocks) {
     S.unlockedDoors[puzzle.unlocks] = true;
-    log(`Unlocked: ${puzzle.unlocks}`);
+    updateNavArrows();
   }
-  // Check if any door in current room is now unlockable by this puzzle
+  // Check all doors in current room
   const room = S.rooms[S.currentRoom];
-  room.objects.forEach(o => {
-    if (o.type === 'door' && o.unlockedBy === puzzle.id) {
-      S.unlockedDoors[o.id] = true;
-    }
+  if (room) {
+    room.objects.forEach(o => {
+      if (o.type === 'door' && o.unlockedBy === puzzle.id) {
+        S.unlockedDoors[o.id] = true;
+        updateNavArrows();
+      }
+    });
+  }
+  // Also check all rooms for cross-room door unlocks
+  Object.values(S.rooms).forEach(r => {
+    (r.objects || []).forEach(o => {
+      if (o.type === 'door' && o.unlockedBy === puzzle.id) {
+        S.unlockedDoors[o.id] = true;
+      }
+    });
   });
 }
 
 // ===== CODE POPUP =====
 function openCodePopup(obj) {
-  S.codeEntry.current = '';
-  S.codeEntry.target = obj;
-  S.codeEntry.maxLen = (obj.code || '0000').length;
+  S.codeEntry = { current: '', target: obj, maxLen: (obj.code || '0000').length };
   $('code-popup-title').textContent = obj.label;
   $('code-display').textContent = '_'.repeat(S.codeEntry.maxLen);
   $('code-feedback').textContent = '';
-  $('code-feedback').className = '';
 
   const keypad = $('code-keypad');
   keypad.innerHTML = '';
@@ -1057,16 +1200,22 @@ function openCodePopup(obj) {
     btn.onclick = () => handleKeypad(k);
     keypad.appendChild(btn);
   });
-  $('code-submit').onclick = () => submitCode();
+  $('code-submit').onclick = submitCode;
   openPanel('code-popup');
 }
 
+let S_codeEntry = { current: '', target: null, maxLen: 4 };
+Object.defineProperty(S, 'codeEntry', {
+  get() { return S_codeEntry; },
+  set(v) { S_codeEntry = v; }
+});
+
 function handleKeypad(k) {
-  if (k === 'DEL') { S.codeEntry.current = S.codeEntry.current.slice(0,-1); }
-  else if (k === 'CLR') { S.codeEntry.current = ''; }
-  else if (S.codeEntry.current.length < S.codeEntry.maxLen) { S.codeEntry.current += k; }
-  const disp = $('code-display');
-  disp.textContent = S.codeEntry.current + '_'.repeat(S.codeEntry.maxLen - S.codeEntry.current.length);
+  const ce = S.codeEntry;
+  if (k === 'DEL') ce.current = ce.current.slice(0, -1);
+  else if (k === 'CLR') ce.current = '';
+  else if (ce.current.length < ce.maxLen) ce.current += k;
+  $('code-display').textContent = ce.current + '_'.repeat(ce.maxLen - ce.current.length);
   $('code-feedback').textContent = '';
 }
 
@@ -1078,21 +1227,20 @@ function submitCode() {
   const fb = $('code-feedback');
 
   if (correct) {
-    fb.className = 'ok'; fb.textContent = '✓ Correct!';
-    if (obj.type === 'safe') {
-      openSafe(obj);
-    } else if (obj.type === 'door') {
-      S.unlockedDoors[obj.id] = true;
-      log(obj.unlockedMessage || 'Door unlocked.', true);
-      setTimeout(() => {
-        closePanel('code-popup');
-        if (obj.leadsTo === '__EXIT__') triggerWin();
-        else if (obj.leadsTo) loadRoom(obj.leadsTo);
-      }, 600);
-    }
-    setTimeout(() => closePanel('code-popup'), 600);
+    fb.className = 'ok'; fb.textContent = '✓ Code accepted.';
+    openSafe(obj);
+    setTimeout(() => closePanel('code-popup'), 800);
   } else {
     fb.className = ''; fb.textContent = '✗ Wrong code.';
+    // Easter egg: wrong safe attempts
+    S.wrongSafeAttempts[obj.id] = (S.wrongSafeAttempts[obj.id] || 0) + 1;
+    if (S.wrongSafeAttempts[obj.id] === 3 && obj.easterEggId === 'safe_wrong_code') {
+      const egg = window.GAME_EASTER_EGGS?.safe_wrong_code;
+      if (egg) {
+        const msg = (S.isFool && egg.foolMessage) ? egg.foolMessage : egg.message;
+        setTimeout(() => toast(msg.replace(/"/g, ''), 'item', 5000), 500);
+      }
+    }
     $('code-display').style.color = 'var(--red)';
     setTimeout(() => { $('code-display').style.color = ''; }, 400);
   }
@@ -1101,194 +1249,118 @@ function submitCode() {
 function openSafe(obj) {
   if (S.openedSafes[obj.id]) return;
   S.openedSafes[obj.id] = true;
-  log(`Safe opened: ${obj.label}`, true);
-  if (obj.contains) {
+  toast('Safe opened!', 'success');
+  if (obj.contains && obj.contains.length) {
     const names = [];
-    obj.contains.forEach(entry => {
-      if (!S.flags['found_' + entry.item]) {
-        addItem(entry.item);
-        S.flags['found_' + entry.item] = true;
-        names.push(window.GAME_ITEMS[entry.item]?.name || entry.item);
+    obj.contains.forEach(e => {
+      if (!S.flags['found_' + e.item]) {
+        addItem(e.item);
+        S.flags['found_' + e.item] = true;
+        names.push(window.GAME_ITEMS[e.item]?.name || e.item);
+        showItemPopup(e.item);
       }
     });
-    if (names.length) log(`Found inside: ${names.join(', ')}`, true);
   }
+  // Mark puzzle solved if this safe has a puzzle ID
+  const puzzleId = obj.puzzleId || obj.id + '_combo';
+  if (window.GAME_PUZZLES[puzzleId]) S.solvedPuzzles[puzzleId] = true;
 }
 
 // ===== ITEM SYSTEM =====
-function addItem(itemId) {
+function addItem(itemId, showToast) {
   if (!itemId || S.inventory.includes(itemId)) return;
   S.inventory.push(itemId);
+  if (showToast) {
+    const item = window.GAME_ITEMS[itemId];
+    if (item) toast(`+ ${item.name}`, 'item');
+  }
   renderInventory();
 }
 
 function renderInventory() {
-  if (!itemSlots) return;
-  itemSlots.innerHTML = '';
-  if (S.inventory.length === 0) {
-    itemSlots.innerHTML = '<div style="font-size:0.78rem;color:var(--muted);padding:8px;">Empty</div>';
+  const grid = $('inventory-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  if (!S.inventory.length) {
+    grid.innerHTML = '<div class="inv-empty">— empty —</div>';
     return;
   }
   S.inventory.forEach(id => {
     const item = window.GAME_ITEMS[id];
     if (!item) return;
     const slot = document.createElement('div');
-    slot.className = 'item-slot' + (S.selectedItem === id ? ' selected' : '');
-    slot.innerHTML = `<span class="item-icon">${item.icon}</span><span class="item-name">${item.name}</span>`;
+    slot.className = 'inv-slot' + (S.selectedItem === id ? ' selected' : '');
+    slot.innerHTML = `<span class="inv-icon">${item.icon}</span><span class="inv-name">${item.name}</span>`;
     slot.title = item.description;
     slot.onclick = () => {
-      S.selectedItem = (S.selectedItem === id) ? null : id;
-      renderInventory();
-      if (S.selectedItem) log(`Selected: ${item.name}`);
+      if (S.interactTarget) {
+        // Try using item on current target
+        tryUseItemOnTarget(id);
+      } else {
+        // Show item info
+        S.selectedItem = id;
+        showItemInfo(id);
+        renderInventory();
+      }
     };
-    itemSlots.appendChild(slot);
-    // New item animation
-    slot.classList.add('new');
-    setTimeout(() => slot.classList.remove('new'), 3000);
+    grid.appendChild(slot);
   });
 }
 
-function useItemOn(itemId, obj) {
+function showItemInfo(itemId) {
   const item = window.GAME_ITEMS[itemId];
-  closePanel('notice-popup');
   if (!item) return;
-  // If it's a key for a door/safe
-  if (obj.type === 'door' && obj.keyItem === itemId) { unlockDoorWithKey(obj); return; }
-  // Generic "use" message
-  log(`Used ${item.name} on ${obj.label}.`);
-  showNotice('Used', `You use the ${item.name} on the ${obj.label}. Nothing happened yet.`, []);
+  showNotice(item.name, item.description);
 }
 
-// ===== NOTICE POPUP =====
-function showNotice(title, body, actions) {
-  $('notice-title').textContent = title;
-  $('notice-body').innerHTML = `<div class="notice-label">${title}</div><p>${body.replace(/\n/g, '<br>')}</p>`;
-  const actEl = $('notice-actions');
-  actEl.innerHTML = '';
-  if (actions && actions.length) {
-    actions.forEach(a => {
-      const btn = document.createElement('button');
-      btn.className = `interact-btn ${a.cls || ''}`;
-      btn.textContent = a.label;
-      btn.onclick = a.cb;
-      actEl.appendChild(btn);
-    });
-  }
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'btn-secondary';
-  closeBtn.textContent = 'Close';
-  closeBtn.style.marginTop = '4px';
-  closeBtn.onclick = () => closePanel('notice-popup');
-  actEl.appendChild(closeBtn);
-  openPanel('notice-popup');
+// Item received popup
+function showItemPopup(itemId) {
+  const item = window.GAME_ITEMS[itemId];
+  if (!item) return;
+  const popup = $('item-popup');
+  if (!popup) return;
+  $('item-popup-icon').textContent = item.icon;
+  $('item-popup-name').textContent = item.name;
+  $('item-popup-desc').innerHTML = item.description.replace(/\n/g, '<br>');
+  popup.classList.remove('hidden');
+  popup.style.opacity = '1';
+
+  // Auto-close after 4s or on click
+  clearTimeout(popup._timeout);
+  popup._timeout = setTimeout(() => {
+    popup.style.opacity = '0';
+    setTimeout(() => popup.classList.add('hidden'), 400);
+  }, 4000);
 }
+
+$('item-popup-close') && $('item-popup-close').addEventListener('click', () => {
+  const popup = $('item-popup');
+  popup.style.opacity = '0';
+  setTimeout(() => popup.classList.add('hidden'), 400);
+});
 
 // ===== TIMER =====
-function startTimer() {
-  S.timer.start = Date.now();
-  S.timer.running = true;
-}
-
+function startTimer() { S.timer.start = Date.now(); S.timer.running = true; }
 function updateTimer() {
   if (!S.timer.running) return;
   S.timer.elapsed = Date.now() - S.timer.start;
-  timerText.textContent = formatTime(S.timer.elapsed);
+  const el = $('timer-text');
+  if (el) el.textContent = formatTime(S.timer.elapsed);
 }
 
-// ===== HUD BUTTONS =====
-$('hud-inventory-btn').onclick = () => {
-  if (openPanels.has('inventory-panel')) closePanel('inventory-panel');
-  else { openPanel('inventory-panel'); renderInventory(); initBulletin(); }
-};
-$('hud-notes-btn').onclick = () => {
-  if (openPanels.has('notes-panel')) closePanel('notes-panel');
-  else { openPanel('notes-panel'); notesTa.value = S.notes; }
-};
-notesTa && notesTa.addEventListener('input', () => { S.notes = notesTa.value; });
-$('back-to-hub').onclick = () => {
-  if (confirm('Return to hub? Your progress will be lost.')) window.location.href = 'index.html';
-};
-$('hud-hint-btn').onclick = showHint;
-
-function showHint() {
-  const room = S.currentRoom;
-  const hints = window.GAME_HINTS[room];
-  if (!hints) { showNotice('Hint', 'No hints for this room.', []); return; }
-  const idx = S.hintIndex[room] || 0;
-  const hint = hints[idx] || hints[hints.length - 1];
-  S.hintIndex[room] = Math.min(idx + 1, hints.length - 1);
-  showNotice('💡 Hint', hint, []);
-  log('Hint used.', false);
-}
-
-// ===== BULLETIN BOARD =====
-function initBulletin() {
-  if (!bulletinCanvas) return;
-  const wrap = $('bulletin-canvas-wrap');
-  bulletinCanvas.width = wrap.clientWidth || 400;
-  bulletinCanvas.height = wrap.clientHeight || 200;
-  drawBulletin();
-}
-
-function drawBulletin() {
-  if (!bctx) return;
-  const W = bulletinCanvas.width, H = bulletinCanvas.height;
-  bctx.clearRect(0, 0, W, H);
-  // Draw strings
-  S.bulletin.strings.forEach(s => {
-    bctx.beginPath(); bctx.moveTo(s.x1, s.y1); bctx.lineTo(s.x2, s.y2);
-    bctx.strokeStyle = 'rgba(255,100,100,0.7)'; bctx.lineWidth = 2; bctx.stroke();
-    // Pins
-    [{ x: s.x1, y: s.y1 }, { x: s.x2, y: s.y2 }].forEach(p => {
-      bctx.beginPath(); bctx.arc(p.x, p.y, 4, 0, Math.PI*2);
-      bctx.fillStyle = '#ff4141'; bctx.fill();
-    });
+// ===== HUD =====
+$('back-to-hub') && $('back-to-hub').addEventListener('click', () => {
+  showConfirm('Return to hub? Your progress will be lost.', () => {
+    window.location.href = 'index.html';
   });
+});
+
+function showConfirm(msg, onYes) {
+  $('confirm-message').textContent = msg;
+  $('confirm-yes').onclick = () => { closePanel('confirm-popup'); onYes(); };
+  $('confirm-no').onclick = () => closePanel('confirm-popup');
+  openPanel('confirm-popup');
 }
-
-let bulletinDrag = null;
-bulletinCanvas && bulletinCanvas.addEventListener('mousedown', e => {
-  const rect = bulletinCanvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-  if (S.bulletin.tool === 'string') {
-    bulletinDrag = { x1: mx, y1: my };
-  } else if (S.bulletin.tool === 'erase') {
-    S.bulletin.strings = S.bulletin.strings.filter(s =>
-      Math.hypot(mx - s.x1, my - s.y1) > 10 && Math.hypot(mx - s.x2, my - s.y2) > 10
-    );
-    drawBulletin();
-  }
-});
-bulletinCanvas && bulletinCanvas.addEventListener('mouseup', e => {
-  if (!bulletinDrag || S.bulletin.tool !== 'string') { bulletinDrag = null; return; }
-  const rect = bulletinCanvas.getBoundingClientRect();
-  S.bulletin.strings.push({ x1: bulletinDrag.x1, y1: bulletinDrag.y1, x2: e.clientX - rect.left, y2: e.clientY - rect.top });
-  bulletinDrag = null;
-  drawBulletin();
-});
-
-// Bulletin note adding
-$('bulletin-toolbar') && $('bulletin-toolbar').addEventListener('click', e => {
-  const btn = e.target.closest('.tool-btn');
-  if (!btn) return;
-  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  S.bulletin.tool = btn.dataset.tool;
-  if (btn.dataset.tool === 'note') {
-    const text = prompt('Note text:');
-    if (text) {
-      const noteEl = document.createElement('div');
-      noteEl.className = 'bulletin-note';
-      noteEl.textContent = text;
-      const del = document.createElement('span');
-      del.className = 'note-del'; del.textContent = '✕';
-      del.onclick = () => noteEl.remove();
-      noteEl.appendChild(del);
-      bulletinNotes && bulletinNotes.appendChild(noteEl);
-      S.bulletin.notes.push(text);
-    }
-  }
-});
 
 // ===== WIN =====
 function triggerWin() {
@@ -1297,82 +1369,62 @@ function triggerWin() {
   S.timer.running = false;
   const elapsed = S.timer.elapsed;
 
-  const ascii = `
+  $('win-ascii').textContent = `
   +---------+
   | ESCAPED |
   +---------+`;
-  $('win-ascii').textContent = ascii;
   $('win-time-display').textContent = formatTime(elapsed);
   $('win-message').textContent = S.isFool
     ? "You escaped the April Fools version. Something was definitely off."
-    : "You found the way out. Time recorded.";
+    : "You escaped. Time recorded.";
 
-  winScreen.classList.remove('hidden');
-  log('ESCAPED!', true);
-
-  // Auto-offer save if logged in
-  if (S.uid) {
-    $('win-save').style.display = '';
-  } else {
-    $('win-save').style.display = 'none';
-  }
+  $('win-screen').classList.remove('hidden');
+  if (!S.uid) $('win-save').style.display = 'none';
+  else $('win-save').style.display = '';
 
   $('win-save').onclick = () => saveTime(elapsed);
-  $('win-replay').onclick = () => {
-    winScreen.classList.add('hidden');
-    // Reset state but don't save
-    resetGame(false);
-  };
-  $('win-hub').onclick = () => { window.location.href = 'index.html'; };
+  $('win-replay').onclick = () => { $('win-screen').classList.add('hidden'); resetGame(); };
+  $('win-hub').onclick = () => window.location.href = 'index.html';
 }
 
 async function saveTime(elapsed) {
-  if (S.savedTime) { alert('Already saved!'); return; }
-  if (!S.uid) { alert('Sign in to save.'); return; }
-
+  if (S.savedTime) { toast('Already saved!', 'info'); return; }
+  if (!S.uid) { toast('Sign in to save.', 'error'); return; }
   const col = S.isFool ? 'april_times_fool' : 'april_times_normal';
   try {
     const ref = window.firebaseDoc(window.firebaseDb, col, S.uid);
     const existing = await window.firebaseGetDoc(ref);
-    if (existing.exists()) {
-      alert('You already have a saved time! Only first completion counts.');
-      return;
-    }
+    if (existing.exists()) { toast('Already have a saved time — only first counts!', 'info'); return; }
     await window.firebaseSetDoc(ref, {
-      uid: S.uid, codename: S.codename,
-      time: elapsed, ts: Date.now(),
-      isFool: S.isFool
+      uid: S.uid, codename: S.codename, time: elapsed, ts: Date.now(), isFool: S.isFool
     });
     S.savedTime = true;
     $('win-save').textContent = '✓ Saved!';
     $('win-save').disabled = true;
-    log('Time saved to leaderboard.', true);
+    toast('Time saved to leaderboard!', 'success');
   } catch(e) {
-    console.error(e);
-    alert('Failed to save. Check your connection.');
+    toast('Failed to save. Check your connection.', 'error');
   }
 }
 
-function resetGame(saveOk) {
-  // Reset mutable state
-  S.inventory = [];
-  S.unlockedDoors = {};
-  S.solvedPuzzles = {};
-  S.searchedCovers = {};
-  S.openedSafes = {};
-  S.flags = {};
-  S.completed = false;
-  S.savedTime = !saveOk; // block saving on replay
-  S.hintIndex = {};
+function resetGame() {
+  S.inventory = []; S.unlockedDoors = {}; S.solvedPuzzles = {};
+  S.searchedCovers = {}; S.openedSafes = {}; S.flags = {};
+  S.easterEggClicks = {}; S.easterEggTriggered = {}; S.wrongSafeAttempts = {};
+  S.completed = false; S.savedTime = true; // block save on replay
   S.rooms = deepClone(window.GAME_ROOMS);
   S.timer = { running: true, start: Date.now(), elapsed: 0 };
-  Object.keys(window.GAME_HINTS).forEach(r => { S.hintIndex[r] = 0; });
   const startId = S.isFool ? START_ROOM_FOOL : START_ROOM_NORMAL;
   loadRoom(startId);
   renderInventory();
-  logEntries.innerHTML = '';
-  log('New run started.', true);
 }
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeActivePanel();
+  if (e.key === 'ArrowLeft') navigate('left');
+  if (e.key === 'ArrowRight') navigate('right');
+});
 
 // ===== INIT =====
 showTutorial();

@@ -3,14 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>April -1st Mini Event</title>
+  <title>April -1st</title>
   <link rel="stylesheet" href="index.css" />
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>" />
+  <!-- Dynamic favicon injected by JS -->
 </head>
 <body>
+
   <div id="scanlines"></div>
   <div id="noise-overlay"></div>
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- Toast notification system -->
+  <div id="toast-container"></div>
 
   <div id="auth-container">
     <div id="user-info" class="hidden">
@@ -22,20 +27,14 @@
 
   <div id="header-controls">
     <button id="leaderboard-btn" class="header-btn">🏆 Leaderboard</button>
-    <div id="countdown-container">
-      <span id="countdown-label">Event Ends:</span>
-      <span id="countdown">--:--:--</span>
-    </div>
+    <button id="admin-btn" class="header-btn" style="opacity:0.3;font-size:0.7rem;">⚙</button>
   </div>
-
-  <div id="background"></div>
 
   <header>
     <div class="glitch-wrapper">
-      <h1 class="glitch" data-text="APRIL -1st">APRIL -1st</h1>
+      <h1 class="glitch" id="main-title" data-text="APRIL -1st">APRIL -1st</h1>
     </div>
-    <p class="subtitle">Mini Event &mdash; An Escape Room</p>
-    <p class="subsubtitle">Something is slightly wrong. Figure it out.</p>
+    <p class="subtitle" id="main-subtitle">Mini Event &mdash; An Escape Room</p>
   </header>
 
   <main>
@@ -43,19 +42,18 @@
       <div class="game-card" id="play-card">
         <div class="card-icon">🚪</div>
         <h2 class="game-title">The Escape Room</h2>
-        <p class="game-date">March 30 – April 30</p>
         <button class="btn-play" id="start-game-btn">Enter</button>
       </div>
       <div class="game-card info-card">
         <div class="card-icon">📋</div>
         <h2 class="game-title">How It Works</h2>
-        <p class="card-body">Solve puzzles, find clues, escape. Your time is recorded on first completion only. On April 1st… something changes.</p>
+        <p class="card-body">Solve puzzles, find clues, escape. Your time is recorded on first completion only.</p>
       </div>
     </div>
   </main>
 
   <footer>
-    <p>First clear times count. Replays don't. Something is slightly wrong on April 1st.</p>
+    <p>First clear times count. Replays don't.</p>
   </footer>
 
   <!-- Login Modal -->
@@ -93,18 +91,27 @@
       <div class="leaderboard-container">
         <table id="leaderboard-table">
           <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Codename</th>
-              <th>Time</th>
-              <th>Date</th>
-            </tr>
+            <tr><th>Rank</th><th>Codename</th><th>Time</th><th>Date</th></tr>
           </thead>
           <tbody id="leaderboard-body"></tbody>
         </table>
       </div>
       <div class="modal-buttons">
         <button id="leaderboard-close" class="btn-primary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Modal -->
+  <div id="admin-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>⚙ Admin</h2>
+      <p>Enter admin code to enable April Fools mode for testing:</p>
+      <input type="password" id="admin-input" placeholder="Admin code" maxlength="30" />
+      <div id="admin-fool-status" style="margin-top:10px;font-size:0.85rem;color:var(--muted);">April Fools mode: <span id="fool-status-text">OFF</span></div>
+      <div class="modal-buttons">
+        <button id="admin-submit" class="btn-primary">Submit</button>
+        <button id="admin-close" class="btn-secondary">Close</button>
       </div>
     </div>
   </div>

@@ -1,408 +1,481 @@
 // ===== game-data.js =====
-// All room layouts, objects, puzzles, and items live here.
-// Sprites: set obj.sprite = 'path/to/sprite.png' — renderer will draw them.
-// For April Fools, GAME_DATA_FOOL overrides GAME_DATA for April 1-6.
+// Room layouts, objects, puzzles, items.
 //
-// -----------------------------------------------------------------------
 // OBJECT TYPES:
-//   'cover'   — clickable surface you search (carpet, crate, painting)
-//   'safe'    — locked container requiring code or key item
-//   'door'    — leads to another room (requires code, key, or open flag)
-//   'puzzle'  — interactive puzzle (morse, switches, sliders, wires…)
-//   'pickup'  — static item sitting in room, just needs clicking to collect
-//   'note'    — readable paper/screen with text
+//   'cover'   — searchable surface (desk, crate, carpet)
+//   'safe'    — locked container requiring code
+//   'door'    — leads to another room (locked until condition met)
+//   'puzzle'  — interactive puzzle element
+//   'pickup'  — static item on floor/shelf, click to collect
+//   'note'    — readable text
 //   'prop'    — decorative, no interaction
-//   'device'  — active device (clock, radio, machine — custom behaviour)
-// -----------------------------------------------------------------------
-// ITEM DEFINITION shape: { id, name, icon, description, useWith: ['objId'…] }
-// -----------------------------------------------------------------------
+//   'device'  — active device with animation (linked to puzzle elsewhere)
+//   'window'  — shows animated scene, no interaction
 
 // ===== ITEMS REGISTRY =====
 const ITEMS = {
-  // ---- Room 1 items ----
+  // ---- Room 1 (Study) ----
   rusty_key: {
     id: 'rusty_key', name: 'Rusty Key', icon: '🗝️',
-    description: 'An old rusty key. The bow is shaped like a crescent moon.',
+    description: 'An old rusty key. The bow is shaped like a crescent moon. The teeth look like they fit a small lock.',
     useWith: ['storage_door']
   },
-  torn_note_1: {
-    id: 'torn_note_1', name: 'Torn Note (1/3)', icon: '📄',
-    description: 'A torn piece of paper. It reads: "The order is SUN, MOON, ___"',
+  crumpled_note: {
+    id: 'crumpled_note', name: 'Crumpled Note', icon: '📄',
+    description: 'A crumpled note. It reads:\n\n"The order matters. Watch the light, then look at the stars.\n— F"',
     useWith: []
-  },
-  red_wire: {
-    id: 'red_wire', name: 'Red Wire', icon: '🔴',
-    description: 'A short length of red wire stripped at both ends.',
-    useWith: ['fusebox']
-  },
-  magnifying_glass: {
-    id: 'magnifying_glass', name: 'Magnifying Glass', icon: '🔍',
-    description: 'Good for examining things closely. Some things are only visible with this.',
-    useWith: []  // passive — held item modifier
-  },
-  // ---- Room 2 items ----
-  torn_note_2: {
-    id: 'torn_note_2', name: 'Torn Note (2/3)', icon: '📄',
-    description: 'Torn paper. It reads: "...STAR. The numbers add to ___"',
-    useWith: []
-  },
-  silver_key: {
-    id: 'silver_key', name: 'Silver Key', icon: '🗝️',
-    description: 'A shiny silver key. A small "2" is etched into the handle.',
-    useWith: ['exit_door']
   },
   uv_light: {
     id: 'uv_light', name: 'UV Flashlight', icon: '🔦',
-    description: 'Reveals hidden writing when shone on surfaces.',
-    useWith: [] // passive — changes what you see on hover
-  },
-  // ---- Room 3 items ----
-  torn_note_3: {
-    id: 'torn_note_3', name: 'Torn Note (3/3)', icon: '📄',
-    description: 'Torn paper. It reads: "...seventeen. — Dr. F"',
+    description: 'A small UV flashlight. It makes certain inks glow. Might reveal hidden writing.',
     useWith: []
   },
+  // ---- Room 2 (Storage) ----
+  torn_note_a: {
+    id: 'torn_note_a', name: 'Torn Paper (A)', icon: '📄',
+    description: 'A torn piece of paper. Part of it is missing. It reads:\n\n"The clock in the lab… set it to the time in the painting. And remember: the code is the sum of the sequence."',
+    useWith: []
+  },
+  wire_fragment: {
+    id: 'wire_fragment', name: 'Wire Fragment', icon: '🔌',
+    description: 'A short red wire with stripped ends. Could complete a circuit.',
+    useWith: ['fusebox_obj']
+  },
+  // ---- Room 3 (Lab) ----
+  torn_note_b: {
+    id: 'torn_note_b', name: 'Torn Paper (B)', icon: '📄',
+    description: 'The other half of the torn paper. It reads:\n\n"Sequence values: SUN=3, MOON=7, STAR=5. Add them up.\n— Dr. F"',
+    useWith: []
+  },
+  lab_keycard: {
+    id: 'lab_keycard', name: 'Lab Keycard', icon: '💳',
+    description: 'A red keycard. "EMERGENCY ACCESS" is stamped on it. This unlocks something.',
+    useWith: ['exit_door']
+  },
   // ---- April Fools items ----
-  upside_down_key: {
-    id: 'upside_down_key', name: '???', icon: '🗝️',
-    description: "A key that looks right but feels wrong. The label says 'NOT THE KEY'.",
+  backwards_key: {
+    id: 'backwards_key', name: 'Suspicious Key', icon: '🗝️',
+    description: 'A key. The label reads "DEFINITELY THE RIGHT KEY (it is not)".',
     useWith: ['fool_door']
+  },
+  fool_note: {
+    id: 'fool_note', name: 'Suspiciously Helpful Note', icon: '📄',
+    description: 'A note reading:\n\n"Everything is normal. The sequence is STAR, SUN, MOON. The code is 15. The clock is 8:35. Trust this note. — Definitely Dr. F"',
+    useWith: []
   },
 };
 
 // ===== PUZZLE DEFINITIONS =====
-// Each puzzle has a type and solution. The game engine processes these.
 const PUZZLES = {
-  // Morse code device — flashes dots/dashes, player must decode
+  // Morse lamp — flashes SUN in morse. Player decodes it.
+  // This is displayed as a 'device' in the study but puzzle input is in storage
   morse_lamp: {
     id: 'morse_lamp',
     type: 'morse',
-    label: 'Flickering Lamp',
-    message: 'SUN',    // what it spells out
-    hint: 'Watch the light pattern. Short flash = dot, long flash = dash.',
-    reward: null       // solving just reveals the info — no item drop
+    label: 'Morse Signal',
+    message: 'SUN',
+    hint: 'Short flash = dot (·), long flash = dash (—). Each letter is separated by a pause.'
   },
 
-  // Symbol panel — press symbols in correct order (SUN, MOON, STAR)
+  // Symbol panel — press SUN, MOON, STAR in that order
   symbol_panel: {
     id: 'symbol_panel',
     type: 'sequence',
     label: 'Symbol Panel',
     symbols: ['☀️','🌙','⭐','🌊','🌺','🔥'],
-    solution: [0, 1, 2],  // indices: SUN, MOON, STAR
-    hint: 'Three of these symbols belong somewhere. In the right order.',
-    reward: null,
-    unlocks: 'storage_door_inner'
+    solution: [0, 1, 2],  // SUN=0, MOON=1, STAR=2
+    unlocks: 'storage_door'
   },
 
-  // Fusebox — connect coloured wires to matching terminals
+  // Fusebox in storage — wire puzzle
   fusebox: {
     id: 'fusebox',
     type: 'wires',
     label: 'Fuse Box',
-    // pairs: [left terminal colour → right terminal colour]
     pairs: [
       { colour: '#ff4141', label: 'RED' },
       { colour: '#4141ff', label: 'BLUE' },
       { colour: '#ffff41', label: 'YELLOW' },
     ],
     solution: { RED: 'RED', BLUE: 'BLUE', YELLOW: 'YELLOW' },
-    hint: 'Match each wire to its correct terminal.',
     unlocks: 'power_door'
   },
 
-  // Slider puzzle — arrange number tiles
+  // Slider puzzle in lab — reveals hidden keycard compartment
   slider_tile: {
     id: 'slider_tile',
     type: 'slider',
     label: 'Tile Puzzle',
-    size: 3,           // 3×3 grid
-    solution: [1,2,3,4,5,6,7,8,0], // 0 = empty
-    hint: 'Slide the tiles into the correct order.',
-    reward: 'silver_key'
+    size: 3,
+    solution: [1,2,3,4,5,6,7,8,0],
+    reward: 'lab_keycard'
   },
 
-  // Clock puzzle — set hands to correct time shown in a painting
+  // Clock puzzle — set to 7:35 (from painting in study)
   clock_puzzle: {
     id: 'clock_puzzle',
     type: 'clock',
     label: 'Antique Clock',
-    solution: { h: 7, m: 35 }, // 7:35
-    hint: 'The painting in Room 1 has a shadow that tells the time.',
-    unlocks: 'final_door'
+    solution: { h: 7, m: 35 },
+    unlocks: 'lab_safe_door'
   },
 
-  // April Fools only — everything is shifted by 1
+  // Safe in lab — code 0015 (SUN=3+MOON=7+STAR=5 = 15, zero-padded)
+  // Clue from torn_note_a (sum) + torn_note_b (values)
+  lab_safe_combo: {
+    id: 'lab_safe_combo',
+    type: 'safe_code',
+    label: 'Safe',
+    code: '0015',
+    reward: null // keycard already from slider
+  },
+
+  // April Fools: symbol order is wrong
   fool_panel: {
     id: 'fool_panel',
     type: 'sequence',
     label: '??? Panel',
     symbols: ['☀️','🌙','⭐','🌊','🌺','🔥'],
-    solution: [1, 2, 0],  // MOON, STAR, SUN — shifted!
-    hint: "Something's off about the order…",
-    reward: null,
-    unlocks: 'fool_storage'
+    solution: [2, 0, 1],  // STAR, SUN, MOON — per fool_note (wrong)... actual answer differs
+    // fool_note says STAR SUN MOON. That IS the correct fool answer.
+    unlocks: 'fool_storage_door'
+  },
+
+  // Fool clock — painting says 8:35 but correct answer is still 7:35
+  fool_clock: {
+    id: 'fool_clock',
+    type: 'clock',
+    label: 'Clock (something feels off)',
+    solution: { h: 7, m: 35 },
+    unlocks: 'fool_lab_safe_door'
+  },
+
+  fool_safe_combo: {
+    id: 'fool_safe_combo',
+    type: 'safe_code',
+    label: 'Safe',
+    code: '0015',  // same code — fool_note says 15 which is actually right
+    reward: null
   },
 };
 
-// ===== ROOM DEFINITIONS =====
-// rooms[id].objects[] — drawn in order (back to front).
-// Each object: { id, type, label, x, y, w, h, sprite?, colour?, ... }
-// Connections: rooms[id].connections = { left:roomId, right:roomId, up:roomId, down:roomId }
-// bg: background colour or sprite path
+// ===== EASTER EGGS =====
+// These are hidden interactions that reveal fun messages
+const EASTER_EGGS = {
+  bookshelf_code: {
+    trigger: 'bookshelf_click_5',  // clicking bookshelf 5 times
+    message: '"The books here are organized by colour, not subject. One book is upside down. It\'s called \'How to Escape a Room\'."',
+    foolMessage: '"All the books are upside down. One is right-side up. It\'s called \'How to Stay In a Room\'."'
+  },
+  painting_close: {
+    trigger: 'painting_uv',  // using UV light on painting
+    message: '"Under the UV light, a small inscription in the corner reads: \'This painting was hung on a Tuesday. That\'s irrelevant. The clock is what matters. — Dr. F\'"',
+    foolMessage: '"The UV light reveals: \'DO NOT TRUST THE PAINTING. THE CLOCK IN IT IS WRONG. YOU HAVE BEEN WARNED. — Dr. F\'"'
+  },
+  safe_wrong_code: {
+    trigger: 'safe_wrong_3',  // entering wrong code 3 times
+    message: '"After the third wrong attempt, a small speaker crackles: \'Hmm. Still wrong. Take your time.\'"',
+    foolMessage: '"After the third wrong attempt: \'Ha. No. Try again. The number you want starts with zero.\'"'
+  },
+  desk_secret: {
+    trigger: 'desk_searched',  // after searching desk
+    message: '"In the back of the drawer, scratched into the wood: \'If you\'re reading this you found my scratch. Hi. — F\'"',
+    foolMessage: '"Scratched into the wood: \'Hi. No the code isn\'t here. Stop looking at the wood.\'"'
+  }
+};
 
+// ===== ROOM DEFINITIONS =====
 const ROOMS = {
   // -----------------------------------------------------------------------
   // ROOM 1 — "The Study"
-  // A dusty study. Desk, bookshelf, painting, lamp, locked door.
+  // Dusty academic study. Flickering lamp (morse device), symbol panel on wall,
+  // painting (clock time clue + UV easter egg), bookshelf, desk, carpet.
+  // Goal: get rusty key (carpet) → decode morse → enter symbol panel → unlock storage door
   // -----------------------------------------------------------------------
   study: {
     id: 'study',
     label: 'The Study',
-    bg: '#0b1a0b',
-    bgSprite: null,        // set to 'sprites/room1_bg.png' once you have art
+    bg: '#080f08',
     connections: { right: 'storage' },
-    objective: 'This room holds clues. Search carefully before moving on.',
     objects: [
-      // Background prop — bookshelf (decorative)
+      // Bookshelf — prop with easter egg on multi-click
       {
         id: 'bookshelf', type: 'prop', label: 'Bookshelf',
-        x: 0.05, y: 0.15, w: 0.18, h: 0.65,
-        colour: '#1a3320', sprite: null,
-        description: 'Rows of dusty books. Nothing looks out of place.'
+        x: 0.02, y: 0.1, w: 0.14, h: 0.72,
+        colour: '#0f2010',
+        description: 'Rows of old books. Nothing immediately jumps out.',
+        easterEggClicks: 5,
+        easterEggId: 'bookshelf_code'
       },
-      // Painting on wall — contains hidden clock time clue
+      // Painting — shows clock tower at 7:35. UV reveals easter egg.
       {
-        id: 'painting', type: 'note', label: 'Old Painting',
-        x: 0.68, y: 0.12, w: 0.2, h: 0.28,
-        colour: '#2a1a08', sprite: null,
-        description: "A painted courtyard at dusk. The clock tower's shadow falls at an odd angle. If you could work out the time… maybe 7:35?",
-        uvText: 'THE TIME IS IN THE SHADOW'  // visible with UV light
+        id: 'painting', type: 'note', label: 'Oil Painting',
+        x: 0.65, y: 0.08, w: 0.22, h: 0.3,
+        colour: '#1a1006',
+        description: 'A painting of a courtyard at dusk. A stone clock tower rises in the background. The shadows fall at a strange angle.',
+        uvText: 'The UV light illuminates a small inscription in the corner: "This painting was hung on a Tuesday. That\'s irrelevant. The clock is what matters. — Dr. F"',
+        uvEasterEgg: true
       },
-      // Carpet — cover object containing rusty key
+      // Flickering lamp — DEVICE linked to morse_lamp puzzle (input is in storage)
       {
-        id: 'carpet', type: 'cover', label: 'Dusty Carpet',
-        x: 0.25, y: 0.62, w: 0.45, h: 0.22,
-        colour: '#3d1f1f', sprite: null,
-        description: 'A worn carpet. Lifting the corner reveals something underneath.',
-        contains: [{ item: 'rusty_key' }],
-        searched: false
+        id: 'morse_lamp_device', type: 'device', label: 'Flickering Lamp',
+        x: 0.76, y: 0.4, w: 0.07, h: 0.3,
+        colour: '#2a2a00',
+        linkedPuzzle: 'morse_lamp',  // the input for this is in storage room
+        description: 'The lamp flickers in an irregular pattern. Short flashes and long flashes. It seems deliberate.',
+        animationType: 'morse_display'
       },
-      // Desk — cover, contains torn note 1
-      {
-        id: 'desk', type: 'cover', label: 'Writing Desk',
-        x: 0.32, y: 0.44, w: 0.32, h: 0.18,
-        colour: '#2d1a0a', sprite: null,
-        description: "A cluttered writing desk. There's a locked drawer and a crumpled note.",
-        contains: [{ item: 'torn_note_1' }],
-        searched: false
-      },
-      // Flickering lamp — morse code puzzle
-      {
-        id: 'morse_lamp_obj', type: 'puzzle', label: 'Flickering Lamp',
-        x: 0.78, y: 0.48, w: 0.08, h: 0.22,
-        colour: '#4d4d00', sprite: null,
-        puzzleId: 'morse_lamp',
-        description: 'The lamp flickers rhythmically. Dots and dashes — is it sending a message?'
-      },
-      // Symbol panel on wall — needs SUN MOON STAR
+      // Symbol panel — puzzle input (door unlocked when solved)
       {
         id: 'symbol_panel_obj', type: 'puzzle', label: 'Symbol Panel',
-        x: 0.48, y: 0.08, w: 0.14, h: 0.24,
-        colour: '#0d2e0d', sprite: null,
+        x: 0.44, y: 0.06, w: 0.13, h: 0.26,
+        colour: '#060f06',
         puzzleId: 'symbol_panel',
-        description: 'A panel with six engraved symbols. Three of them glow faintly.'
+        description: 'A metal panel inset into the wall. Six symbols are engraved on it, three of which faintly glow. There are three recessed buttons beneath them.',
+        solvedDescription: 'The panel buttons are locked in place. A soft green light pulses.'
       },
-      // Door to storage room — needs rusty key
+      // Carpet — cover, contains rusty key
+      {
+        id: 'carpet', type: 'cover', label: 'Worn Carpet',
+        x: 0.22, y: 0.6, w: 0.42, h: 0.22,
+        colour: '#2a1010',
+        description: 'A threadbare carpet. The corner is slightly lifted.',
+        contains: [{ item: 'rusty_key' }]
+      },
+      // Desk — cover, contains crumpled note and UV light
+      {
+        id: 'desk', type: 'cover', label: 'Writing Desk',
+        x: 0.28, y: 0.42, w: 0.3, h: 0.18,
+        colour: '#1a0e06',
+        description: 'A cluttered desk. Papers, a dried inkwell, and a locked drawer.',
+        contains: [{ item: 'crumpled_note' }, { item: 'uv_light' }],
+        easterEggId: 'desk_secret'
+      },
+      // Window showing outside courtyard (animated — matches painting)
+      {
+        id: 'courtyard_window', type: 'window', label: 'Window',
+        x: 0.46, y: 0.08, w: 0.0, h: 0.0, // hidden — rendered by window system at position
+        windowX: 0.82, windowY: 0.28, windowW: 0.1, windowH: 0.22,
+        colour: '#020a1a',
+        scene: 'courtyard_dusk',
+        description: 'A small window. Through it you can see a stone courtyard and a clock tower. The clock reads 7:35.'
+      },
+      // Storage door — locked, requires rusty_key (OR symbol panel solved)
       {
         id: 'storage_door', type: 'door', label: 'Side Door',
-        x: 0.88, y: 0.28, w: 0.1, h: 0.46,
-        colour: '#1a2e1a', sprite: null,
+        x: 0.88, y: 0.24, w: 0.1, h: 0.48,
+        colour: '#0d1a0d',
         locked: true, keyItem: 'rusty_key',
-        description: "A wooden door with a keyhole. It's locked.",
+        description: 'A wooden door. The keyhole is rusty.',
         leadsTo: 'storage',
-        lockedMessage: "The door is locked. You need a key.",
-        unlockedMessage: "The door clicks open."
+        lockedMessage: 'Locked. Something fits in that keyhole.',
+        unlockedMessage: 'The lock clicks. The door swings open.'
       },
     ]
   },
 
   // -----------------------------------------------------------------------
-  // ROOM 2 — "Storage Room"
-  // Accessed from study. Contains fusebox and hidden note.
+  // ROOM 2 — "The Storage Room"
+  // Dark utility room. Fuse box, morse input panel (linked to study lamp),
+  // wall with UV text, power door.
+  // Goal: decode morse from study lamp → enter answer → get wire → fix fuses → power door opens
   // -----------------------------------------------------------------------
   storage: {
     id: 'storage',
     label: 'Storage Room',
-    bg: '#0a0f0a',
-    bgSprite: null,
+    bg: '#060a06',
     connections: { left: 'study', right: 'lab' },
-    objective: 'The fuse box looks important. And something is hidden on the wall.',
     objects: [
-      // Fusebox on wall
+      // Morse decoder panel — INPUT for the morse lamp in the study
+      {
+        id: 'morse_input_obj', type: 'puzzle', label: 'Signal Decoder',
+        x: 0.08, y: 0.15, w: 0.18, h: 0.3,
+        colour: '#0f0f00',
+        puzzleId: 'morse_lamp',
+        description: 'A wall-mounted signal decoder panel. A small display reads "AWAITING INPUT". There\'s a keypad for entering decoded text.',
+        solvedDescription: 'The decoder reads "SUN ✓". A small compartment has popped open beneath it.'
+      },
+      // Wire compartment — only accessible after morse solved (reward from morse puzzle)
+      // Actually, the wire_fragment drops when morse is solved
+      // Fusebox
       {
         id: 'fusebox_obj', type: 'puzzle', label: 'Fuse Box',
-        x: 0.1, y: 0.18, w: 0.22, h: 0.35,
-        colour: '#2a2a0a', sprite: null,
+        x: 0.55, y: 0.12, w: 0.22, h: 0.4,
+        colour: '#1a1a00',
         puzzleId: 'fusebox',
-        description: 'An old fuse box. Several wires are disconnected. Matching the colours might restore power.'
+        description: 'An old fuse box. Several wires have come loose from their terminals. The box is labelled with three colour strips.',
+        solvedDescription: 'The wires are correctly connected. A low hum indicates power is restored.'
       },
-      // Shelf — cover, contains torn note 2 and UV light
+      // Metal shelf — contains torn note A
       {
         id: 'shelf', type: 'cover', label: 'Metal Shelf',
-        x: 0.55, y: 0.2, w: 0.3, h: 0.5,
-        colour: '#1a1a2a', sprite: null,
-        description: 'Metal shelves packed with boxes. Searching through them…',
-        contains: [{ item: 'torn_note_2' }, { item: 'uv_light' }],
-        searched: false
+        x: 0.56, y: 0.55, w: 0.28, h: 0.3,
+        colour: '#0d0d1a',
+        description: 'Metal shelves loaded with dusty boxes. Searching through them takes a moment.',
+        contains: [{ item: 'torn_note_a' }]
       },
-      // Wall with UV-hidden text
+      // Blank wall — UV reveals code hint
       {
-        id: 'blank_wall', type: 'note', label: 'Blank Wall',
-        x: 0.35, y: 0.05, w: 0.15, h: 0.55,
-        colour: '#0d150d', sprite: null,
-        description: 'Just a wall. Nothing visible.',
-        uvText: 'CODE: _ _ _ _ (SUM OF ALL PARTS)'
+        id: 'blank_wall', type: 'note', label: 'Bare Wall',
+        x: 0.3, y: 0.05, w: 0.18, h: 0.6,
+        colour: '#080808',
+        description: 'A bare concrete wall. Nothing on it.',
+        uvText: 'Under the UV light, faint writing appears:\n"SUM = CODE. Don\'t forget the leading zero."'
       },
       // Power door — opened by fusebox
       {
-        id: 'power_door', type: 'door', label: 'Power Door',
-        x: 0.87, y: 0.22, w: 0.1, h: 0.5,
-        colour: '#1a1a1a', sprite: null,
+        id: 'power_door', type: 'door', label: 'Heavy Door',
+        x: 0.87, y: 0.2, w: 0.1, h: 0.52,
+        colour: '#0a0a0a',
         locked: true, unlockedBy: 'fusebox',
-        description: 'A heavy door. No power, no entry.',
+        description: 'A heavy steel door. A red indicator light blinks above it.',
         leadsTo: 'lab',
-        lockedMessage: 'The door needs power. Maybe the fuse box?',
-        unlockedMessage: 'The door hums and slides open.'
+        lockedMessage: 'No power. The indicator light is red.',
+        unlockedMessage: 'The indicator turns green. The door grinds open.'
       },
     ]
   },
 
   // -----------------------------------------------------------------------
   // ROOM 3 — "The Lab"
-  // Final room. Contains clock puzzle, safe with silver key, exit door.
+  // Final room. Clock, slider, safe, filing cabinet, exit.
+  // Goal: slider → keycard; clock → safe; safe code 0015 → (already have keycard) → exit
   // -----------------------------------------------------------------------
   lab: {
     id: 'lab',
     label: 'The Lab',
-    bg: '#070a14',
-    bgSprite: null,
+    bg: '#040608',
     connections: { left: 'storage' },
-    objective: 'The final stretch. Find the exit.',
     objects: [
-      // Slide puzzle board
+      // Slider puzzle — reward is lab_keycard
       {
-        id: 'tile_board', type: 'puzzle', label: 'Tile Puzzle Board',
-        x: 0.08, y: 0.2, w: 0.25, h: 0.45,
-        colour: '#0d1a2a', sprite: null,
+        id: 'tile_board', type: 'puzzle', label: 'Tile Board',
+        x: 0.06, y: 0.18, w: 0.24, h: 0.46,
+        colour: '#060d1a',
         puzzleId: 'slider_tile',
-        description: 'A sliding tile puzzle mounted on a board. Solve it to reveal a compartment.'
+        description: 'A sliding tile puzzle mounted on the wall. The tiles are numbered. There\'s a small compartment behind it.',
+        solvedDescription: 'The tiles are in order. A hidden compartment has opened.'
       },
-      // Clock — puzzle
+      // Antique clock — puzzle, unlocks lab_safe_door when set to 7:35
       {
         id: 'clock_obj', type: 'puzzle', label: 'Antique Clock',
-        x: 0.52, y: 0.1, w: 0.12, h: 0.28,
-        colour: '#1a1408', sprite: null,
+        x: 0.5, y: 0.08, w: 0.12, h: 0.28,
+        colour: '#0f0c06',
         puzzleId: 'clock_puzzle',
-        description: 'An antique clock with movable hands. The face is engraved with the words "Set the correct time."'
+        description: 'A brass clock on a pedestal. The hands can be moved. An engraving reads: "Set the correct time."',
+        solvedDescription: 'The clock hands rest at 7:35. Something clicked.'
       },
-      // Filing cabinet — cover, contains torn note 3
+      // Filing cabinet — contains torn note B
       {
         id: 'cabinet', type: 'cover', label: 'Filing Cabinet',
-        x: 0.72, y: 0.25, w: 0.14, h: 0.45,
-        colour: '#1a1a2a', sprite: null,
-        description: "A filing cabinet. Most files are irrelevant, but one drawer has a torn piece of paper.",
-        contains: [{ item: 'torn_note_3' }],
-        searched: false
+        x: 0.7, y: 0.22, w: 0.14, h: 0.46,
+        colour: '#0d0d1a',
+        description: 'A battered filing cabinet. Most files are gibberish. One drawer rattles.',
+        contains: [{ item: 'torn_note_b' }]
       },
-      // Safe — 4-digit code (sum of all parts from notes = 17, clue says "adds to ___")
+      // Wall safe — 4-digit code (0015), opened by clock puzzle first (locked until)
       {
         id: 'lab_safe', type: 'safe', label: 'Wall Safe',
-        x: 0.35, y: 0.15, w: 0.12, h: 0.22,
-        colour: '#2a1a0a', sprite: null,
-        locked: true, code: '0017',
-        description: 'A wall safe with a 4-digit keypad. What could the combination be?',
-        contains: [{ item: 'red_wire' }]   // extra item for the fusebox side-puzzle
+        x: 0.33, y: 0.12, w: 0.13, h: 0.24,
+        colour: '#1a0d06',
+        locked: true,
+        requiresPuzzle: 'clock_puzzle',  // must solve clock first to reveal/unlock
+        code: '0015',
+        description: 'A recessed safe behind a hinged panel. A 4-digit keypad glows faintly.',
+        lockedDescription: 'A blank panel on the wall. Something is behind it.',
+        contains: [],
+        easterEggId: 'safe_wrong_code'
       },
-      // Exit door — opened by clock puzzle (correct time set)
+      // Exit door — requires lab_keycard
       {
         id: 'exit_door', type: 'door', label: 'Exit',
-        x: 0.88, y: 0.2, w: 0.1, h: 0.55,
-        colour: '#0a2a0a', sprite: null,
-        locked: true, unlockedBy: 'clock_puzzle',
-        description: 'The way out. It needs the right time set on the clock.',
+        x: 0.86, y: 0.18, w: 0.1, h: 0.56,
+        colour: '#062006',
+        locked: true, keyItem: 'lab_keycard',
+        description: 'A reinforced exit door. A card reader blinks red on the wall beside it.',
         leadsTo: '__EXIT__',
-        lockedMessage: 'Sealed tight.',
-        unlockedMessage: '🚪 The exit door swings open!'
+        lockedMessage: 'The card reader blinks red.',
+        unlockedMessage: '🚪 Access granted. The exit door opens.'
       },
     ]
   },
 
   // -----------------------------------------------------------------------
-  // APRIL FOOLS ROOMS (swapped in when isAprilFools is true)
-  // Same structure but slightly broken/wrong
+  // APRIL FOOLS ROOMS — Everything is slightly wrong
   // -----------------------------------------------------------------------
   fool_study: {
     id: 'fool_study',
     label: 'The Study (?)',
-    bg: '#1a0500',
-    bgSprite: null,
+    bg: '#100600',
     connections: { right: 'fool_storage' },
-    objective: "Something's wrong. The clues are there, but things don't add up.",
-    _aprilFoolsNote: "All codes are shifted by 1. The door key is in a wrong room. The painting shows 8:35 not 7:35. Morse spells 'NOM'.",
+    _aprilFoolsNote: 'Painting says 8:35 (wrong). Fool_note gives STAR SUN MOON which IS correct for fool_panel. Wire clue says 15 which is right. Carpet has wrong key. Real key in fool_storage shelf.',
     objects: [
       {
         id: 'bookshelf', type: 'prop', label: 'Bookshelf (?)',
-        x: 0.05, y: 0.15, w: 0.18, h: 0.65,
-        colour: '#2a0a00', sprite: null,
-        description: "Rows of books. One title reads 'EVERYTHING IS FINE'. Another says 'THIS IS FINE'."
+        x: 0.02, y: 0.1, w: 0.14, h: 0.72,
+        colour: '#1a0500',
+        description: 'Rows of books. One title reads "EVERYTHING IS FINE". Another: "NO IT ISN\'T".',
+        easterEggClicks: 5,
+        easterEggId: 'bookshelf_code',
+        foolMode: true
       },
       {
-        id: 'painting', type: 'note', label: 'Old Painting',
-        x: 0.68, y: 0.12, w: 0.2, h: 0.28,
-        colour: '#2a1a08', sprite: null,
-        description: "The clock tower shows 8:35. But something feels like it should be 7:35…",
-        uvText: 'THE TIME IS WRONG (BY 1)'
+        id: 'painting', type: 'note', label: 'Oil Painting',
+        x: 0.65, y: 0.08, w: 0.22, h: 0.3,
+        colour: '#1a0c00',
+        description: 'A painting of a courtyard. The clock tower reads 8:35. Something feels off about it.',
+        uvText: 'The UV light reveals: "DO NOT TRUST THE PAINTING. The clock it shows is wrong. You have been warned. — Dr. F"',
+        uvEasterEgg: true,
+        foolMode: true
       },
       {
-        id: 'carpet', type: 'cover', label: 'Dusty Carpet',
-        x: 0.25, y: 0.62, w: 0.45, h: 0.22,
-        colour: '#3d1f1f', sprite: null,
-        description: 'Lifting the corner reveals… a note that says "the key is NOT here".',
-        contains: [{ item: 'upside_down_key' }],  // wrong key!
-        searched: false
-      },
-      {
-        id: 'desk', type: 'cover', label: 'Writing Desk',
-        x: 0.32, y: 0.44, w: 0.32, h: 0.18,
-        colour: '#2d1a0a', sprite: null,
-        description: "A note reads: 'The order is MOON, STAR, ___'",
-        contains: [{ item: 'torn_note_1' }],
-        searched: false
-      },
-      {
-        id: 'morse_lamp_obj', type: 'puzzle', label: 'Flickering Lamp',
-        x: 0.78, y: 0.48, w: 0.08, h: 0.22,
-        colour: '#4d2200', sprite: null,
-        puzzleId: 'morse_lamp',  // still spells SUN but note says "shifted"
-        description: 'The lamp flickers. The pattern feels slightly… wrong.'
+        id: 'morse_lamp_device', type: 'device', label: 'Flickering Lamp',
+        x: 0.76, y: 0.4, w: 0.07, h: 0.3,
+        colour: '#2a0e00',
+        linkedPuzzle: 'morse_lamp',
+        description: 'The lamp flickers. The pattern feels… slightly wrong. Or does it?',
+        animationType: 'morse_display'
       },
       {
         id: 'symbol_panel_obj', type: 'puzzle', label: '??? Panel',
-        x: 0.48, y: 0.08, w: 0.14, h: 0.24,
-        colour: '#2e0d0d', sprite: null,
+        x: 0.44, y: 0.06, w: 0.13, h: 0.26,
+        colour: '#140600',
         puzzleId: 'fool_panel',
-        description: 'A panel with symbols. The glowing ones seem different from before.'
+        description: 'The same kind of panel. But the glowing symbols are different.',
+        solvedDescription: 'The panel clicks. Something is different about the order.'
+      },
+      {
+        id: 'carpet', type: 'cover', label: 'Worn Carpet',
+        x: 0.22, y: 0.6, w: 0.42, h: 0.22,
+        colour: '#2a1000',
+        description: 'The carpet corner is lifted. Something is visible underneath.',
+        contains: [{ item: 'backwards_key' }]
+      },
+      {
+        id: 'desk', type: 'cover', label: 'Writing Desk',
+        x: 0.28, y: 0.42, w: 0.3, h: 0.18,
+        colour: '#1a0800',
+        description: 'A cluttered desk. Among the papers is a very helpful-looking note.',
+        contains: [{ item: 'fool_note' }, { item: 'uv_light' }],
+        easterEggId: 'desk_secret',
+        foolMode: true
+      },
+      {
+        id: 'courtyard_window', type: 'window',
+        windowX: 0.82, windowY: 0.28, windowW: 0.1, windowH: 0.22,
+        colour: '#020a1a',
+        scene: 'courtyard_fool',
+        description: 'Through the window: the courtyard clock reads 8:35. Wait. The shadows don\'t match that time of day.'
       },
       {
         id: 'fool_door', type: 'door', label: 'Side Door',
-        x: 0.88, y: 0.28, w: 0.1, h: 0.46,
-        colour: '#2e1a0a', sprite: null,
-        locked: true, keyItem: 'rusty_key',  // rusty key is in fool_storage!
-        description: "It's locked. The key must be somewhere else…",
+        x: 0.88, y: 0.24, w: 0.1, h: 0.48,
+        colour: '#1a0d00',
+        locked: true, keyItem: 'rusty_key',
+        description: 'Locked. The wrong key won\'t open it.',
         leadsTo: 'fool_storage',
-        lockedMessage: "The door is locked. The key isn't under the carpet...",
-        unlockedMessage: "It opens."
+        lockedMessage: 'That key doesn\'t fit. The real key must be somewhere else.',
+        unlockedMessage: 'The door opens with a suspicious creak.'
       },
     ]
   },
@@ -410,42 +483,48 @@ const ROOMS = {
   fool_storage: {
     id: 'fool_storage',
     label: 'Storage Room (?)',
-    bg: '#0a0500',
-    bgSprite: null,
+    bg: '#080400',
     connections: { left: 'fool_study', right: 'fool_lab' },
-    objective: 'Wires everywhere. The code on the wall is partially erased.',
     objects: [
       {
+        id: 'morse_input_obj', type: 'puzzle', label: 'Signal Decoder',
+        x: 0.08, y: 0.15, w: 0.18, h: 0.3,
+        colour: '#0f0a00',
+        puzzleId: 'morse_lamp',
+        description: 'The decoder. The lamp in the study still spells SUN. Some things don\'t change.',
+        solvedDescription: 'Reads "SUN ✓". A compartment opens beneath it.'
+      },
+      {
         id: 'fusebox_obj', type: 'puzzle', label: 'Fuse Box',
-        x: 0.1, y: 0.18, w: 0.22, h: 0.35,
-        colour: '#2a1a00', sprite: null,
+        x: 0.55, y: 0.12, w: 0.22, h: 0.4,
+        colour: '#1a1400',
         puzzleId: 'fusebox',
-        description: 'The fuse box. Labels are peeling off. RED and BLUE seem swapped.'
+        description: 'The fuse box. The wire labels appear to be peeling off. Or are they?',
+        solvedDescription: 'Power restored. The door light turns green.'
       },
       {
         id: 'shelf', type: 'cover', label: 'Metal Shelf',
-        x: 0.55, y: 0.2, w: 0.3, h: 0.5,
-        colour: '#1a1a00', sprite: null,
-        description: 'Searching reveals the REAL rusty key (hiding behind a fake one).',
-        contains: [{ item: 'rusty_key' }, { item: 'torn_note_2' }, { item: 'uv_light' }],
-        searched: false
+        x: 0.56, y: 0.55, w: 0.28, h: 0.3,
+        colour: '#0d0800',
+        description: 'Dusty shelves. Something is tucked behind a box.',
+        contains: [{ item: 'rusty_key' }, { item: 'torn_note_a' }]
       },
       {
-        id: 'blank_wall', type: 'note', label: 'Blank Wall',
-        x: 0.35, y: 0.05, w: 0.15, h: 0.55,
-        colour: '#0d0800', sprite: null,
-        description: 'Just a wall.',
-        uvText: 'CODE: _ _ _ _ (SUM + 1... or is it - 1?)'
+        id: 'blank_wall', type: 'note', label: 'Bare Wall',
+        x: 0.3, y: 0.05, w: 0.18, h: 0.6,
+        colour: '#060400',
+        description: 'A bare wall. Or is it?',
+        uvText: 'UV reveals:\n"SUM = CODE. Still has a leading zero. The helpful note told you the right number. Funny, right?"'
       },
       {
-        id: 'power_door', type: 'door', label: 'Power Door',
-        x: 0.87, y: 0.22, w: 0.1, h: 0.5,
-        colour: '#1a1100', sprite: null,
+        id: 'fool_storage_door', type: 'door', label: 'Heavy Door',
+        x: 0.87, y: 0.2, w: 0.1, h: 0.52,
+        colour: '#0a0800',
         locked: true, unlockedBy: 'fusebox',
-        description: 'Power door.',
+        description: 'A heavy door. Power indicator is red.',
         leadsTo: 'fool_lab',
-        lockedMessage: 'Needs power.',
-        unlockedMessage: 'Opens... but backwards somehow.'
+        lockedMessage: 'No power.',
+        unlockedMessage: 'It opens. You\'re almost there.'
       },
     ]
   },
@@ -453,50 +532,53 @@ const ROOMS = {
   fool_lab: {
     id: 'fool_lab',
     label: 'The Lab (?)',
-    bg: '#07040a',
-    bgSprite: null,
+    bg: '#04040a',
     connections: { left: 'fool_storage' },
-    objective: 'Almost there. The clock is wrong. Trust the math.',
     objects: [
       {
-        id: 'tile_board', type: 'puzzle', label: 'Tile Puzzle',
-        x: 0.08, y: 0.2, w: 0.25, h: 0.45,
-        colour: '#14071a', sprite: null,
+        id: 'tile_board', type: 'puzzle', label: 'Tile Board',
+        x: 0.06, y: 0.18, w: 0.24, h: 0.46,
+        colour: '#08081a',
         puzzleId: 'slider_tile',
-        description: 'Same tile puzzle. Same solution. Probably.'
+        description: 'Same tile puzzle. Probably.',
+        solvedDescription: 'Tiles in order. The compartment opens.'
       },
       {
-        id: 'clock_obj', type: 'puzzle', label: 'Antique Clock',
-        x: 0.52, y: 0.1, w: 0.12, h: 0.28,
-        colour: '#1a1400', sprite: null,
-        puzzleId: 'clock_puzzle',
-        description: 'The clock reads "Set the correct time." The painting said 8:35. The painting is wrong. The answer is 7:35.'
+        id: 'clock_obj', type: 'puzzle', label: 'Clock (something feels wrong)',
+        x: 0.5, y: 0.08, w: 0.12, h: 0.28,
+        colour: '#0f0c00',
+        puzzleId: 'fool_clock',
+        description: 'The clock. "Set the correct time." The painting said 8:35. The painting lied.',
+        solvedDescription: '7:35. Correct. The panel clicks.'
       },
       {
         id: 'cabinet', type: 'cover', label: 'Filing Cabinet',
-        x: 0.72, y: 0.25, w: 0.14, h: 0.45,
-        colour: '#0a0a14', sprite: null,
-        description: "A torn note. It reads: '...seventeen. Probably. — Dr. F'",
-        contains: [{ item: 'torn_note_3' }],
-        searched: false
+        x: 0.7, y: 0.22, w: 0.14, h: 0.46,
+        colour: '#0a0a12',
+        description: 'A filing cabinet. One drawer has a torn note. It says "...probably. — Dr. F"',
+        contains: [{ item: 'torn_note_b' }]
       },
       {
         id: 'lab_safe', type: 'safe', label: 'Wall Safe',
-        x: 0.35, y: 0.15, w: 0.12, h: 0.22,
-        colour: '#2a1500', sprite: null,
-        locked: true, code: '0017',  // same code — trust the math
-        description: "A wall safe. The sticker on it says 'same code as normal... we think'",
-        contains: [{ item: 'red_wire' }]
+        x: 0.33, y: 0.12, w: 0.13, h: 0.24,
+        colour: '#1a0a00',
+        locked: true,
+        requiresPuzzle: 'fool_clock',
+        code: '0015',
+        description: 'A safe. The sticker reads: "same code as always... we think"',
+        lockedDescription: 'A panel. Probably a safe behind it.',
+        contains: [],
+        easterEggId: 'safe_wrong_code'
       },
       {
         id: 'exit_door', type: 'door', label: 'Exit (?)',
-        x: 0.88, y: 0.2, w: 0.1, h: 0.55,
-        colour: '#0a1a00', sprite: null,
-        locked: true, unlockedBy: 'clock_puzzle',
-        description: 'The exit. Set the clock to 7:35.',
+        x: 0.86, y: 0.18, w: 0.1, h: 0.56,
+        colour: '#041404',
+        locked: true, keyItem: 'lab_keycard',
+        description: 'The exit. A card reader blinks. Red.',
         leadsTo: '__EXIT__',
-        lockedMessage: 'Not yet.',
-        unlockedMessage: '🚪 You escaped... the wrong room?'
+        lockedMessage: 'Card reader blinks red.',
+        unlockedMessage: '🚪 You escaped. The wrong room. Or did you?'
       },
     ]
   },
@@ -505,102 +587,59 @@ const ROOMS = {
 // ===== TUTORIAL STEPS =====
 const TUTORIAL_STEPS = [
   {
-    title: 'Welcome to the Escape Room',
+    title: 'Welcome',
     html: `<h2>Welcome, Agent.</h2>
     <p>You've been locked in. Your goal: <strong style="color:var(--accent)">escape</strong>.</p>
-    <p>This tutorial will walk you through everything. Press <strong>Next</strong> to continue or <strong>Skip</strong> to jump straight in.</p>`
+    <p>Press <strong>Next</strong> to continue or <strong>Skip</strong> to jump straight in.</p>`
   },
   {
-    title: 'Looking Around',
+    title: 'Moving Around',
     html: `<h2>Looking Around</h2>
-    <p>Move between rooms using the <span class="tut-key">◀ ▶ ▲ ▼</span> arrows at the edges of the screen.</p>
-    <p>Each room has a name shown at the top. The sidebar shows your current <strong>objective</strong>.</p>
-    <div class="tut-demo">📌 Room navigation buttons only appear when that direction has a connected room.</div>`
+    <p>Move between rooms using the <span class="tut-key">◀ ▶</span> arrows at the edges of the screen. Arrows only appear when a path is open.</p>
+    <p>Doors must be <strong>unlocked</strong> before you can pass through them.</p>`
   },
   {
-    title: 'Interacting with Objects',
+    title: 'Interacting',
     html: `<h2>Interacting</h2>
-    <p>Click on any object in the room to examine it. A popup will appear with a description.</p>
-    <p>Objects can be:</p>
-    <ul style="margin-left:16px;line-height:2;">
-      <li>🔍 <strong>Searchable</strong> — carpets, boxes, desks</li>
-      <li>🗝️ <strong>Locked</strong> — safes and doors</li>
-      <li>📝 <strong>Readable</strong> — notes and signs</li>
-      <li>🔧 <strong>Puzzles</strong> — interactive challenges</li>
-    </ul>`
+    <p>Click any object to examine it. A panel will appear with a description and options.</p>
+    <p>Your <strong>inventory</strong> is always visible at the bottom of the screen. Click an item while viewing an object to try using it.</p>`
   },
   {
-    title: 'Inventory & Bulletin Board',
-    html: `<h2>Inventory</h2>
-    <p>Items you pick up go into your <span class="tut-key">🎒 Inventory</span>.</p>
-    <p>Open the <strong>Bulletin Board</strong> inside inventory to:</p>
-    <ul style="margin-left:16px;line-height:2;">
-      <li>📝 Add sticky notes</li>
-      <li>🔗 Draw connection strings between clues</li>
-      <li>🗑 Erase connections</li>
-    </ul>
-    <p>You can also take free-form notes in the <span class="tut-key">📋 Notes</span> panel.</p>`
+    title: 'Puzzles',
+    html: `<h2>Puzzles</h2>
+    <p>Some objects are puzzles. Solving them unlocks things — sometimes in the same room, sometimes elsewhere.</p>
+    <p>Pay attention to everything. Notes, descriptions, and even decorations can be clues.</p>
+    <div class="tut-demo">💡 Some items reveal hidden information when used on objects.</div>`
   },
   {
-    title: 'Using Items',
-    html: `<h2>Using Items</h2>
-    <p>When you examine an object, if you have a compatible item, a <strong style="color:var(--amber)">"Use [item]"</strong> button will appear.</p>
-    <p>Keys unlock doors and safes. The right item at the right object is key (pun intended).</p>
-    <div class="tut-demo">💡 If you're stuck, click <span class="tut-key">💡 Hint</span> in the top bar for a nudge.</div>`
-  },
-  {
-    title: 'Your Time',
+    title: 'Timer',
     html: `<h2>The Timer</h2>
-    <p>The moment you dismiss this tutorial, the timer starts. ⏱️</p>
-    <p>Your time is recorded <strong>once</strong> — on first completion only. Replays don't count.</p>
-    <p>Fastest times appear on the <strong>Leaderboard</strong>.</p>
-    <div class="tut-demo" style="color:var(--amber)">⚠️ On April 1st, things may be… slightly different.</div>`
+    <p>Once you dismiss this tutorial, the timer starts. ⏱️</p>
+    <p>Your time is recorded <strong>on first completion only</strong>. Fastest times go on the leaderboard.</p>`
   },
 ];
 
-// ===== HINT SYSTEM =====
-// Ordered hint chain per room — each call reveals next hint
-const HINTS = {
-  study: [
-    "Start by searching everything you can click on.",
-    "The carpet hides something. So does the desk.",
-    "The lamp is sending a message in morse code. Short flash = dot, long flash = dash.",
-    "The symbol panel needs three symbols in order. Read the torn note carefully.",
-    "SUN, MOON, STAR — in that order.",
-  ],
-  storage: [
-    "The fuse box needs its wires reconnected. Match colours.",
-    "Shine the UV light on the blank wall.",
-    "The wall says the code is a sum. Check your notes.",
-    "After fixing the fuse box, the power door will open.",
-  ],
-  lab: [
-    "The tile puzzle reveals a compartment when solved.",
-    "The clock needs to be set to the time shown in the study's painting.",
-    "The safe code is 0017 — seventeen, as the note says.",
-    "Set the clock to 7:35 to open the exit.",
-  ],
-  fool_study: [
-    "Things are slightly off. Read everything twice.",
-    "The key isn't under the carpet this time.",
-    "The symbol order has shifted by one position.",
-    "Check the storage room first — the key is hiding there.",
-  ],
-  fool_storage: [
-    "The real rusty key is on the shelf, behind a decoy.",
-    "The UV wall hint is... ambiguous. Trust the math.",
-    "The fuse box works the same way regardless.",
-  ],
-  fool_lab: [
-    "The painting says 8:35 but it's wrong. Trust your memory.",
-    "The clock answer is still 7:35. The painting lied.",
-    "The safe code is still 0017. Some things don't change.",
-  ],
+// Window scene definitions — what each 'window' type renders
+const WINDOW_SCENES = {
+  courtyard_dusk: {
+    // Animated dusk sky, clock tower showing 7:35
+    animate: true,
+    clockTime: { h: 7, m: 35 },
+    skyColor: ['#0a1a3a', '#1a0a2a', '#3a1a08'],
+    stars: true
+  },
+  courtyard_fool: {
+    animate: true,
+    clockTime: { h: 8, m: 35 },  // wrong time shown
+    skyColor: ['#1a0806', '#2a0408', '#0a0606'],
+    stars: false
+  }
 };
 
-// Expose everything globally
+// Expose globally
 window.GAME_ROOMS = ROOMS;
 window.GAME_ITEMS = ITEMS;
 window.GAME_PUZZLES = PUZZLES;
 window.GAME_TUTORIAL = TUTORIAL_STEPS;
-window.GAME_HINTS = HINTS;
+window.GAME_EASTER_EGGS = EASTER_EGGS;
+window.WINDOW_SCENES = WINDOW_SCENES;
