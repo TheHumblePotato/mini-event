@@ -77,12 +77,7 @@ function applyTitleAndTheme() {
   const phase = getDatePhase();
   adminFoolOverride = sessionStorage.getItem('admin_fool') === '1';
 
-  if (phase === 'march31') {
-    // April 0th — no red, no special styling
-    mainTitle.innerHTML = 'APRIL 0th';
-    mainTitle.dataset.text = 'APRIL 0th';
-    document.title = 'April 0th';
-  } else if (phase === 'april1') {
+  if (phase === 'april1') {
     // Remove -, make "1st" red
     mainTitle.innerHTML = 'APRIL <span style="color:#ff4141;text-shadow:0 0 20px #ff4141,0 0 40px #ff414180;">1</span>st';
     mainTitle.dataset.text = 'APRIL 1st';
