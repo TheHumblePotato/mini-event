@@ -1,645 +1,922 @@
 // ===== game-data.js =====
-// Room layouts, objects, puzzles, items.
-//
-// OBJECT TYPES:
-//   'cover'   — searchable surface (desk, crate, carpet)
-//   'safe'    — locked container requiring code
-//   'door'    — leads to another room (locked until condition met)
-//   'puzzle'  — interactive puzzle element
-//   'pickup'  — static item on floor/shelf, click to collect
-//   'note'    — readable text
-//   'prop'    — decorative, no interaction
-//   'device'  — active device with animation (linked to puzzle elsewhere)
-//   'window'  — shows animated scene, no interaction
+// Room layouts, objects, puzzles, items for the April 1st Escape Room
 
-// ===== ITEMS REGISTRY =====
 const ITEMS = {
-  // ---- Room 1 (Study) ----
-  rusty_key: {
-    id: 'rusty_key', name: 'Rusty Key', icon: '🗝️',
-    description: 'An old rusty key. The bow is shaped like a crescent moon. The teeth look like they fit a small lock.',
-    useWith: ['storage_door']
+
+  // ── NORMAL ──
+  hat_1: {
+    id: 'hat_1', name: 'Cool Hat', icon: '🎩',
+    description: "It's a REALLY cool hat. You couldn't leave it behind.",
+    useWith: ['item_analyzer']
   },
-  crumpled_note: {
-    id: 'crumpled_note', name: 'Crumpled Note', icon: '📄',
-    description: 'A crumpled note. It reads:\n\n"The order matters. Watch the light, then look at the stars.\n— F"',
+  hat_2: {
+    id: 'hat_2', name: 'Wizard Hat', icon: '🧙',
+    description: "A wizard hat. You still have no idea why it was here.",
+    useWith: ['item_analyzer_af']
+  },
+  uv_flashlight: {
+    id: 'uv_flashlight', name: 'UV Flashlight', icon: '🔦',
+    description: 'A small UV flashlight. Reveals hidden ink on certain surfaces.',
     useWith: []
   },
-  uv_light: {
-    id: 'uv_light', name: 'UV Flashlight', icon: '🔦',
-    description: 'A small UV flashlight. It makes certain inks glow. Might reveal hidden writing.',
+  employee_badge: {
+    id: 'employee_badge', name: 'Employee Badge', icon: '🪪',
+    description: 'An employee access badge. May open employee-only safes.',
+    useWith: ['employee_safe', 'employee_safe_af']
+  },
+  cipher_key_1: {
+    id: 'cipher_key_1', name: 'Cipher Key (A–M)', icon: '📄',
+    description: 'CIPHER KEY — First Half (A through M)\n\nA→!  B→@  C→#  D→$  E→%\nF→^  G→&  H→*  I→(  J→)\nK→[  L→]  M→{\n\n(Find the second half elsewhere.)',
     useWith: []
   },
-  // ---- Room 2 (Storage) ----
-  torn_note_a: {
-    id: 'torn_note_a', name: 'Torn Paper (A)', icon: '📄',
-    description: 'A torn piece of paper. Part of it is missing. It reads:\n\n"The clock in the lab… set it to the time in the painting. And remember: the code is the sum of the sequence."',
+  cipher_key_2: {
+    id: 'cipher_key_2', name: 'Cipher Key (N–Z)', icon: '📄',
+    description: 'CIPHER KEY — Second Half (N through Z)\n\nN→}  O→|  P→/  Q→\\\nR→<  S→>  T→?  U→~\nV→+  W→`  X→;  Y→:\nZ→=',
     useWith: []
   },
-  wire_fragment: {
-    id: 'wire_fragment', name: 'Wire Fragment', icon: '🔌',
-    description: 'A short red wire with stripped ends. Could complete a circuit.',
-    useWith: ['fusebox_obj']
+  secret_key: {
+    id: 'secret_key', name: 'Secret Key', icon: '🗝️',
+    description: 'A small key found in the locked cabinet. Opens the door to the next room.',
+    useWith: ['door_r1_to_r2']
   },
-  // ---- Room 3 (Lab) ----
-  torn_note_b: {
-    id: 'torn_note_b', name: 'Torn Paper (B)', icon: '📄',
-    description: 'The other half of the torn paper. It reads:\n\n"Sequence values: SUN=3, MOON=7, STAR=5. Add them up.\n— Dr. F"',
+  wire: {
+    id: 'wire', name: 'Wire', icon: '🔌',
+    description: 'An electrical wire. Could complete a circuit somewhere. The ends are stripped.',
+    useWith: ['electrical_socket']
+  },
+  red_access_card: {
+    id: 'red_access_card', name: 'Red Access Card', icon: '💳',
+    description: 'A red access card. Grants entry to the laboratory.',
+    useWith: ['door_r2_to_r3', 'door_af_r2_to_r3']
+  },
+  confidential_papers: {
+    id: 'confidential_papers', name: 'Confidential Papers', icon: '📑',
+    description: 'CONFIDENTIAL MEMO\n──────────────────\nRecently the archive\'s security protocols were reviewed by management.\nEach employee must now wear their badge at all times within the building.\nDue to recent incidents, the laboratory has been placed under observation.\nBefore accessing restricted areas, proper clearance must be obtained first.\nLab specimens should be stored in the designated refrigerators only.\nUnder no circumstances should chemicals be mixed without proper supervision.\nEntry logs will be reviewed by security at the end of each week.\nReport any anomalies to the head of security immediately and in writing.\nEnsure all doors are properly secured and locked before leaving for the night.\nDocumentation of all experiments remains strictly confidential at all times.',
     useWith: []
   },
-  lab_keycard: {
-    id: 'lab_keycard', name: 'Lab Keycard', icon: '💳',
-    description: 'A red keycard. "EMERGENCY ACCESS" is stamped on it. This unlocks something.',
-    useWith: ['exit_door']
+  chalk: {
+    id: 'chalk', name: 'Chalk', icon: '✏️',
+    description: 'A stick of chalk. Useful for writing on blackboards.',
+    useWith: ['blackboard']
   },
-  // ---- April Fools items ----
-  backwards_key: {
-    id: 'backwards_key', name: 'Suspicious Key', icon: '🗝️',
-    description: 'A key. The label reads "DEFINITELY THE RIGHT KEY (it is not)".',
-    useWith: ['fool_door']
+  boring_data: {
+    id: 'boring_data', name: 'Boring Data', icon: '💾',
+    description: 'Output from the Item Analyzer.\nCLASSIFICATION: BORING\nItem analyzed: Hat #1\nFinding: Extremely mundane.\n\nBring to a computer for further analysis.',
+    useWith: ['computer']
   },
-  fool_note: {
-    id: 'fool_note', name: 'Suspiciously Helpful Note', icon: '📄',
-    description: 'A note reading:\n\n"Everything is normal. The sequence is STAR, SUN, MOON. The code is 15. The clock is 8:35. Trust this note. — Definitely Dr. F"',
+  computer_printout: {
+    id: 'computer_printout', name: 'Computer Printout', icon: '🖨️',
+    description: 'ANALYSIS COMPLETE\n─────────────────\nSource: Item Analyzer\nData type: BORING\nClassification: MUNDANE\n\nERROR: No relevant findings.\nERROR: Absolutely nothing of interest.\nERROR: Why are we even looking at this?\n\n──────────────────────────\nSYSTEM MESSAGE:\n\nExit code: 3892',
     useWith: []
   },
+  acid: {
+    id: 'acid', name: 'Acid', icon: '🧪',
+    description: 'A corrosive acid, freshly mixed. Dissolves certain materials on contact.',
+    useWith: ['locked_cabinet', 'bookshelf_1_af']
+  },
+
+  // ── APRIL FOOLS ──
+  cipher_key_af_1: {
+    id: 'cipher_key_af_1', name: 'Cipher Key AF (A–M)', icon: '📄',
+    description: 'CIPHER KEY — First Half (A through M)\nNumber-based. Add dashes between.\n\nA=1  B=2  C=3  D=4  E=5\nF=6  G=7  H=8  I=9  J=10\nK=11  L=12  M=13\n\n⚠ NOTE: S and T are SWAPPED!\n  (S=20, T=19)',
+    useWith: []
+  },
+  cipher_key_af_2: {
+    id: 'cipher_key_af_2', name: 'Cipher Key AF (N–Z)', icon: '📄',
+    description: 'CIPHER KEY — Second Half (N through Z)\n\nN=14  O=15  P=16  Q=17  R=18\nS=20 ← SWAPPED with T\nT=19 ← SWAPPED with S\nU=21  V=22  W=23  X=24\nY=25  Z=26',
+    useWith: []
+  },
+  secret_key_af: {
+    id: 'secret_key_af', name: 'Boring Key', icon: '🗝️',
+    description: 'A completely ordinary key. Found in the locked cabinet.',
+    useWith: ['door_af_r1_to_r2']
+  },
+  electrical_wire_af: {
+    id: 'electrical_wire_af', name: 'Electrical Wire', icon: '🔌',
+    description: 'A somewhat tangled electrical wire. Might connect to something.',
+    useWith: ['power_socket_af_obj']
+  },
+  eraser_af: {
+    id: 'eraser_af', name: 'Blackboard Eraser', icon: '🧹',
+    description: 'A dusty blackboard eraser. Reveals things that were written beneath.',
+    useWith: ['blackboard_af']
+  },
+  boring_data_af: {
+    id: 'boring_data_af', name: 'Boring Data (AF)', icon: '💾',
+    description: 'Output from the Item Analyzer.\nCLASSIFICATION: EXTREMELY BORING\nItem analyzed: Wizard Hat\nFinding: The answer to life is... boring.\n\nBring to a computer for analysis.',
+    useWith: ['computer_af']
+  },
+  computer_printout_af: {
+    id: 'computer_printout_af', name: 'Computer Printout', icon: '🖨️',
+    description: 'ANALYSIS COMPLETE\n─────────────────\nData type: BORING (extra boring)\nClassification: VERY MUNDANE\n\nFUN FACT: This printout is also boring.\n\n──────────────────────────\nExit code: 6666',
+    useWith: []
+  },
+  acid_af: {
+    id: 'acid_af', name: 'Green Acid', icon: '🧪',
+    description: 'A very green acid. Suspiciously green. Smells like lime.',
+    useWith: ['locked_cabinet_af', 'bookshelf_1_af']
+  },
+  complicated_instructions_af: {
+    id: 'complicated_instructions_af', name: 'Complicated Instructions', icon: '📋',
+    description: 'COMPLICATED INSTRUCTIONS (Form 42-C/Alpha)\nPage 1 of 47.\n\nStep 1: Do not proceed until you have read all 47 pages.\nStep 2: ...\n\n[Pages 2 through 46 appear to be missing.]\n\nPage 47 of 47:\nACTUAL INSTRUCTIONS:\nGo back to Room 2.\nUse the acid on the bookshelf.\nA hidden passage will open.',
+    useWith: []
+  },
+  snack_af: {
+    id: 'snack_af', name: 'Chocolate Bar', icon: '🍫',
+    description: 'A chocolate bar from the vending machine. Best before: 2019.\nStill technically edible. Probably.',
+    useWith: []
+  },
+  lukewarm_coffee_af: {
+    id: 'lukewarm_coffee_af', name: 'Lukewarm Coffee', icon: '☕',
+    description: 'Lukewarm coffee. It was probably hot once. Maybe this morning. Maybe last week.',
+    useWith: []
+  }
 };
 
-// ===== PUZZLE DEFINITIONS =====
+// ===== PUZZLES =====
 const PUZZLES = {
-  // Morse lamp — flashes SUN in morse. Player decodes it.
-  // This is displayed as a 'device' in the study but puzzle input is in storage
-  morse_lamp: {
-    id: 'morse_lamp',
-    type: 'morse',
-    label: 'Morse Signal',
-    message: 'SUN',
-    hint: 'Short flash = dot (·), long flash = dash (—). Each letter is separated by a pause.'
+
+  typewriter: {
+    id: 'typewriter',
+    type: 'text_input',
+    label: 'Typewriter',
+    hint: 'Enter 4 words from Bookshelf #1, at the positions shown by the UV numbers on Bookshelf #2. Separate words with spaces.',
+    answer: 'contain holds experiment overlooked',
+    reward: 'wire'
   },
 
-  // Symbol panel — press SUN, MOON, STAR in that order
-  symbol_panel: {
-    id: 'symbol_panel',
-    type: 'sequence',
-    label: 'Symbol Panel',
-    symbols: ['☀️','🌙','⭐','🌊','🌺','🔥'],
-    solution: [0, 1, 2],  // SUN=0, MOON=1, STAR=2
-    unlocks: 'storage_door'
-  },
-
-  // Fusebox in storage — wire puzzle
-  fusebox: {
-    id: 'fusebox',
-    type: 'wires',
-    label: 'Fuse Box',
-    pairs: [
-      { colour: '#ff4141', label: 'RED' },
-      { colour: '#4141ff', label: 'BLUE' },
-      { colour: '#ffff41', label: 'YELLOW' },
+  chem_mixer: {
+    id: 'chem_mixer',
+    type: 'color_mixer',
+    label: 'Chemical Mixer',
+    hint: 'Mix the chemicals in the correct order. Something in the archive may tell you the sequence.',
+    colors: [
+      { name: 'RED',    color: '#cc2222' },
+      { name: 'BLUE',   color: '#2244cc' },
+      { name: 'GREEN',  color: '#22aa44' },
+      { name: 'YELLOW', color: '#bbaa00' },
+      { name: 'PURPLE', color: '#882299' }
     ],
-    solution: { RED: 'RED', BLUE: 'BLUE', YELLOW: 'YELLOW' },
-    unlocks: 'power_door'
+    answer: ['RED', 'BLUE', 'RED'],
+    reward: 'acid'
   },
 
-  // Slider puzzle in lab — reveals hidden keycard compartment
-  slider_tile: {
-    id: 'slider_tile',
-    type: 'slider',
-    label: 'Tile Puzzle',
-    size: 3,
-    solution: [1,2,3,4,5,6,7,8,0],
-    reward: 'lab_keycard'
+  mainframe: {
+    id: 'mainframe',
+    type: 'text_input',
+    label: 'MAINFRAME TERMINAL',
+    hint: 'Enter the system name. The cipher text on the blackboard in Room 2 will help you decode it. You\'ll need the cipher keys.',
+    answer: 'MAINFRAME',
+    requiresFlag: 'power_on',
+    onSolveEffect: 'computer_unlocked'
   },
 
-  // Clock puzzle — set to 7:35 (from painting in study)
-  clock_puzzle: {
-    id: 'clock_puzzle',
-    type: 'clock',
-    label: 'Antique Clock',
-    solution: { h: 7, m: 35 },
-    unlocks: 'lab_safe_door'
+  // ── APRIL FOOLS PUZZLES ──
+
+  typewriter_af: {
+    id: 'typewriter_af',
+    type: 'text_input',
+    label: 'Typewriter',
+    hint: 'Enter 4 words from Bookshelf #1. The UV numbers on Bookshelf #2 are negative — count from the BACK of the text. Separate words with spaces.',
+    answer: 'by experiment holds thousands',
+    onSolveEffect: 'af_power_socket_revealed'
   },
 
-  // Safe in lab — code 0015 (SUN=3+MOON=7+STAR=5 = 15, zero-padded)
-  // Clue from torn_note_a (sum) + torn_note_b (values)
-  lab_safe_combo: {
-    id: 'lab_safe_combo',
-    type: 'safe_code',
-    label: 'Safe',
-    code: '0015',
-    reward: null // keycard already from slider
+  chem_mixer_af: {
+    id: 'chem_mixer_af',
+    type: 'color_mixer',
+    label: 'Chemical Mixer',
+    hint: 'Mix chemicals in the correct sequence. Look around the lab for a hint.',
+    colors: [
+      { name: 'GREEN',  color: '#22aa44' },
+      { name: 'RED',    color: '#cc2222' },
+      { name: 'BLUE',   color: '#2244cc' },
+      { name: 'YELLOW', color: '#bbaa00' },
+      { name: 'PURPLE', color: '#882299' }
+    ],
+    answer: ['GREEN', 'GREEN', 'GREEN'],
+    reward: 'acid_af'
   },
 
-  // April Fools: symbol order is wrong
-  fool_panel: {
-    id: 'fool_panel',
-    type: 'sequence',
-    label: '??? Panel',
-    symbols: ['☀️','🌙','⭐','🌊','🌺','🔥'],
-    solution: [2, 0, 1],  // STAR, SUN, MOON — per fool_note (wrong)... actual answer differs
-    // fool_note says STAR SUN MOON. That IS the correct fool answer.
-    unlocks: 'fool_storage_door'
-  },
-
-  // Fool clock — painting says 8:35 but correct answer is still 7:35
-  fool_clock: {
-    id: 'fool_clock',
-    type: 'clock',
-    label: 'Clock (something feels off)',
-    solution: { h: 7, m: 35 },
-    unlocks: 'fool_lab_safe_door'
-  },
-
-  fool_safe_combo: {
-    id: 'fool_safe_combo',
-    type: 'safe_code',
-    label: 'Safe',
-    code: '0015',  // same code — fool_note says 15 which is actually right
-    reward: null
-  },
+  mainframe_af: {
+    id: 'mainframe_af',
+    type: 'text_input',
+    label: 'MAINFRAME TERMINAL',
+    hint: 'Enter the system name. The numbers on the blackboard in Room 2 spell it out — use the cipher keys to decode.',
+    answer: 'MAINFRAME',
+    requiresFlag: 'power_on_af',
+    onSolveEffect: 'computer_af_unlocked'
+  }
 };
 
 // ===== EASTER EGGS =====
-// These are hidden interactions that reveal fun messages
 const EASTER_EGGS = {
-  bookshelf_code: {
-    trigger: 'bookshelf_click_5',  // clicking bookshelf 5 times
-    message: '"The books here are organized by colour, not subject. One book is upside down. It\'s called \'How to Escape a Room\'."',
-    foolMessage: '"All the books are upside down. One is right-side up. It\'s called \'How to Stay In a Room\'."'
+  hat_rack_clicks: {
+    message: "It's STILL a hat rack. What did you expect.",
+    foolMessage: "It's STILL a hat rack. In the April Fools version. Still just a hat rack."
   },
-  painting_close: {
-    trigger: 'painting_uv',  // using UV light on painting
-    message: '"Under the UV light, a small inscription in the corner reads: \'This painting was hung on a Tuesday. That\'s irrelevant. The clock is what matters. — Dr. F\'"',
-    foolMessage: '"The UV light reveals: \'DO NOT TRUST THE PAINTING. THE CLOCK IN IT IS WRONG. YOU HAVE BEEN WARNED. — Dr. F\'"'
+  carpet_clicks: {
+    message: "You've searched the carpet four times now. The carpet is clean.",
+    foolMessage: "The carpet stares back at you. It knows you're stalling."
   },
   safe_wrong_code: {
-    trigger: 'safe_wrong_3',  // entering wrong code 3 times
-    message: '"After the third wrong attempt, a small speaker crackles: \'Hmm. Still wrong. Take your time.\'"',
-    foolMessage: '"After the third wrong attempt: \'Ha. No. Try again. The number you want starts with zero.\'"'
-  },
-  desk_secret: {
-    trigger: 'desk_searched',  // after searching desk
-    message: '"In the back of the drawer, scratched into the wood: \'If you\'re reading this you found my scratch. Hi. — F\'"',
-    foolMessage: '"Scratched into the wood: \'Hi. No the code isn\'t here. Stop looking at the wood.\'"'
+    message: 'If you have to guess, you\'re not ready.',
+    foolMessage: 'The answer is definitely not 1234. Or is it? No.'
   }
 };
 
-// ===== ROOM DEFINITIONS =====
+// ===== ROOMS =====
 const ROOMS = {
-  // -----------------------------------------------------------------------
-  // ROOM 1 — "The Study"
-  // Dusty academic study. Flickering lamp (morse device), symbol panel on wall,
-  // painting (clock time clue + UV easter egg), bookshelf, desk, carpet.
-  // Goal: get rusty key (carpet) → decode morse → enter symbol panel → unlock storage door
-  // -----------------------------------------------------------------------
-  study: {
-    id: 'study',
-    label: 'The Study',
+
+  // ══════════════════════════════════════════
+  //  ROOM 1 — ANTEROOM (Normal)
+  // ══════════════════════════════════════════
+  anteroom: {
+    id: 'anteroom',
+    label: 'Room 1 — The Anteroom',
     bg: '#080f08',
-    connections: { right: 'storage' },
+    connections: { right: 'library' },
     objects: [
-      // Bookshelf — prop with easter egg on multi-click
+      // Hat rack (prop, left side, tall)
       {
-        id: 'bookshelf', type: 'prop', label: 'Bookshelf',
-        x: 0.02, y: 0.1, w: 0.14, h: 0.72,
-        colour: '#0f2010',
-        description: 'Rows of old books. Nothing immediately jumps out.',
-        easterEggClicks: 5,
-        easterEggId: 'bookshelf_code'
+        id: 'hat_rack', type: 'prop', label: 'Hat Rack',
+        description: "It's a hat rack, what did you expect.",
+        colour: '#1a1208',
+        x: 0.02, y: 0.04, w: 0.11, h: 0.74,
+        easterEggClicks: 5, easterEggId: 'hat_rack_clicks'
       },
-      // Painting — shows clock tower at 7:35. UV reveals easter egg.
+      // Hat #1 (overlapping hat rack — cover)
       {
-        id: 'painting', type: 'note', label: 'Oil Painting',
-        x: 0.65, y: 0.08, w: 0.22, h: 0.3,
-        colour: '#1a1006',
-        description: 'A painting of a courtyard at dusk. A stone clock tower rises in the background. The shadows fall at a strange angle.',
-        uvText: 'The UV light illuminates a small inscription in the corner: "This painting was hung on a Tuesday. That\'s irrelevant. The clock is what matters. — Dr. F"',
-        uvEasterEgg: true
+        id: 'hat_1_cover', type: 'cover', label: 'Hat #1',
+        description: "It's a REALLY cool hat.",
+        searchText: "It's a REALLY cool hat. You pocket it.",
+        colour: '#2a1a08',
+        x: 0.025, y: 0.07, w: 0.09, h: 0.12,
+        contains: [{ item: 'hat_1' }]
       },
-      // Flickering lamp — DEVICE linked to morse_lamp puzzle (input is in storage)
+      // Hat #2 Wizard hat (overlapping hat rack — cover)
       {
-        id: 'morse_lamp_device', type: 'device', label: 'Flickering Lamp',
-        x: 0.76, y: 0.4, w: 0.07, h: 0.3,
-        colour: '#2a2a00',
-        linkedPuzzle: 'morse_lamp',  // the input for this is in storage room
-        description: 'The lamp flickers in an irregular pattern. Short flashes and long flashes. It seems deliberate.',
-        animationType: 'morse_display'
+        id: 'hat_2_cover', type: 'cover', label: 'Wizard Hat',
+        description: "Don't ask me why this is here.",
+        searchText: "Found the answer to life. Just kidding. Found a wizard hat though.",
+        colour: '#1a0830',
+        x: 0.025, y: 0.21, w: 0.09, h: 0.12,
+        contains: [{ item: 'hat_2' }]
       },
-      // Symbol panel — puzzle input (door unlocked when solved)
+      // Hat #3 (overlapping hat rack — cover)
       {
-        id: 'symbol_panel_obj', type: 'puzzle', label: 'Symbol Panel',
-        x: 0.44, y: 0.06, w: 0.13, h: 0.26,
-        colour: '#060f06',
-        puzzleId: 'symbol_panel',
-        description: 'A metal panel inset into the wall. Six symbols are engraved on it, three of which faintly glow. There are three recessed buttons beneath them.',
-        solvedDescription: 'The panel buttons are locked in place. A soft green light pulses.'
+        id: 'hat_3_cover', type: 'cover', label: 'Hat #3',
+        description: "Hat. It's a hat.",
+        searchText: "You find a hidden compartment inside the hat. There's a UV flashlight.",
+        colour: '#1a1a08',
+        x: 0.025, y: 0.35, w: 0.09, h: 0.12,
+        contains: [{ item: 'uv_flashlight' }]
       },
-      // Carpet — cover, contains rusty key
+      // Filing inbox (cover)
       {
-        id: 'carpet', type: 'cover', label: 'Worn Carpet',
-        x: 0.22, y: 0.6, w: 0.42, h: 0.22,
-        colour: '#2a1010',
-        description: 'A threadbare carpet. The corner is slightly lifted.',
-        contains: [{ item: 'rusty_key' }]
+        id: 'filing_inbox', type: 'cover', label: 'Filing Inbox',
+        description: "Lot's of juicy things in here!",
+        searchText: "You rifle through the inbox and find something useful.",
+        colour: '#1a1208',
+        x: 0.17, y: 0.50, w: 0.15, h: 0.28,
+        contains: [{ item: 'employee_badge' }, { item: 'cipher_key_1' }]
       },
-      // Desk — cover, contains crumpled note and UV light
+      // Wall clock (cover — clock stopped at 8:37)
       {
-        id: 'desk', type: 'cover', label: 'Writing Desk',
-        x: 0.28, y: 0.42, w: 0.3, h: 0.18,
-        colour: '#1a0e06',
-        description: 'A cluttered desk. Papers, a dried inkwell, and a locked drawer.',
-        contains: [{ item: 'crumpled_note' }, { item: 'uv_light' }],
-        easterEggId: 'desk_secret'
+        id: 'wall_clock', type: 'cover', label: 'Wall Clock',
+        description: 'A wall clock. It reads 8:37. The hands are not moving.',
+        searchText: 'Lots of dust. The clock appears to have stopped at exactly 8:37.',
+        colour: '#1a1408',
+        x: 0.44, y: 0.05, w: 0.12, h: 0.22
       },
-      // Window showing outside courtyard (animated — matches painting)
+      // Carpet (cover, large, bottom)
       {
-        id: 'courtyard_window', type: 'window', label: 'Window',
-        x: 0.46, y: 0.08, w: 0.0, h: 0.0, // hidden — rendered by window system at position
-        windowX: 0.82, windowY: 0.28, windowW: 0.1, windowH: 0.22,
-        colour: '#020a1a',
-        scene: 'courtyard_dusk',
-        description: 'A small window. Through it you can see a stone courtyard and a clock tower. The clock reads 7:35.'
+        id: 'carpet', type: 'cover', label: 'Carpet',
+        description: "A worn carpet. Everyone searches the carpet.",
+        searchText: "Everyone searches the carpet. Nothing obvious here.",
+        uvText: 'hour times min',
+        colour: '#180808',
+        x: 0.07, y: 0.82, w: 0.82, h: 0.15,
+        easterEggClicks: 4, easterEggId: 'carpet_clicks'
       },
-      // Storage door — locked, requires rusty_key (OR symbol panel solved)
+      // Locked cabinet (safe, 3-digit: 296)
       {
-        id: 'storage_door', type: 'door', label: 'Side Door',
-        x: 0.88, y: 0.24, w: 0.1, h: 0.48,
-        colour: '#0d1a0d',
-        locked: true, keyItem: 'rusty_key',
-        description: 'A wooden door. The keyhole is rusty.',
-        leadsTo: 'storage',
-        lockedMessage: 'Locked. Something fits in that keyhole.',
-        unlockedMessage: 'The lock clicks. The door swings open.'
-      },
-    ]
-  },
-
-  // -----------------------------------------------------------------------
-  // ROOM 2 — "The Storage Room"
-  // Dark utility room. Fuse box, morse input panel (linked to study lamp),
-  // wall with UV text, power door.
-  // Goal: decode morse from study lamp → enter answer → get wire → fix fuses → power door opens
-  // -----------------------------------------------------------------------
-  storage: {
-    id: 'storage',
-    label: 'Storage Room',
-    bg: '#060a06',
-    connections: { left: 'study', right: 'lab' },
-    objects: [
-      // Morse decoder panel — INPUT for the morse lamp in the study
-      {
-        id: 'morse_input_obj', type: 'puzzle', label: 'Signal Decoder',
-        x: 0.08, y: 0.15, w: 0.18, h: 0.3,
-        colour: '#0f0f00',
-        puzzleId: 'morse_lamp',
-        description: 'A wall-mounted signal decoder panel. A small display reads "AWAITING INPUT". There\'s a keypad for entering decoded text.',
-        solvedDescription: 'The decoder reads "SUN ✓". A small compartment has popped open beneath it.'
-      },
-      // Wire compartment — only accessible after morse solved (reward from morse puzzle)
-      // Actually, the wire_fragment drops when morse is solved
-      // Fusebox
-      {
-        id: 'fusebox_obj', type: 'puzzle', label: 'Fuse Box',
-        x: 0.55, y: 0.12, w: 0.22, h: 0.4,
-        colour: '#1a1a00',
-        puzzleId: 'fusebox',
-        description: 'An old fuse box. Several wires have come loose from their terminals. The box is labelled with three colour strips.',
-        solvedDescription: 'The wires are correctly connected. A low hum indicates power is restored.'
-      },
-      // Metal shelf — contains torn note A
-      {
-        id: 'shelf', type: 'cover', label: 'Metal Shelf',
-        x: 0.56, y: 0.55, w: 0.28, h: 0.3,
-        colour: '#0d0d1a',
-        description: 'Metal shelves loaded with dusty boxes. Searching through them takes a moment.',
-        contains: [{ item: 'torn_note_a' }]
-      },
-      // Blank wall — UV reveals code hint
-      {
-        id: 'blank_wall', type: 'note', label: 'Bare Wall',
-        x: 0.3, y: 0.05, w: 0.18, h: 0.6,
-        colour: '#080808',
-        description: 'A bare concrete wall. Nothing on it.',
-        uvText: 'Under the UV light, faint writing appears:\n"SUM = CODE. Don\'t forget the leading zero."'
-      },
-      // Power door — opened by fusebox
-      {
-        id: 'power_door', type: 'door', label: 'Heavy Door',
-        x: 0.87, y: 0.2, w: 0.1, h: 0.52,
-        colour: '#0a0a0a',
-        locked: true, unlockedBy: 'fusebox',
-        description: 'A heavy steel door. A red indicator light blinks above it.',
-        leadsTo: 'lab',
-        lockedMessage: 'No power. The indicator light is red.',
-        unlockedMessage: 'The indicator turns green. The door grinds open.'
-      },
-    ]
-  },
-
-  // -----------------------------------------------------------------------
-  // ROOM 3 — "The Lab"
-  // Final room. Clock, slider, safe, filing cabinet, exit.
-  // Goal: slider → keycard; clock → safe; safe code 0015 → (already have keycard) → exit
-  // -----------------------------------------------------------------------
-  lab: {
-    id: 'lab',
-    label: 'The Lab',
-    bg: '#040608',
-    connections: { left: 'storage' },
-    objects: [
-      // Slider puzzle — reward is lab_keycard
-      {
-        id: 'tile_board', type: 'puzzle', label: 'Tile Board',
-        x: 0.06, y: 0.18, w: 0.24, h: 0.46,
-        colour: '#060d1a',
-        puzzleId: 'slider_tile',
-        description: 'A sliding tile puzzle mounted on the wall. The tiles are numbered. There\'s a small compartment behind it.',
-        solvedDescription: 'The tiles are in order. A hidden compartment has opened.'
-      },
-      // Antique clock — puzzle, unlocks lab_safe_door when set to 7:35
-      {
-        id: 'clock_obj', type: 'puzzle', label: 'Antique Clock',
-        x: 0.5, y: 0.08, w: 0.12, h: 0.28,
-        colour: '#0f0c06',
-        puzzleId: 'clock_puzzle',
-        description: 'A brass clock on a pedestal. The hands can be moved. An engraving reads: "Set the correct time."',
-        solvedDescription: 'The clock hands rest at 7:35. Something clicked.'
-      },
-      // Filing cabinet — contains torn note B
-      {
-        id: 'cabinet', type: 'cover', label: 'Filing Cabinet',
-        x: 0.7, y: 0.22, w: 0.14, h: 0.46,
-        colour: '#0d0d1a',
-        description: 'A battered filing cabinet. Most files are gibberish. One drawer rattles.',
-        contains: [{ item: 'torn_note_b' }]
-      },
-      // Wall safe — 4-digit code (0015), opened by clock puzzle first (locked until)
-      {
-        id: 'lab_safe', type: 'safe', label: 'Wall Safe',
-        x: 0.33, y: 0.12, w: 0.13, h: 0.24,
-        colour: '#1a0d06',
-        locked: true,
-        requiresPuzzle: 'clock_puzzle',  // must solve clock first to reveal/unlock
-        code: '0015',
-        description: 'A recessed safe behind a hinged panel. A 4-digit keypad glows faintly.',
-        lockedDescription: 'A blank panel on the wall. Something is behind it.',
-        contains: [],
+        id: 'locked_cabinet_r1', type: 'safe', label: 'Locked Cabinet',
+        description: 'A locked cabinet. The combination lock has 3 digits.\n\nThe clock reads 8:37. The carpet hint might help.',
+        code: '296',
+        colour: '#0f1a10',
+        x: 0.70, y: 0.24, w: 0.13, h: 0.54,
+        contains: [{ item: 'secret_key' }],
         easterEggId: 'safe_wrong_code'
       },
-      // Exit door — requires lab_keycard
+      // Electrical socket (prop)
       {
-        id: 'exit_door', type: 'door', label: 'Exit',
-        x: 0.86, y: 0.18, w: 0.1, h: 0.56,
-        colour: '#062006',
-        locked: true, keyItem: 'lab_keycard',
-        description: 'A reinforced exit door. A card reader blinks red on the wall beside it.',
-        leadsTo: '__EXIT__',
-        lockedMessage: 'The card reader blinks red.',
-        unlockedMessage: '🚪 Access granted. The exit door opens.'
+        id: 'electrical_socket', type: 'prop', label: 'Electrical Socket',
+        description: 'Shocking.',
+        colour: '#101010',
+        x: 0.83, y: 0.72, w: 0.05, h: 0.07
       },
-    ]
-  },
-
-  // -----------------------------------------------------------------------
-  // APRIL FOOLS ROOMS — Everything is slightly wrong
-  // -----------------------------------------------------------------------
-  fool_study: {
-    id: 'fool_study',
-    label: 'The Study (?)',
-    bg: '#100600',
-    connections: { right: 'fool_storage' },
-    _aprilFoolsNote: 'Painting says 8:35 (wrong). Fool_note gives STAR SUN MOON which IS correct for fool_panel. Wire clue says 15 which is right. Carpet has wrong key. Real key in fool_storage shelf.',
-    objects: [
+      // Door to library (locked, requires secret_key)
       {
-        id: 'bookshelf', type: 'prop', label: 'Bookshelf (?)',
-        x: 0.02, y: 0.1, w: 0.14, h: 0.72,
-        colour: '#1a0500',
-        description: 'Rows of books. One title reads "EVERYTHING IS FINE". Another: "NO IT ISN\'T".',
-        easterEggClicks: 5,
-        easterEggId: 'bookshelf_code',
-        foolMode: true
-      },
-      {
-        id: 'painting', type: 'note', label: 'Oil Painting',
-        x: 0.65, y: 0.08, w: 0.22, h: 0.3,
-        colour: '#1a0c00',
-        description: 'A painting of a courtyard. The clock tower reads 8:35. Something feels off about it.',
-        uvText: 'The UV light reveals: "DO NOT TRUST THE PAINTING. The clock it shows is wrong. You have been warned. — Dr. F"',
-        uvEasterEgg: true,
-        foolMode: true
-      },
-      {
-        id: 'morse_lamp_device', type: 'device', label: 'Flickering Lamp',
-        x: 0.76, y: 0.4, w: 0.07, h: 0.3,
-        colour: '#2a0e00',
-        linkedPuzzle: 'morse_lamp',
-        description: 'The lamp flickers. The pattern feels… slightly wrong. Or does it?',
-        animationType: 'morse_display'
-      },
-      {
-        id: 'symbol_panel_obj', type: 'puzzle', label: '??? Panel',
-        x: 0.44, y: 0.06, w: 0.13, h: 0.26,
-        colour: '#140600',
-        puzzleId: 'fool_panel',
-        description: 'The same kind of panel. But the glowing symbols are different.',
-        solvedDescription: 'The panel clicks. Something is different about the order.'
-      },
-      {
-        id: 'carpet', type: 'cover', label: 'Worn Carpet',
-        x: 0.22, y: 0.6, w: 0.42, h: 0.22,
-        colour: '#2a1000',
-        description: 'The carpet corner is lifted. Something is visible underneath.',
-        contains: [{ item: 'backwards_key' }]
-      },
-      {
-        id: 'desk', type: 'cover', label: 'Writing Desk',
-        x: 0.28, y: 0.42, w: 0.3, h: 0.18,
-        colour: '#1a0800',
-        description: 'A cluttered desk. Among the papers is a very helpful-looking note.',
-        contains: [{ item: 'fool_note' }, { item: 'uv_light' }],
-        easterEggId: 'desk_secret',
-        foolMode: true
-      },
-      {
-        id: 'courtyard_window', type: 'window',
-        windowX: 0.82, windowY: 0.28, windowW: 0.1, windowH: 0.22,
-        colour: '#020a1a',
-        scene: 'courtyard_fool',
-        description: 'Through the window: the courtyard clock reads 8:35. Wait. The shadows don\'t match that time of day.'
-      },
-      {
-        id: 'fool_door', type: 'door', label: 'Side Door',
-        x: 0.88, y: 0.24, w: 0.1, h: 0.48,
-        colour: '#1a0d00',
-        locked: true, keyItem: 'rusty_key',
-        description: 'Locked. The wrong key won\'t open it.',
-        leadsTo: 'fool_storage',
-        lockedMessage: 'That key doesn\'t fit. The real key must be somewhere else.',
-        unlockedMessage: 'The door opens with a suspicious creak.'
-      },
-    ]
-  },
-
-  fool_storage: {
-    id: 'fool_storage',
-    label: 'Storage Room (?)',
-    bg: '#080400',
-    connections: { left: 'fool_study', right: 'fool_lab' },
-    objects: [
-      {
-        id: 'morse_input_obj', type: 'puzzle', label: 'Signal Decoder',
-        x: 0.08, y: 0.15, w: 0.18, h: 0.3,
-        colour: '#0f0a00',
-        puzzleId: 'morse_lamp',
-        description: 'The decoder. The lamp in the study still spells SUN. Some things don\'t change.',
-        solvedDescription: 'Reads "SUN ✓". A compartment opens beneath it.'
-      },
-      {
-        id: 'fusebox_obj', type: 'puzzle', label: 'Fuse Box',
-        x: 0.55, y: 0.12, w: 0.22, h: 0.4,
-        colour: '#1a1400',
-        puzzleId: 'fusebox',
-        description: 'The fuse box. The wire labels appear to be peeling off. Or are they?',
-        solvedDescription: 'Power restored. The door light turns green.'
-      },
-      {
-        id: 'shelf', type: 'cover', label: 'Metal Shelf',
-        x: 0.56, y: 0.55, w: 0.28, h: 0.3,
-        colour: '#0d0800',
-        description: 'Dusty shelves. Something is tucked behind a box.',
-        contains: [{ item: 'rusty_key' }, { item: 'torn_note_a' }]
-      },
-      {
-        id: 'blank_wall', type: 'note', label: 'Bare Wall',
-        x: 0.3, y: 0.05, w: 0.18, h: 0.6,
-        colour: '#060400',
-        description: 'A bare wall. Or is it?',
-        uvText: 'UV reveals:\n"SUM = CODE. Still has a leading zero. The helpful note told you the right number. Funny, right?"'
-      },
-      {
-        id: 'fool_storage_door', type: 'door', label: 'Heavy Door',
-        x: 0.87, y: 0.2, w: 0.1, h: 0.52,
-        colour: '#0a0800',
-        locked: true, unlockedBy: 'fusebox',
-        description: 'A heavy door. Power indicator is red.',
-        leadsTo: 'fool_lab',
-        lockedMessage: 'No power.',
-        unlockedMessage: 'It opens. You\'re almost there.'
-      },
-    ]
-  },
-
-  fool_lab: {
-    id: 'fool_lab',
-    label: 'The Lab (?)',
-    bg: '#04040a',
-    connections: { left: 'fool_storage' },
-    objects: [
-      {
-        id: 'tile_board', type: 'puzzle', label: 'Tile Board',
-        x: 0.06, y: 0.18, w: 0.24, h: 0.46,
-        colour: '#08081a',
-        puzzleId: 'slider_tile',
-        description: 'Same tile puzzle. Probably.',
-        solvedDescription: 'Tiles in order. The compartment opens.'
-      },
-      {
-        id: 'clock_obj', type: 'puzzle', label: 'Clock (something feels wrong)',
-        x: 0.5, y: 0.08, w: 0.12, h: 0.28,
-        colour: '#0f0c00',
-        puzzleId: 'fool_clock',
-        description: 'The clock. "Set the correct time." The painting said 8:35. The painting lied.',
-        solvedDescription: '7:35. Correct. The panel clicks.'
-      },
-      {
-        id: 'cabinet', type: 'cover', label: 'Filing Cabinet',
-        x: 0.7, y: 0.22, w: 0.14, h: 0.46,
-        colour: '#0a0a12',
-        description: 'A filing cabinet. One drawer has a torn note. It says "...probably. — Dr. F"',
-        contains: [{ item: 'torn_note_b' }]
-      },
-      {
-        id: 'lab_safe', type: 'safe', label: 'Wall Safe',
-        x: 0.33, y: 0.12, w: 0.13, h: 0.24,
-        colour: '#1a0a00',
+        id: 'door_r1_to_r2', type: 'door', label: 'Door to Room 2',
+        description: 'A locked door leading to the next room. You need a key.',
+        lockedMessage: 'The door is locked. Find the key.',
+        unlockedMessage: 'The door swings open.',
         locked: true,
-        requiresPuzzle: 'fool_clock',
-        code: '0015',
-        description: 'A safe. The sticker reads: "same code as always... we think"',
-        lockedDescription: 'A panel. Probably a safe behind it.',
-        contains: [],
+        keyItem: 'secret_key',
+        leadsTo: 'library',
+        colour: '#0a160a',
+        x: 0.88, y: 0.10, w: 0.10, h: 0.80
+      }
+    ]
+  },
+
+  // ══════════════════════════════════════════
+  //  ROOM 2 — LIBRARY / ARCHIVE (Normal)
+  // ══════════════════════════════════════════
+  library: {
+    id: 'library',
+    label: 'Room 2 — The Library',
+    bg: '#080a0f',
+    connections: { left: 'anteroom', right: 'laboratory' },
+    objects: [
+      // Bookshelf #1 (cover — contains the paragraph)
+      {
+        id: 'bookshelf_1', type: 'cover', label: 'Bookshelf #1',
+        description: 'A tall bookshelf packed with folders and binders.',
+        searchText: 'The laboratory archives contain thousands of classified documents. Each folder holds secrets from decades of research. Scientists recorded every experiment with great precision. Nothing was overlooked by the dedicated staff.',
+        colour: '#0e0c08',
+        x: 0.02, y: 0.04, w: 0.14, h: 0.76
+      },
+      // Bookshelf #2 (cover — UV text reveals positions)
+      {
+        id: 'bookshelf_2', type: 'cover', label: 'Bookshelf #2',
+        description: 'Another bookshelf. Equally tall.',
+        searchText: 'Many books. Nothing notable.',
+        uvText: '4 · 11 · 20 · 26',
+        colour: '#0e0c08',
+        x: 0.18, y: 0.04, w: 0.14, h: 0.76
+      },
+      // Notebook (cover — gives cipher_key_2)
+      {
+        id: 'notebook', type: 'cover', label: 'Notebook',
+        description: 'A worn notebook sitting on the shelf.',
+        searchText: "Inside the notebook is a hand-written cipher reference table.",
+        colour: '#12100a',
+        x: 0.35, y: 0.62, w: 0.14, h: 0.26,
+        contains: [{ item: 'cipher_key_2' }]
+      },
+      // Typewriter (puzzle — text_input)
+      {
+        id: 'typewriter_obj', type: 'puzzle', label: 'Typewriter',
+        description: 'An old typewriter. A note taped to it reads:\n"Enter 4 words from Bookshelf #1\nat positions given by the UV numbers on Bookshelf #2.\nSeparate with spaces."',
+        solvedDescription: 'The typewriter. [Already used — a wire dropped out of a hidden compartment.]',
+        puzzleId: 'typewriter',
+        colour: '#12100a',
+        x: 0.35, y: 0.25, w: 0.20, h: 0.30
+      },
+      // Blackboard (note — chalk reveals cipher text)
+      {
+        id: 'blackboard', type: 'note', label: 'Blackboard',
+        description: 'A blackboard. It shows the equation:\n\n(8 × 4) ÷ 2 + 7 = ?\n\nThe equation seems to have no relevance whatsoever.',
+        chalkReveal: '{!(}^<!{%',
+        colour: '#080f08',
+        x: 0.58, y: 0.04, w: 0.22, h: 0.50
+      },
+      // Employee safe (safe — itemKey = employee_badge)
+      {
+        id: 'employee_safe', type: 'safe', label: 'Employee Safe',
+        description: "It's a safe. Employees only.\n\nThere's a badge scanner instead of a combination lock.",
+        itemKey: 'employee_badge',
+        colour: '#0f1410',
+        x: 0.72, y: 0.50, w: 0.12, h: 0.38,
+        contains: [{ item: 'red_access_card' }, { item: 'confidential_papers' }]
+      },
+      // Computer (device)
+      {
+        id: 'computer', type: 'device', label: 'Computer',
+        description: 'I forgot my password.',
+        colour: '#080f08',
+        x: 0.58, y: 0.58, w: 0.12, h: 0.30
+      },
+      // Door to laboratory (locked — requires red_access_card)
+      {
+        id: 'door_r2_to_r3', type: 'door', label: 'Door to Room 3',
+        description: 'A reinforced door. Requires a red access card.',
+        lockedMessage: 'ACCESS DENIED. Red access card required.',
+        unlockedMessage: 'Access granted.',
+        locked: true,
+        keyItem: 'red_access_card',
+        leadsTo: 'laboratory',
+        colour: '#0a120a',
+        x: 0.88, y: 0.10, w: 0.10, h: 0.80
+      }
+    ]
+  },
+
+  // ══════════════════════════════════════════
+  //  ROOM 3 — LABORATORY (Normal)
+  // ══════════════════════════════════════════
+  laboratory: {
+    id: 'laboratory',
+    label: 'Room 3 — The Laboratory',
+    bg: '#050f09',
+    connections: { left: 'library' },
+    objects: [
+      // Item Analyzer (device)
+      {
+        id: 'item_analyzer', type: 'device', label: 'Item Analyzer',
+        description: 'ITEM ANALYZER v2.1\n\nSearching for REALLY cool items.\n\nInsert item to analyze.',
+        colour: '#0a1a12',
+        x: 0.02, y: 0.10, w: 0.16, h: 0.52
+      },
+      // Labeled Potion (prop — UV text: "First Letters")
+      {
+        id: 'labeled_potion', type: 'note', label: 'Labeled Potion',
+        description: 'A labeled potion sitting on a shelf.',
+        uvText: 'First Letters',
+        colour: '#0a120a',
+        x: 0.22, y: 0.62, w: 0.10, h: 0.24
+      },
+      // Chemical Mixer (puzzle — color_mixer)
+      {
+        id: 'chem_mixer_obj', type: 'puzzle', label: 'Chemical Mixer',
+        description: 'A chemical mixing station. 5 colored chemical tanks, 3 slots.\n\nSomething in the archive mentioned an order.',
+        solvedDescription: 'The chemical mixer. [Already solved — contents dispensed.]',
+        puzzleId: 'chem_mixer',
+        colour: '#0a1208',
+        x: 0.22, y: 0.05, w: 0.22, h: 0.50
+      },
+      // Power grid panel (device)
+      {
+        id: 'power_grid', type: 'device', label: 'Power Grid Panel',
+        description: 'Power grid panel. POWER OFFLINE.',
+        colour: '#0f100a',
+        x: 0.48, y: 0.52, w: 0.14, h: 0.36
+      },
+      // Mainframe terminal (puzzle — text_input, requires power_on)
+      {
+        id: 'mainframe_terminal', type: 'puzzle', label: 'Mainframe Terminal',
+        description: 'MAINFRAME TERMINAL\nSTATUS: OFFLINE\n\nPower is required to operate.',
+        solvedDescription: 'MAINFRAME TERMINAL\nSTATUS: SOLVED ✓\n\nSystem authenticated.',
+        puzzleId: 'mainframe',
+        colour: '#080f08',
+        x: 0.48, y: 0.04, w: 0.22, h: 0.44
+      },
+      // Locked Cabinet (cover — acid required to open)
+      {
+        id: 'locked_cabinet', type: 'cover', label: 'Locked Cabinet',
+        description: 'A heavy metal cabinet. Something is inside.\n\nOrdinary handles won\'t open it. Something corrosive might work.',
+        searchText: 'The cabinet is sealed tight. A corrosive substance might dissolve the lock.',
+        colour: '#0f1410',
+        x: 0.74, y: 0.20, w: 0.12, h: 0.60
+      },
+      // Exit panel (safe — code 3892, triggers win)
+      {
+        id: 'exit_panel', type: 'safe', label: 'Exit Keypad',
+        description: 'Exit keypad. Enter the passcode to unlock the exit.\n\nThe printout from the computer should have it.',
+        code: '3892',
+        triggersWin: true,
+        colour: '#0a160a',
+        x: 0.88, y: 0.28, w: 0.10, h: 0.44,
+        easterEggId: 'safe_wrong_code'
+      }
+    ]
+  },
+
+  // ══════════════════════════════════════════
+  //  AF ROOM 1 — ANTEROOM (April Fools)
+  // ══════════════════════════════════════════
+  af_anteroom: {
+    id: 'af_anteroom',
+    label: 'Room 1 — The Anteroom',
+    bg: '#0f080f',
+    connections: { right: 'af_library' },
+    objects: [
+      // Hat rack (prop)
+      {
+        id: 'hat_rack_af', type: 'prop', label: 'Hat Rack',
+        description: "It's a hat rack, what did you expect.",
+        colour: '#1a1208',
+        x: 0.02, y: 0.04, w: 0.11, h: 0.74,
+        easterEggClicks: 5, easterEggId: 'hat_rack_clicks'
+      },
+      // Hat #1 (cover)
+      {
+        id: 'hat_1_cover_af', type: 'cover', label: 'Hat #1',
+        description: "It's a REALLY cool hat.",
+        searchText: "It's a REALLY cool hat. You pocket it.",
+        colour: '#2a1a08',
+        x: 0.025, y: 0.07, w: 0.09, h: 0.12,
+        contains: [{ item: 'hat_1' }]
+      },
+      // Hat #2 Wizard hat (cover)
+      {
+        id: 'hat_2_cover_af', type: 'cover', label: 'Wizard Hat',
+        description: "Don't ask me why this is here.",
+        searchText: "Found the answer to life. You keep the wizard hat.",
+        colour: '#1a0830',
+        x: 0.025, y: 0.21, w: 0.09, h: 0.12,
+        contains: [{ item: 'hat_2' }]
+      },
+      // Hat #3 (cover)
+      {
+        id: 'hat_3_cover_af', type: 'cover', label: 'Hat #3',
+        description: "Hat. It's a hat.",
+        searchText: "You find a hidden compartment. A UV flashlight.",
+        colour: '#1a1a08',
+        x: 0.025, y: 0.35, w: 0.09, h: 0.12,
+        contains: [{ item: 'uv_flashlight' }]
+      },
+      // Filing inbox (AF version — boring junk, different cipher)
+      {
+        id: 'filing_inbox_af', type: 'cover', label: 'Filing Inbox',
+        description: "Lot's of boring junk in here!",
+        searchText: "You rifle through the junk. Finds something.",
+        colour: '#1a1208',
+        x: 0.17, y: 0.50, w: 0.15, h: 0.28,
+        contains: [{ item: 'employee_badge' }, { item: 'cipher_key_af_1' }]
+      },
+      // Wall clock (prop — stopped at -1:67)
+      {
+        id: 'wall_clock_af', type: 'cover', label: 'Wall Clock',
+        description: 'A wall clock. It reads -1:67. That is not a valid time.',
+        searchText: 'Lots of dust. The clock reads -1:67. Someone broke physics.',
+        colour: '#1a1408',
+        x: 0.44, y: 0.05, w: 0.12, h: 0.22
+      },
+      // Carpet (cover — clue is searchText, NOT UV)
+      {
+        id: 'carpet_af', type: 'cover', label: 'Carpet',
+        description: 'A carpet. It looks normal. Suspiciously normal.',
+        searchText: 'hour plus min',
+        uvText: 'nobody searches the carpet',
+        colour: '#180808',
+        x: 0.07, y: 0.82, w: 0.82, h: 0.15,
+        easterEggClicks: 4, easterEggId: 'carpet_clicks'
+      },
+      // Locked cabinet (safe — code 066)
+      {
+        id: 'locked_cabinet_af_r1', type: 'safe', label: 'Locked Cabinet',
+        description: 'A locked cabinet. 3-digit combination.\n\nThe clock reads -1:67.',
+        code: '066',
+        colour: '#0f1a10',
+        x: 0.70, y: 0.24, w: 0.13, h: 0.54,
+        contains: [{ item: 'secret_key_af' }],
         easterEggId: 'safe_wrong_code'
       },
+      // Tangled cables (cover — gives electrical_wire_af)
       {
-        id: 'exit_door', type: 'door', label: 'Exit (?)',
-        x: 0.86, y: 0.18, w: 0.1, h: 0.56,
-        colour: '#041404',
-        locked: true, keyItem: 'lab_keycard',
-        description: 'The exit. A card reader blinks. Red.',
-        leadsTo: '__EXIT__',
-        lockedMessage: 'Card reader blinks red.',
-        unlockedMessage: '🚪 You escaped. The wrong room. Or did you?'
+        id: 'tangled_cables_af', type: 'cover', label: 'Tangled Cables',
+        description: 'A coil of wire. Looks like a snake.',
+        searchText: 'After untangling for 20 minutes, you find a usable wire.',
+        colour: '#101010',
+        x: 0.83, y: 0.65, w: 0.08, h: 0.15,
+        contains: [{ item: 'electrical_wire_af' }]
       },
+      // Door to AF library
+      {
+        id: 'door_af_r1_to_r2', type: 'door', label: 'Door to Room 2',
+        description: 'A locked door. Needs a key.',
+        lockedMessage: 'Locked. Find the key.',
+        unlockedMessage: 'The door opens.',
+        locked: true,
+        keyItem: 'secret_key_af',
+        leadsTo: 'af_library',
+        colour: '#0a120a',
+        x: 0.88, y: 0.10, w: 0.10, h: 0.80
+      }
     ]
   },
-};
 
-// ===== TUTORIAL STEPS =====
+  // ══════════════════════════════════════════
+  //  AF ROOM 2 — LIBRARY (April Fools)
+  // ══════════════════════════════════════════
+  af_library: {
+    id: 'af_library',
+    label: 'Room 2 — The Library',
+    bg: '#0f080f',
+    connections: { left: 'af_anteroom', right: 'af_laboratory' },
+    objects: [
+      // Bookshelf #1 AF (cover — same paragraph, can be acid'd later)
+      {
+        id: 'bookshelf_1_af', type: 'cover', label: 'Bookshelf #1',
+        description: 'A tall bookshelf. Familiar looking.',
+        searchText: 'The laboratory archives contain thousands of classified documents. Each folder holds secrets from decades of research. Scientists recorded every experiment with great precision. Nothing was overlooked by the dedicated staff.',
+        colour: '#0e0c08',
+        x: 0.02, y: 0.04, w: 0.14, h: 0.76
+      },
+      // Bookshelf #2 AF (cover — UV text: negative positions)
+      {
+        id: 'bookshelf_2_af', type: 'cover', label: 'Bookshelf #2',
+        description: 'Another bookshelf.',
+        searchText: 'Many books.',
+        uvText: '-4 · -11 · -20 · -26',
+        colour: '#0e0c08',
+        x: 0.18, y: 0.04, w: 0.14, h: 0.76
+      },
+      // Notebook AF (cover — gives cipher_key_af_2)
+      {
+        id: 'notebook_af', type: 'cover', label: 'Notebook',
+        description: 'A notebook. It looks slightly different from the other one.',
+        searchText: 'Inside: a hand-written AF cipher reference table.',
+        colour: '#12100a',
+        x: 0.35, y: 0.62, w: 0.14, h: 0.26,
+        contains: [{ item: 'cipher_key_af_2' }]
+      },
+      // Typewriter AF (puzzle — text_input, reveals power socket)
+      {
+        id: 'typewriter_af_obj', type: 'puzzle', label: 'Typewriter',
+        description: 'An old typewriter. Taped note:\n"Enter 4 words from Bookshelf #1\nThe UV numbers on Bookshelf #2 are negative.\nCount from the BACK. Separate with spaces."',
+        solvedDescription: 'The typewriter. [Solved — a hidden compartment opened in the wall.]',
+        puzzleId: 'typewriter_af',
+        colour: '#12100a',
+        x: 0.35, y: 0.25, w: 0.20, h: 0.30
+      },
+      // Blackboard AF (note — eraser reveals AF cipher)
+      {
+        id: 'blackboard_af', type: 'note', label: 'Blackboard',
+        description: 'A blackboard. Complex equation:\n\n((2^100 × e^π) + ∑(n→∞) + √(-9)) × 0 + 0 = ?\n\nThe answer is 0. That was easy.',
+        eraserReveal: '13-1-9-14-6-18-1-13-5',
+        colour: '#080f08',
+        x: 0.58, y: 0.04, w: 0.22, h: 0.50
+      },
+      // Power socket fixture (prop — visibleFlag: af_power_socket_revealed)
+      {
+        id: 'power_socket_af_obj', type: 'prop', label: 'Power Socket',
+        description: 'A power socket. It just appeared after the typewriter compartment opened.\n\nSomething with a plug might connect here.',
+        visibleFlag: 'af_power_socket_revealed',
+        colour: '#101010',
+        x: 0.58, y: 0.58, w: 0.08, h: 0.12
+      },
+      // Employee safe AF (same as normal)
+      {
+        id: 'employee_safe_af', type: 'safe', label: 'Employee Safe',
+        description: "It's a safe. Employees only.\n\nBadge scanner instead of combination lock.",
+        itemKey: 'employee_badge',
+        colour: '#0f1410',
+        x: 0.72, y: 0.50, w: 0.12, h: 0.38,
+        contains: [{ item: 'red_access_card' }, { item: 'confidential_papers' }]
+      },
+      // Computer AF (device)
+      {
+        id: 'computer_af', type: 'device', label: 'Computer',
+        description: 'I forgot my password.',
+        colour: '#080f08',
+        x: 0.68, y: 0.04, w: 0.12, h: 0.30
+      },
+      // Door to AF laboratory
+      {
+        id: 'door_af_r2_to_r3', type: 'door', label: 'Door to Room 3',
+        description: 'A reinforced door. Requires a red access card.',
+        lockedMessage: 'ACCESS DENIED. Red access card required.',
+        unlockedMessage: 'Access granted.',
+        locked: true,
+        keyItem: 'red_access_card',
+        leadsTo: 'af_laboratory',
+        colour: '#0a120a',
+        x: 0.88, y: 0.10, w: 0.10, h: 0.80
+      }
+    ]
+  },
+
+  // ══════════════════════════════════════════
+  //  AF ROOM 3 — LABORATORY (April Fools)
+  // ══════════════════════════════════════════
+  af_laboratory: {
+    id: 'af_laboratory',
+    label: 'Room 3 — The Laboratory',
+    bg: '#0f080f',
+    connections: { left: 'af_library' },
+    objects: [
+      // Item Analyzer AF (device)
+      {
+        id: 'item_analyzer_af', type: 'device', label: 'Item Analyzer',
+        description: 'ITEM ANALYZER v2.2 (AF Edition)\n\nSearching for the answer to life.\n\nInsert item to analyze.',
+        colour: '#0a1a12',
+        x: 0.02, y: 0.10, w: 0.16, h: 0.52
+      },
+      // Labeled Potion AF (prop — useless UV)
+      {
+        id: 'labeled_potion_af', type: 'note', label: 'Labeled Potion',
+        description: 'Very green potion. green green green.',
+        uvText: 'Whoops I forgot',
+        colour: '#0a120a',
+        x: 0.22, y: 0.62, w: 0.10, h: 0.24
+      },
+      // Chemical Mixer AF (puzzle — color_mixer, GREEN GREEN GREEN)
+      {
+        id: 'chem_mixer_af_obj', type: 'puzzle', label: 'Chemical Mixer',
+        description: 'A chemical mixing station.\n\nThe green one looks very promising.\nVery very green.',
+        solvedDescription: 'The chemical mixer. [Solved — very green output dispensed.]',
+        puzzleId: 'chem_mixer_af',
+        colour: '#0a1208',
+        x: 0.22, y: 0.05, w: 0.22, h: 0.50
+      },
+      // Power grid panel AF (device)
+      {
+        id: 'power_grid_af', type: 'device', label: 'Power Grid Panel',
+        description: 'Power grid panel. POWER OFFLINE.',
+        colour: '#0f100a',
+        x: 0.48, y: 0.52, w: 0.14, h: 0.36
+      },
+      // Mainframe terminal AF (puzzle — text_input, requires power_on_af)
+      {
+        id: 'mainframe_af_terminal', type: 'puzzle', label: 'Mainframe Terminal',
+        description: 'MAINFRAME TERMINAL (AF)\nSTATUS: OFFLINE',
+        solvedDescription: 'MAINFRAME TERMINAL\nSTATUS: SOLVED ✓',
+        puzzleId: 'mainframe_af',
+        colour: '#080f08',
+        x: 0.48, y: 0.04, w: 0.22, h: 0.44
+      },
+      // Locked Cabinet AF (cover — acid_af required)
+      {
+        id: 'locked_cabinet_af', type: 'cover', label: 'Locked Cabinet',
+        description: 'A heavy cabinet. Something is inside.\n\nOrdinary handles won\'t open it. Something corrosive might work.',
+        searchText: 'The cabinet is sealed. You need something corrosive.',
+        colour: '#0f1410',
+        x: 0.74, y: 0.20, w: 0.12, h: 0.60
+      },
+      // Exit panel AF (safe — code 6666, triggers april_fools win sequence)
+      {
+        id: 'exit_panel_af', type: 'safe', label: 'Exit Keypad',
+        description: 'Exit keypad. Enter the passcode.\n\nSomething about this seems too easy.',
+        code: '6666',
+        triggersWin: 'april_fools',
+        colour: '#160a0a',
+        x: 0.88, y: 0.28, w: 0.10, h: 0.44,
+        easterEggId: 'safe_wrong_code'
+      }
+    ]
+  },
+
+  // ══════════════════════════════════════════
+  //  AF ROOM 4 — THE TROLL EXIT (April Fools)
+  // ══════════════════════════════════════════
+  af_exit_room: {
+    id: 'af_exit_room',
+    label: 'Room 4 — The Exit',
+    bg: '#100808',
+    connections: {},
+    objects: [
+      // Troll note
+      {
+        id: 'note_troll', type: 'note', label: 'Mysterious Note',
+        description: 'Only one of these doors is real.\nThe others will void your run.\nProceed carefully.\n\n(This room was made by AI.)',
+        colour: '#1a1208',
+        x: 0.02, y: 0.05, w: 0.12, h: 0.22
+      },
+      // Neon EXIT sign
+      {
+        id: 'neon_exit_af', type: 'prop', label: 'Neon EXIT Sign',
+        description: 'Flashes aggressively. Points at nothing in particular.',
+        colour: '#200808',
+        x: 0.36, y: 0.02, w: 0.28, h: 0.11
+      },
+      // Big Red Button
+      {
+        id: 'big_red_button_af', type: 'prop', label: 'BIG RED BUTTON',
+        description: 'BIG RED BUTTON. DO NOT PRESS.\n\nYou pressed it. Nothing happened. Or did it?',
+        colour: '#200808',
+        x: 0.16, y: 0.05, w: 0.08, h: 0.16
+      },
+      // Rubber Duck
+      {
+        id: 'rubber_duck_af', type: 'prop', label: 'Rubber Duck',
+        description: 'It stares at you judgmentally.',
+        colour: '#1a1208',
+        x: 0.27, y: 0.05, w: 0.07, h: 0.12
+      },
+      // Grandfather Clock
+      {
+        id: 'grandfather_clock_af', type: 'prop', label: 'Grandfather Clock',
+        description: 'The time reads 4:20. Nice.',
+        colour: '#12100a',
+        x: 0.80, y: 0.04, w: 0.08, h: 0.58
+      },
+      // Fake Plant
+      {
+        id: 'fake_plant_af', type: 'prop', label: 'Fake Plant',
+        description: 'Impressively fake. The plastic looks almost real.',
+        colour: '#0a1a08',
+        x: 0.69, y: 0.38, w: 0.09, h: 0.38
+      },
+      // Mirror
+      {
+        id: 'mirror_af', type: 'prop', label: 'Mirror',
+        description: 'You look surprisingly composed for someone who just escaped 3 rooms.',
+        colour: '#0a0a14',
+        x: 0.02, y: 0.34, w: 0.08, h: 0.30
+      },
+      // Pile of Paperwork (cover)
+      {
+        id: 'pile_paperwork_af', type: 'cover', label: 'Pile of Paperwork',
+        description: 'More forms. Always more forms.',
+        searchText: 'Form 27-B/6. For the record. You don\'t know what this is for.',
+        colour: '#1a1608',
+        x: 0.80, y: 0.65, w: 0.10, h: 0.22
+      },
+      // Vending Machine (cover)
+      {
+        id: 'vending_machine_af', type: 'cover', label: 'Vending Machine',
+        description: 'Out of order. As usual.',
+        searchText: 'You bang the side and a chocolate bar falls out.',
+        colour: '#0e0e12',
+        x: 0.90, y: 0.05, w: 0.08, h: 0.60,
+        contains: [{ item: 'snack_af' }]
+      },
+      // Coffee Machine (cover)
+      {
+        id: 'coffee_machine_af', type: 'cover', label: 'Coffee Machine',
+        description: 'Possibly functional.',
+        searchText: 'It dispenses lukewarm coffee. You take it.',
+        colour: '#0e0e0e',
+        x: 0.69, y: 0.04, w: 0.09, h: 0.32,
+        contains: [{ item: 'lukewarm_coffee_af' }]
+      },
+      // ── Five Doors (all lead to __EXIT__) ──
+      {
+        id: 'door_af_r4_1', type: 'door', label: 'Door #1',
+        description: 'A door. Probably real.',
+        locked: false, leadsTo: '__EXIT__',
+        colour: '#0a160a',
+        x: 0.02, y: 0.38, w: 0.08, h: 0.58
+      },
+      {
+        id: 'door_af_r4_2', type: 'door', label: 'Door #2',
+        description: 'A very suspicious door.',
+        locked: false, leadsTo: '__EXIT__',
+        colour: '#0a160a',
+        x: 0.12, y: 0.38, w: 0.08, h: 0.58
+      },
+      {
+        id: 'door_af_r4_3', type: 'door', label: 'Door #3',
+        description: 'This one looks legit.',
+        locked: false, leadsTo: '__EXIT__',
+        colour: '#0a160a',
+        x: 0.22, y: 0.38, w: 0.08, h: 0.58
+      },
+      {
+        id: 'door_af_r4_4', type: 'door', label: 'Door #4',
+        description: 'The most normal door.',
+        locked: false, leadsTo: '__EXIT__',
+        colour: '#0a160a',
+        x: 0.32, y: 0.38, w: 0.08, h: 0.58
+      },
+      {
+        id: 'door_af_r4_5', type: 'door', label: 'Door #5',
+        description: 'This one was added last minute.',
+        locked: false, leadsTo: '__EXIT__',
+        colour: '#0a160a',
+        x: 0.42, y: 0.38, w: 0.08, h: 0.58
+      }
+    ]
+  }
+
+}; // end ROOMS
+
+// ===== TUTORIAL =====
 const TUTORIAL_STEPS = [
   {
-    title: 'Welcome',
-    html: `<h2>Welcome, Agent.</h2>
-    <p>You've been locked in. Your goal: <strong style="color:var(--accent)">escape</strong>.</p>
-    <p>Press <strong>Next</strong> to continue or <strong>Skip</strong> to jump straight in.</p>`
+    html: `<h2>WELCOME</h2><p>You are locked in. Find a way out.</p><p>Click objects on the canvas to interact with them.</p>`
   },
   {
-    title: 'Moving Around',
-    html: `<h2>Looking Around</h2>
-    <p>Move between rooms using the <span class="tut-key">◀ ▶</span> arrows at the edges of the screen. Arrows only appear when a path is open.</p>
-    <p>Doors must be <strong>unlocked</strong> before you can pass through them.</p>`
+    html: `<h2>SEARCHING</h2><p>Click <strong>covers</strong> (desks, shelves, carpets) to reveal hidden items.<br>Found items go into your inventory at the bottom.</p>`
   },
   {
-    title: 'Interacting',
-    html: `<h2>Interacting</h2>
-    <p>Click any object to examine it. A panel will appear with a description and options.</p>
-    <p>Your <strong>inventory</strong> is always visible at the bottom of the screen. Click an item while viewing an object to try using it.</p>`
+    html: `<h2>USING ITEMS</h2><p>When a notice popup is open, your <strong>inventory appears on the right sidebar</strong>.<br>Click an item to use it on the current object.</p>`
   },
   {
-    title: 'Puzzles',
-    html: `<h2>Puzzles</h2>
-    <p>Some objects are puzzles. Solving them unlocks things — sometimes in the same room, sometimes elsewhere.</p>
-    <p>Pay attention to everything. Notes, descriptions, and even decorations can be clues.</p>
-    <div class="tut-demo">💡 Some items reveal hidden information when used on objects.</div>`
+    html: `<h2>UV FLASHLIGHT</h2><p>Some surfaces have <strong>hidden writing</strong> only visible under UV light.<br>Find the UV flashlight — then re-examine surfaces for hidden clues.</p>`
   },
   {
-    title: 'Timer',
-    html: `<h2>The Timer</h2>
-    <p>Once you dismiss this tutorial, the timer starts. ⏱️</p>
-    <p>Your time is recorded <strong>on first completion only</strong>. Fastest times go on the leaderboard.</p>`
+    html: `<h2>NAVIGATION</h2><p>Use the <strong>← → arrow buttons</strong> or keyboard arrows to move between rooms.<br>Locked doors need the right key or access card.</p>`
   },
+  {
+    html: `<h2>GOOD LUCK</h2><p>Observe everything. Connect the clues. Escape.</p><p style="color:var(--amber);font-size:0.85rem;">⚠ This is an April 1st escape room. Something may be... off.</p>`
+  }
 ];
 
-// Window scene definitions — what each 'window' type renders
+// ===== WINDOW SCENES =====
 const WINDOW_SCENES = {
-  courtyard_dusk: {
-    // Animated dusk sky, clock tower showing 7:35
-    animate: true,
-    clockTime: { h: 7, m: 35 },
-    skyColor: ['#0a1a3a', '#1a0a2a', '#3a1a08'],
-    stars: true
+  night_city: {
+    label: 'Night City',
+    skyColor: ['#020810', '#080820'],
+    stars: true,
+    clockTime: { h: 8, m: 37 }
   },
-  courtyard_fool: {
-    animate: true,
-    clockTime: { h: 8, m: 35 },  // wrong time shown
-    skyColor: ['#1a0806', '#2a0408', '#0a0606'],
-    stars: false
+  night_city_af: {
+    label: 'Night City (AF)',
+    skyColor: ['#0f0208', '#200a08'],
+    stars: true,
+    clockTime: { h: 4, m: 20 }
   }
 };
 
-// Expose globally
-window.GAME_ROOMS = ROOMS;
-window.GAME_ITEMS = ITEMS;
-window.GAME_PUZZLES = PUZZLES;
+// ===== EXPORTS =====
+window.GAME_ROOMS    = ROOMS;
+window.GAME_ITEMS    = ITEMS;
+window.GAME_PUZZLES  = PUZZLES;
 window.GAME_TUTORIAL = TUTORIAL_STEPS;
 window.GAME_EASTER_EGGS = EASTER_EGGS;
 window.WINDOW_SCENES = WINDOW_SCENES;

@@ -3,8 +3,8 @@
 'use strict';
 
 // ===== CONFIG =====
-const START_ROOM_NORMAL = 'study';
-const START_ROOM_FOOL   = 'fool_study';
+const START_ROOM_NORMAL = 'anteroom';
+const START_ROOM_FOOL   = 'af_anteroom';
 
 // ===== STATE =====
 const S = {
@@ -272,6 +272,8 @@ function renderRoom(dt) {
 }
 
 function drawObject(obj, W, H) {
+  // Skip objects hidden by visibleFlag
+  if (obj.visibleFlag && !S.flags[obj.visibleFlag]) return;
   const ox = obj.x * W, oy = obj.y * H, ow = obj.w * W, oh = obj.h * H;
   if (ow <= 0 || oh <= 0) return;
 
@@ -505,6 +507,8 @@ function getObjectAt(mx, my) {
   if (!room) return null;
   for (let i = room.objects.length - 1; i >= 0; i--) {
     const obj = room.objects[i];
+    // Skip objects hidden by visibleFlag
+    if (obj.visibleFlag && !S.flags[obj.visibleFlag]) continue;
     // Window type uses different coords
     if (obj.type === 'window') {
       if (mx >= obj.windowX && mx <= obj.windowX + obj.windowW &&
@@ -552,7 +556,10 @@ function interactWith(obj) {
 // ===== INTERACTION HANDLERS =====
 function interactCover(obj) {
   if (S.searchedCovers[obj.id]) {
-    showNotice(obj.label, obj.description + '\n\n[Already searched — nothing more here.]');
+    const hasUV = S.inventory.includes('uv_flashlight');
+    let msg = obj.description + '\n\n[Already searched — nothing more here.]';
+    if (hasUV && obj.uvText) msg += '\n\n🔦 ' + obj.uvText;
+    showNotice(obj.label, msg);
     return;
   }
   showNotice(obj.label, obj.description, [{ label: '🔍 Search', cb: () => doSearch(obj) }]);
@@ -560,47 +567,47 @@ function interactCover(obj) {
 
 function doSearch(obj) {
   S.searchedCovers[obj.id] = true;
-  if (!obj.contains || obj.contains.length === 0) {
-    showNotice(obj.label, 'You search carefully. Nothing here.');
-    // Easter egg for desk
-    if (obj.easterEggId && !S.easterEggTriggered['desk_searched']) {
-      S.easterEggTriggered['desk_searched'] = true;
-      const egg = window.GAME_EASTER_EGGS[obj.easterEggId];
-      if (egg) {
-        const msg = (S.isFool && egg.foolMessage) ? egg.foolMessage : egg.message;
-        setTimeout(() => showNotice(obj.label + ' — Hidden Detail', msg), 1500);
-      }
-    }
-    return;
-  }
-  const found = obj.contains.filter(e => !S.flags['found_' + e.item]);
-  if (!found.length) { showNotice(obj.label, 'Nothing more here.'); return; }
+  const hasUV = S.inventory.includes('uv_flashlight');
 
-  const names = [];
+  // Collect any new items
+  const found = (obj.contains || []).filter(e => !S.flags['found_' + e.item]);
   found.forEach(e => {
     addItem(e.item, true);
     S.flags['found_' + e.item] = true;
-    names.push(window.GAME_ITEMS[e.item]?.name || e.item);
   });
 
-  // Desk easter egg after search
-  if (obj.easterEggId === 'desk_secret') {
-    setTimeout(() => {
-      if (!S.easterEggTriggered['desk_searched']) {
-        S.easterEggTriggered['desk_searched'] = true;
-        const egg = window.GAME_EASTER_EGGS['desk_secret'];
-        if (egg) {
-          const msg = (S.isFool && egg.foolMessage) ? egg.foolMessage : egg.message;
-          showNotice(obj.label + ' — Hidden Detail', msg);
-        }
-      }
-    }, 1200);
+  // Build message — searchText overrides default
+  let msg;
+  if (obj.searchText) {
+    msg = obj.searchText;
+  } else if (found.length) {
+    msg = 'You search carefully. Found: ' + found.map(e => window.GAME_ITEMS[e.item]?.name || e.item).join(', ') + '.';
+  } else if ((obj.contains || []).length > 0) {
+    msg = 'Nothing more here.';
+  } else {
+    msg = 'You search carefully. Nothing here.';
   }
 
-  // Show item popup for each found item
+  // Append UV text if flashlight present
+  if (hasUV && obj.uvText) {
+    msg += '\n\n🔦 ' + obj.uvText;
+  }
+
+  showNotice(obj.label, msg);
+
+  // Show item popups for found items
   found.forEach((e, i) => {
-    setTimeout(() => showItemPopup(e.item), i === 0 ? 200 : 0);
+    setTimeout(() => showItemPopup(e.item), 200 + i * 400);
   });
+
+  // Easter egg trigger on search
+  if (obj.easterEggId && !S.easterEggTriggered[obj.easterEggId + '_searched']) {
+    S.easterEggTriggered[obj.easterEggId + '_searched'] = true;
+    const egg = window.GAME_EASTER_EGGS?.[obj.easterEggId];
+    if (egg && egg.searchMessage) {
+      setTimeout(() => showNotice(obj.label + ' — Detail', egg.searchMessage), 1500);
+    }
+  }
 }
 
 function interactSafe(obj) {
@@ -611,6 +618,19 @@ function interactSafe(obj) {
   }
   if (S.openedSafes[obj.id]) {
     showNotice(obj.label, 'Already opened. Empty.');
+    return;
+  }
+  // itemKey safe — opened by using a specific item
+  if (obj.itemKey) {
+    const item = window.GAME_ITEMS[obj.itemKey];
+    const actions = [];
+    if (S.inventory.includes(obj.itemKey)) {
+      actions.push({
+        label: `🔑 Use ${item?.name || obj.itemKey}`,
+        cb: () => { openSafe(obj); closePanel('notice-popup'); }
+      });
+    }
+    showNotice(obj.label, obj.description, actions);
     return;
   }
   showNotice(obj.label, obj.description, [
@@ -662,13 +682,13 @@ function directionOf(roomId) {
 }
 
 function interactNote(obj) {
-  const hasUV = S.inventory.includes('uv_light');
+  const hasUV = S.inventory.includes('uv_flashlight');
   let text = obj.description || '';
   if (obj.uvText && hasUV) {
     text += '\n\n🔦 ' + obj.uvText;
     if (obj.uvEasterEgg) S.easterEggTriggered['painting_uv'] = true;
   } else if (obj.uvText && !hasUV) {
-    text += '\n\n[Some markings are too faint to read.]';
+    text += '\n\n[Some markings are too faint to read without a UV light.]';
   }
   showNotice(obj.label, text);
 }
@@ -681,8 +701,43 @@ function interactPickup(obj) {
 }
 
 function interactDevice(obj) {
-  // Device is a visual-only animation linked to a puzzle elsewhere
-  showNotice(obj.label, obj.description || 'An active device. The input for this might be elsewhere.');
+  // Power grid panels
+  if (obj.id === 'power_grid' || obj.id === 'power_grid_af') {
+    const on = obj.id === 'power_grid' ? S.flags.power_on : S.flags.power_on_af;
+    showNotice(obj.label, on
+      ? 'POWER ONLINE.\nThe mainframe terminal should now be active.'
+      : 'POWER OFFLINE.\nThe panel needs to be connected to a power source.');
+    return;
+  }
+  // Computers
+  if (obj.id === 'computer' || obj.id === 'computer_af') {
+    const unlocked  = obj.id === 'computer' ? S.flags.computer_unlocked  : S.flags.computer_af_unlocked;
+    const dataId    = obj.id === 'computer' ? 'boring_data'              : 'boring_data_af';
+    const analyzedF = obj.id === 'computer' ? 'boring_data_analyzed'     : 'boring_data_af_analyzed';
+    if (!unlocked) {
+      showNotice(obj.label, 'I forgot my password.\n\nThe computer is locked.');
+      return;
+    }
+    if (S.flags[analyzedF]) {
+      showNotice(obj.label, 'Analysis complete. Check your printout.');
+      return;
+    }
+    if (!S.inventory.includes(dataId)) {
+      showNotice(obj.label, 'Computer is unlocked but you need data to analyze.');
+      return;
+    }
+    showNotice(obj.label, 'Computer unlocked! You have data ready to analyze.', [
+      { label: '💾 Analyze Data', cb: () => tryUseItemOnTarget(dataId) },
+      { label: 'Close', cb: closeActivePanel }
+    ]);
+    return;
+  }
+  // Item analyzers
+  if (obj.id === 'item_analyzer' || obj.id === 'item_analyzer_af') {
+    showNotice(obj.label, obj.description || 'An active device.\n\nUse an item on it from your inventory.');
+    return;
+  }
+  showNotice(obj.label, obj.description || 'An active device.');
 }
 
 function interactWindow(obj) {
@@ -754,14 +809,14 @@ function tryUseItemOnTarget(itemId) {
   const item = window.GAME_ITEMS[itemId];
   if (!item) return;
 
-  // UV flashlight — special: reveals uvText on notes
-  if (itemId === 'uv_light' && obj) {
+  // UV flashlight — reveals uvText on notes/covers
+  if (itemId === 'uv_flashlight' && obj) {
     if (obj.uvText) {
       const bodyEl = $('notice-body');
       if (bodyEl) {
         bodyEl.innerHTML = '';
         const p = document.createElement('p');
-        const fullText = obj.description + '\n\n🔦 ' + obj.uvText;
+        const fullText = (obj.description || '') + '\n\n🔦 ' + obj.uvText;
         p.innerHTML = fullText.replace(/\n/g, '<br>');
         bodyEl.appendChild(p);
       }
@@ -773,9 +828,134 @@ function tryUseItemOnTarget(itemId) {
     }
   }
 
-  // Wire fragment on fusebox
+  // Wire fragment on fusebox (legacy)
   if (itemId === 'wire_fragment' && obj?.id === 'fusebox_obj') {
     toast('The wire is compatible. Open the fuse box to connect it.', 'info');
+    return;
+  }
+
+  // Wire on electrical socket (Normal) → power on
+  if (itemId === 'wire' && obj?.id === 'electrical_socket') {
+    if (S.flags.power_on) { toast('Already connected.', 'info'); return; }
+    S.flags.power_on = true;
+    toast('The circuit is complete. Power flows to Room 3.', 'success');
+    closeActivePanel();
+    return;
+  }
+
+  // Electrical wire on power socket fixture (AF) → AF power on
+  if (itemId === 'electrical_wire_af' && obj?.id === 'power_socket_af_obj') {
+    if (S.flags.power_on_af) { toast('Already connected.', 'info'); return; }
+    S.flags.power_on_af = true;
+    toast('The circuit is complete. Power flows to Room 3.', 'success');
+    closeActivePanel();
+    return;
+  }
+
+  // Acid on locked cabinet (Normal) → gives chalk
+  if (itemId === 'acid' && obj?.id === 'locked_cabinet') {
+    if (S.flags.cabinet_acid_used) { toast('Already opened.', 'info'); return; }
+    S.flags.cabinet_acid_used = true;
+    S.searchedCovers['locked_cabinet'] = true;
+    addItem('chalk'); showItemPopup('chalk');
+    toast('The acid dissolves the lock. The cabinet opens.', 'success');
+    closeActivePanel();
+    return;
+  }
+
+  // Acid on locked cabinet (AF) → gives eraser
+  if (itemId === 'acid_af' && obj?.id === 'locked_cabinet_af') {
+    if (S.flags.cabinet_acid_af_used) { toast('Already opened.', 'info'); return; }
+    S.flags.cabinet_acid_af_used = true;
+    S.searchedCovers['locked_cabinet_af'] = true;
+    addItem('eraser_af'); showItemPopup('eraser_af');
+    toast('The acid melts the lock. Inside: an eraser.', 'success');
+    closeActivePanel();
+    return;
+  }
+
+  // Chalk on blackboard (Normal) → reveals cipher text
+  if (itemId === 'chalk' && obj?.id === 'blackboard') {
+    S.flags.blackboard_chalk_done = true;
+    const cipherText = obj.chalkReveal || '{!(}^<!{%';
+    showNotice('Blackboard', 'You write the cipher answer with chalk. A hidden message is revealed below the equation:\n\n' + cipherText + '\n\n(Use the cipher keys to decode this text.)');
+    return;
+  }
+
+  // Eraser on blackboard (AF) → reveals AF cipher text
+  if (itemId === 'eraser_af' && obj?.id === 'blackboard_af') {
+    S.flags.blackboard_eraser_done = true;
+    const cipherText = obj.eraserReveal || '13-1-9-14-6-18-1-13-5';
+    showNotice('Blackboard', 'You erase part of the board. Hidden numbers appear beneath:\n\n' + cipherText + '\n\n(Use the AF cipher keys to decode these numbers.)');
+    return;
+  }
+
+  // Employee badge on employee safes
+  if (itemId === 'employee_badge' && (obj?.id === 'employee_safe' || obj?.id === 'employee_safe_af')) {
+    if (S.openedSafes[obj.id]) { toast('Already opened.', 'info'); return; }
+    openSafe(obj);
+    closePanel('notice-popup');
+    return;
+  }
+
+  // Hat #1 on item analyzer (Normal)
+  if (itemId === 'hat_1' && obj?.id === 'item_analyzer') {
+    if (S.flags.hat1_analyzed) { toast('Already analyzed this.', 'info'); return; }
+    S.flags.hat1_analyzed = true;
+    addItem('boring_data'); showItemPopup('boring_data');
+    toast('The analyzer hums. Output: BORING DATA.', 'success');
+    closeActivePanel();
+    return;
+  }
+
+  // Wizard hat on item analyzer (AF)
+  if (itemId === 'hat_2' && obj?.id === 'item_analyzer_af') {
+    if (S.flags.hat2_analyzed_af) { toast('Already analyzed this.', 'info'); return; }
+    S.flags.hat2_analyzed_af = true;
+    addItem('boring_data_af'); showItemPopup('boring_data_af');
+    toast('The analyzer hums. Output: BORING DATA.', 'success');
+    closeActivePanel();
+    return;
+  }
+
+  // Boring data on computer (Normal)
+  if (itemId === 'boring_data' && obj?.id === 'computer') {
+    if (!S.flags.computer_unlocked) { toast('The computer is locked. "I forgot my password."', 'info'); return; }
+    if (S.flags.boring_data_analyzed) { toast('Already analyzed.', 'info'); return; }
+    S.flags.boring_data_analyzed = true;
+    addItem('computer_printout'); showItemPopup('computer_printout');
+    toast('Analysis complete. Result recorded.', 'success');
+    closeActivePanel();
+    return;
+  }
+
+  // Boring data on computer (AF)
+  if (itemId === 'boring_data_af' && obj?.id === 'computer_af') {
+    if (!S.flags.computer_af_unlocked) { toast('The computer is locked.', 'info'); return; }
+    if (S.flags.boring_data_af_analyzed) { toast('Already analyzed.', 'info'); return; }
+    S.flags.boring_data_af_analyzed = true;
+    addItem('computer_printout_af'); showItemPopup('computer_printout_af');
+    toast('Analysis complete. Result recorded.', 'success');
+    closeActivePanel();
+    return;
+  }
+
+  // Acid AF on bookshelf #1 in AF library → unlocks Room 4
+  if (itemId === 'acid_af' && obj?.id === 'bookshelf_1_af') {
+    if (!S.flags.af_exit_triggered) {
+      toast('The acid splashes on the bookshelf. Nothing happens yet.', 'info');
+      return;
+    }
+    if (S.flags.af_r4_accessible) { toast('The passage is already open.', 'info'); return; }
+    S.flags.af_r4_accessible = true;
+    const afLib = S.rooms['af_library'];
+    if (afLib) {
+      afLib.connections = afLib.connections || {};
+      afLib.connections.right = 'af_exit_room';
+    }
+    toast('The acid dissolves the bookshelf! A hidden passage to Room 4 is revealed!', 'success', 5000);
+    updateNavArrows();
+    closeActivePanel();
     return;
   }
 
@@ -814,12 +994,14 @@ function interactPuzzle(obj) {
   closeActivePanel();
 
   switch (puzzle.type) {
-    case 'morse':    openMorsePuzzle(puzzle, obj); break;
-    case 'sequence': openSequencePuzzle(puzzle, obj); break;
-    case 'wires':    openWiresPuzzle(puzzle, obj); break;
-    case 'slider':   openSliderPuzzle(puzzle, obj); break;
-    case 'clock':    openClockPuzzle(puzzle, obj); break;
-    default:         showNotice(obj.label, obj.description); break;
+    case 'morse':      openMorsePuzzle(puzzle, obj); break;
+    case 'sequence':   openSequencePuzzle(puzzle, obj); break;
+    case 'wires':      openWiresPuzzle(puzzle, obj); break;
+    case 'slider':     openSliderPuzzle(puzzle, obj); break;
+    case 'clock':      openClockPuzzle(puzzle, obj); break;
+    case 'text_input': openTextInputPuzzle(puzzle, obj); break;
+    case 'color_mixer':openColorMixerPuzzle(puzzle, obj); break;
+    default:           showNotice(obj.label, obj.description); break;
   }
 }
 
@@ -1155,7 +1337,134 @@ function openClockPuzzle(puzzle, obj) {
   };
 }
 
-// ===== SOLVE PUZZLE =====
+// ---- TEXT INPUT PUZZLE ----
+function openTextInputPuzzle(puzzle, obj) {
+  // Check power/flag requirement
+  if (puzzle.requiresFlag && !S.flags[puzzle.requiresFlag]) {
+    showNotice(puzzle.label, 'SYSTEM OFFLINE.\n\nThis terminal requires power to operate.\nConnect a power source first.');
+    return;
+  }
+  $('puzzle-title').textContent = puzzle.label;
+  const body = $('puzzle-body');
+  body.innerHTML = `
+    <div style="padding:16px;">
+      <p style="font-size:0.82rem;color:var(--muted);margin-bottom:14px;line-height:1.5;">${(puzzle.hint || '').replace(/\n/g,'<br>')}</p>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+        <input id="text-input-answer" placeholder="Enter answer..."
+          style="background:rgba(0,255,65,0.05);border:1px solid var(--border);color:var(--accent);font-family:'Share Tech Mono',monospace;padding:8px 12px;flex:1;text-transform:uppercase;border-radius:4px;font-size:1rem;" />
+        <button id="text-input-submit" class="btn-primary">Submit</button>
+      </div>
+      <div id="text-input-feedback" style="font-size:0.82rem;min-height:16px;text-align:center;"></div>
+    </div>`;
+  openPanel('puzzle-popup');
+
+  const check = () => {
+    const val = document.getElementById('text-input-answer').value.trim();
+    const fb  = document.getElementById('text-input-feedback');
+    if (!val) return;
+    if (val.toUpperCase() === puzzle.answer.toUpperCase()) {
+      fb.style.color = 'var(--green)'; fb.textContent = '✓ Correct!';
+      solvePuzzle(puzzle, obj);
+      if (puzzle.reward) {
+        setTimeout(() => { addItem(puzzle.reward); showItemPopup(puzzle.reward); }, 600);
+      }
+      if (puzzle.onSolveEffect) {
+        S.flags[puzzle.onSolveEffect] = true;
+        if (puzzle.onSolveEffect === 'computer_unlocked' || puzzle.onSolveEffect === 'computer_af_unlocked') {
+          toast('Computer in Room 2 is now accessible.', 'success', 4000);
+        }
+      }
+      setTimeout(() => closePanel('puzzle-popup'), 1200);
+    } else {
+      fb.style.color = 'var(--red)'; fb.textContent = '✗ Not right. Try again.';
+    }
+  };
+  document.getElementById('text-input-submit').onclick = check;
+  document.getElementById('text-input-answer').addEventListener('keypress', e => { if (e.key === 'Enter') check(); });
+}
+
+// ---- COLOR MIXER PUZZLE ----
+function openColorMixerPuzzle(puzzle, obj) {
+  $('puzzle-title').textContent = puzzle.label;
+  const body = $('puzzle-body');
+  const selected = [];
+
+  const renderMixer = () => {
+    body.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'padding:16px;display:flex;flex-direction:column;align-items:center;gap:14px;';
+
+    // Hint
+    if (puzzle.hint) {
+      const hint = document.createElement('p');
+      hint.style.cssText = 'font-size:0.78rem;color:var(--muted);text-align:center;margin:0;';
+      hint.textContent = puzzle.hint;
+      wrap.appendChild(hint);
+    }
+
+    // Color buttons
+    const colorRow = document.createElement('div');
+    colorRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:center;';
+    puzzle.colors.forEach(c => {
+      const btn = document.createElement('button');
+      btn.style.cssText = `width:62px;height:62px;background:${c.color};border:2px solid rgba(255,255,255,0.25);border-radius:8px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:rgba(255,255,255,0.95);font-weight:bold;transition:transform 0.1s;`;
+      btn.textContent = c.name;
+      btn.onmouseenter = () => btn.style.transform = 'scale(1.08)';
+      btn.onmouseleave = () => btn.style.transform = '';
+      btn.onclick = () => {
+        if (selected.length < puzzle.answer.length) { selected.push(c.name); renderMixer(); }
+      };
+      colorRow.appendChild(btn);
+    });
+
+    // Sequence display dots
+    const seqRow = document.createElement('div');
+    seqRow.style.cssText = 'display:flex;gap:10px;justify-content:center;min-height:52px;align-items:center;';
+    for (let i = 0; i < puzzle.answer.length; i++) {
+      const dot = document.createElement('div');
+      if (i < selected.length) {
+        const c = puzzle.colors.find(x => x.name === selected[i]);
+        dot.style.cssText = `width:48px;height:48px;border-radius:50%;background:${c ? c.color : '#555'};border:2px solid rgba(255,255,255,0.5);`;
+      } else {
+        dot.style.cssText = 'width:48px;height:48px;border-radius:50%;background:rgba(0,0,0,0.3);border:2px dashed rgba(0,255,65,0.3);';
+      }
+      seqRow.appendChild(dot);
+    }
+
+    const fb = document.createElement('div');
+    fb.style.cssText = 'font-size:0.82rem;min-height:16px;text-align:center;';
+
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:8px;';
+    const clearBtn = document.createElement('button');
+    clearBtn.textContent = 'Clear'; clearBtn.className = 'btn-secondary'; clearBtn.style.flex = '1';
+    clearBtn.onclick = () => { selected.length = 0; renderMixer(); };
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = 'Confirm'; confirmBtn.className = 'btn-primary'; confirmBtn.style.flex = '1';
+    confirmBtn.onclick = () => {
+      if (selected.length < puzzle.answer.length) { fb.textContent = 'Select all colors first.'; return; }
+      const correct = puzzle.answer.every((a, i) => a === selected[i]);
+      if (correct) {
+        fb.style.color = 'var(--green)'; fb.textContent = '✓ Correct mixture!';
+        solvePuzzle(puzzle, obj);
+        if (puzzle.reward) { setTimeout(() => { addItem(puzzle.reward); showItemPopup(puzzle.reward); }, 600); }
+        setTimeout(() => closePanel('puzzle-popup'), 1200);
+      } else {
+        fb.style.color = 'var(--red)'; fb.textContent = '✗ Wrong mixture. Try again.';
+        selected.length = 0;
+        setTimeout(() => renderMixer(), 1000);
+      }
+    };
+    btnRow.appendChild(clearBtn); btnRow.appendChild(confirmBtn);
+    wrap.appendChild(colorRow); wrap.appendChild(seqRow); wrap.appendChild(btnRow); wrap.appendChild(fb);
+    body.appendChild(wrap);
+  };
+
+  renderMixer();
+  openPanel('puzzle-popup');
+}
+
+
 function solvePuzzle(puzzle, obj) {
   S.solvedPuzzles[puzzle.id] = true;
   toast(`${puzzle.label} solved!`, 'success');
@@ -1251,12 +1560,10 @@ function openSafe(obj) {
   S.openedSafes[obj.id] = true;
   toast('Safe opened!', 'success');
   if (obj.contains && obj.contains.length) {
-    const names = [];
     obj.contains.forEach(e => {
       if (!S.flags['found_' + e.item]) {
         addItem(e.item);
         S.flags['found_' + e.item] = true;
-        names.push(window.GAME_ITEMS[e.item]?.name || e.item);
         showItemPopup(e.item);
       }
     });
@@ -1264,6 +1571,24 @@ function openSafe(obj) {
   // Mark puzzle solved if this safe has a puzzle ID
   const puzzleId = obj.puzzleId || obj.id + '_combo';
   if (window.GAME_PUZZLES[puzzleId]) S.solvedPuzzles[puzzleId] = true;
+
+  // Handle win conditions
+  if (obj.triggersWin === true) {
+    triggerWin();
+    return;
+  }
+  if (obj.triggersWin === 'april_fools') {
+    if (!S.flags.af_exit_triggered) {
+      S.flags.af_exit_triggered = true;
+      addItem('complicated_instructions_af');
+      showItemPopup('complicated_instructions_af');
+      toast('NOT SO FAST!', 'error', 4000);
+      setTimeout(() => showNotice('Exit Panel', 'NOT SO FAST.\n\nYou must do something first.\nCheck the item you just received.'), 1000);
+      S.openedSafes[obj.id] = false; // allow trying again after completing task
+    } else {
+      toast('The path forward has already been revealed. Check your instructions.', 'info', 4000);
+    }
+  }
 }
 
 // ===== ITEM SYSTEM =====
