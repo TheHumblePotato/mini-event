@@ -251,23 +251,31 @@ function renderRoom(dt) {
   ctx.fillRect(0, 0, W, H);
 
   // Subtle grid
-  ctx.strokeStyle = 'rgba(0,255,65,0.025)';
+  ctx.strokeStyle = S.isFool ? 'rgba(255,107,0,0.03)' : 'rgba(0,255,65,0.025)';
   ctx.lineWidth = 1;
   for (let x = 0; x < W; x += 48) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
   for (let y = 0; y < H; y += 48) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // Subtle floor line
+  ctx.strokeStyle = S.isFool ? 'rgba(255,107,0,0.06)' : 'rgba(0,255,65,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, H * 0.8); ctx.lineTo(W, H * 0.8); ctx.stroke();
 
   room.objects.forEach(obj => {
     if (obj.type === 'window') { drawWindow(obj, W, H); return; }
     drawObject(obj, W, H);
   });
 
-  // Hover highlight
+  // Hover highlight — crisp neon outline
   if (S.hoverObj && S.hoverObj.type !== 'prop') {
     const obj = S.hoverObj;
     const ox = obj.x * W, oy = obj.y * H, ow = obj.w * W, oh = obj.h * H;
-    ctx.strokeStyle = 'rgba(0,255,65,0.6)';
-    ctx.lineWidth = 2;
+    ctx.shadowColor = S.isFool ? 'rgba(255,107,0,0.8)' : 'rgba(0,255,65,0.8)';
+    ctx.shadowBlur = 8;
+    ctx.strokeStyle = S.isFool ? 'rgba(255,107,0,0.75)' : 'rgba(0,255,65,0.75)';
+    ctx.lineWidth = 1.5;
     ctx.strokeRect(ox - 1, oy - 1, ow + 2, oh + 2);
+    ctx.shadowBlur = 0;
   }
 }
 
@@ -416,23 +424,43 @@ function drawMorseAnim(obj, ox, oy, ow, oh) {
 }
 
 function drawPlaceholder(obj, ox, oy, ow, oh) {
-  ctx.fillStyle = obj.colour || '#0f1a0f';
+  // Background with subtle gradient
+  const grd = ctx.createLinearGradient(ox, oy, ox, oy + oh);
+  const base = obj.colour || '#0f1a0f';
+  grd.addColorStop(0, base);
+  grd.addColorStop(1, base + '88');
+  ctx.fillStyle = grd;
   ctx.fillRect(ox, oy, ow, oh);
-  ctx.strokeStyle = 'rgba(0,255,65,0.12)';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(ox, oy, ow, oh);
 
-  ctx.fillStyle = 'rgba(0,255,65,0.4)';
-  ctx.font = `${Math.max(8, Math.min(13, ow / 8))}px Share Tech Mono, monospace`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  // Border — brighter on hover
+  const isHover = S.hoverObj?.id === obj.id;
+  ctx.strokeStyle = isHover ? 'rgba(0,255,65,0.45)' : 'rgba(0,255,65,0.12)';
+  ctx.lineWidth = isHover ? 1.5 : 1;
+  ctx.strokeRect(ox + 0.5, oy + 0.5, ow - 1, oh - 1);
+
+  // Type-specific icon glyph (ASCII style — fits retro terminal theme)
+  const GLYPHS = {
+    door: '▐▌', safe: '█▒', cover: '▓▓', puzzle: '◈◈',
+    note: '≡≡', device: '◉◉', prop: '░░', pickup: '◆◆'
+  };
+  const glyph = GLYPHS[obj.type] || '░░';
+  const glyphAlpha = isHover ? 0.18 : 0.08;
+  ctx.fillStyle = `rgba(0,255,65,${glyphAlpha})`;
+  ctx.font = `${Math.min(oh * 0.55, ow * 0.7)}px Share Tech Mono, monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(glyph, ox + ow / 2, oy + oh / 2);
+
+  // Label text
+  ctx.fillStyle = isHover ? 'rgba(0,255,65,0.9)' : 'rgba(0,255,65,0.5)';
+  const fontSize = Math.max(8, Math.min(12, ow / 7));
+  ctx.font = `${fontSize}px Share Tech Mono, monospace`;
   const words = obj.label.split(' ');
-  const lineH = 13;
+  const lineH = fontSize + 2;
   const lines = [];
   let cur = '';
   words.forEach(w => {
     const test = cur ? cur + ' ' + w : w;
-    if (ctx.measureText(test).width > ow - 6) { if (cur) lines.push(cur); cur = w; }
+    if (ctx.measureText(test).width > ow - 8) { if (cur) lines.push(cur); cur = w; }
     else cur = test;
   });
   if (cur) lines.push(cur);

@@ -430,10 +430,11 @@ const ROOMS = {
         colour: '#0a1a12',
         x: 0.02, y: 0.10, w: 0.16, h: 0.52
       },
-      // Labeled Potion (prop — UV text: "First Letters")
+      // Labeled Potion (cover — can be searched, UV reveals "First Letters")
       {
-        id: 'labeled_potion', type: 'note', label: 'Labeled Potion',
-        description: 'A labeled potion sitting on a shelf.',
+        id: 'labeled_potion', type: 'cover', label: 'Labeled Potion',
+        description: 'A labeled potion sitting on a shelf. The label is hard to read.',
+        searchText: 'Turns out the label was empty. Nothing written on it at all.',
         uvText: 'First Letters',
         colour: '#0a120a',
         x: 0.22, y: 0.62, w: 0.10, h: 0.24
@@ -696,10 +697,11 @@ const ROOMS = {
         colour: '#0a1a12',
         x: 0.02, y: 0.10, w: 0.16, h: 0.52
       },
-      // Labeled Potion AF (prop — useless UV)
+      // Labeled Potion AF (cover — searchable, UV is useless)
       {
-        id: 'labeled_potion_af', type: 'note', label: 'Labeled Potion',
+        id: 'labeled_potion_af', type: 'cover', label: 'Labeled Potion',
         description: 'Very green potion. green green green.',
+        searchText: 'Turns out the label was empty. You were expecting something profound.',
         uvText: 'Whoops I forgot',
         colour: '#0a120a',
         x: 0.22, y: 0.62, w: 0.10, h: 0.24
