@@ -143,7 +143,7 @@ const ITEMS = {
   },
   cipher_text_paper: {
     id: 'cipher_text_paper', name: 'Cipher Text', icon: '📜',
-    description: 'A sheet of paper that fell from behind the blackboard equation:\n\n{!(}^<!{%\n\nThe symbols need decoding.',
+    description: 'A sheet of paper that fell from behind the blackboard equation:\n\n{ ! ( } ^ < ! { % \n\nThe symbols need decoding.',
     useWith: []
   }
 };
@@ -336,7 +336,13 @@ const ROOMS = {
         leadsTo: 'library',
         colour: '#0a160a',
         x: 0.88, y: 0.10, w: 0.10, h: 0.80
-      }
+      },
+      {
+        id: 'electrical_socket', type: 'prop', label: 'Electrical Socket',
+        description: 'Shocking.',
+        colour: '#101010',
+        x: 0.84, y: 0.82, w: 0.05, h: 0.07
+      },
     ]
   },
 
@@ -389,7 +395,7 @@ const ROOMS = {
       {
         id: 'blackboard', type: 'note', label: 'Blackboard',
         description: 'A blackboard. It shows the equation:\n\n(8 × 4) ÷ 2 + 7 = ?\n\nThe equation seems to have no relevance whatsoever.',
-        chalkReveal: '{!(}^<!{%',
+        chalkReveal: '{ ! ( } ^ < ! { %',
         colour: '#080f08',
         x: 0.58, y: 0.04, w: 0.22, h: 0.50
       },
@@ -419,12 +425,6 @@ const ROOMS = {
         contains: [{ item: 'wire' }]
       },
       // Electrical socket (prop) — moved here from Room 1
-      {
-        id: 'electrical_socket', type: 'prop', label: 'Electrical Socket',
-        description: 'Shocking.',
-        colour: '#101010',
-        x: 0.84, y: 0.82, w: 0.05, h: 0.07
-      },
       // Door to laboratory (locked — requires red_access_card)
       {
         id: 'door_r2_to_r3', type: 'door', label: 'Door to Room 3',
