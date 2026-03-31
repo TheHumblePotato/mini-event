@@ -584,10 +584,7 @@ function interactWith(obj) {
 // ===== INTERACTION HANDLERS =====
 function interactCover(obj) {
   if (S.searchedCovers[obj.id]) {
-    const hasUV = S.inventory.includes('uv_flashlight');
-    let msg = obj.description + '\n\n[Already searched — nothing more here.]';
-    if (hasUV && obj.uvText) msg += '\n\n🔦 ' + obj.uvText;
-    showNotice(obj.label, msg);
+    showNotice(obj.label, obj.description + '\n\n[Already searched — nothing more here.]');
     return;
   }
   showNotice(obj.label, obj.description, [{ label: '🔍 Search', cb: () => doSearch(obj) }]);
@@ -595,7 +592,6 @@ function interactCover(obj) {
 
 function doSearch(obj) {
   S.searchedCovers[obj.id] = true;
-  const hasUV = S.inventory.includes('uv_flashlight');
 
   // Collect any new items
   const found = (obj.contains || []).filter(e => !S.flags['found_' + e.item]);
@@ -614,11 +610,6 @@ function doSearch(obj) {
     msg = 'Nothing more here.';
   } else {
     msg = 'You search carefully. Nothing here.';
-  }
-
-  // Append UV text if flashlight present
-  if (hasUV && obj.uvText) {
-    msg += '\n\n🔦 ' + obj.uvText;
   }
 
   showNotice(obj.label, msg);
@@ -902,11 +893,13 @@ function tryUseItemOnTarget(itemId) {
     return;
   }
 
-  // Chalk on blackboard (Normal) → reveals cipher text
+  // Chalk on blackboard (Normal) → enter equation answer, get cipher text paper
   if (itemId === 'chalk' && obj?.id === 'blackboard') {
-    S.flags.blackboard_chalk_done = true;
-    const cipherText = obj.chalkReveal || '{!(}^<!{%';
-    showNotice('Blackboard', 'You write the cipher answer with chalk. A hidden message is revealed below the equation:\n\n' + cipherText + '\n\n(Use the cipher keys to decode this text.)');
+    if (S.flags.blackboard_chalk_done) {
+      showNotice('Blackboard', 'The chalk equation has already been solved. You received a paper with the result.');
+      return;
+    }
+    openEquationPuzzle(obj);
     return;
   }
 
@@ -968,10 +961,10 @@ function tryUseItemOnTarget(itemId) {
     return;
   }
 
-  // Acid AF on bookshelf #1 in AF library → unlocks Room 4
+  // Acid AF on bookshelf #1 in AF library → unlocks Room 4 and enters immediately
   if (itemId === 'acid_af' && obj?.id === 'bookshelf_1_af') {
     if (!S.flags.af_exit_triggered) {
-      toast('The acid splashes on the bookshelf. Nothing happens yet.', 'info');
+      toast('The acid splashes on the bookshelf. Nothing happens.', 'info');
       return;
     }
     if (S.flags.af_r4_accessible) { toast('The passage is already open.', 'info'); return; }
@@ -981,9 +974,9 @@ function tryUseItemOnTarget(itemId) {
       afLib.connections = afLib.connections || {};
       afLib.connections.right = 'af_exit_room';
     }
-    toast('The acid dissolves the bookshelf! A hidden passage to Room 4 is revealed!', 'success', 5000);
-    updateNavArrows();
+    toast('The acid dissolves the bookshelf! A hidden passage opens!', 'success', 4000);
     closeActivePanel();
+    loadRoom('af_exit_room');
     return;
   }
 
@@ -1365,6 +1358,43 @@ function openClockPuzzle(puzzle, obj) {
   };
 }
 
+// ---- EQUATION PUZZLE (chalk on blackboard) ----
+function openEquationPuzzle(boardObj) {
+  $('puzzle-title').textContent = 'Blackboard Equation';
+  const body = $('puzzle-body');
+  body.innerHTML = `
+    <div style="padding:16px;">
+      <p style="font-size:0.88rem;color:var(--text);margin-bottom:6px;text-align:center;">The blackboard shows:</p>
+      <div style="font-family:'VT323',monospace;font-size:1.6rem;color:var(--accent);text-align:center;margin:12px 0;padding:10px;border:1px solid var(--border);border-radius:4px;background:rgba(0,255,65,0.04);">(8 × 4) ÷ 2 + 7 = ?</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:14px;text-align:center;">Write the answer with chalk:</p>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+        <input id="eq-answer" placeholder="Answer..." style="background:rgba(0,255,65,0.05);border:1px solid var(--border);color:var(--accent);font-family:'Share Tech Mono',monospace;padding:8px 12px;flex:1;border-radius:4px;font-size:1rem;text-align:center;" />
+        <button id="eq-submit" class="btn-primary">Write</button>
+      </div>
+      <div id="eq-feedback" style="font-size:0.82rem;min-height:16px;text-align:center;"></div>
+    </div>`;
+  openPanel('puzzle-popup');
+
+  const check = () => {
+    const val = document.getElementById('eq-answer').value.trim();
+    const fb = document.getElementById('eq-feedback');
+    if (!val) return;
+    if (val === '39') {
+      fb.style.color = 'var(--green)'; fb.textContent = '✓ Correct! Something falls from behind the board.';
+      S.flags.blackboard_chalk_done = true;
+      setTimeout(() => {
+        addItem('cipher_text_paper');
+        showItemPopup('cipher_text_paper');
+        closePanel('puzzle-popup');
+      }, 1000);
+    } else {
+      fb.style.color = 'var(--red)'; fb.textContent = '✗ Not right.';
+    }
+  };
+  document.getElementById('eq-submit').onclick = check;
+  document.getElementById('eq-answer').addEventListener('keypress', e => { if (e.key === 'Enter') check(); });
+}
+
 // ---- TEXT INPUT PUZZLE ----
 function openTextInputPuzzle(puzzle, obj) {
   // Check power/flag requirement
@@ -1646,15 +1676,9 @@ function renderInventory() {
     slot.innerHTML = `<span class="inv-icon">${item.icon}</span><span class="inv-name">${item.name}</span>`;
     slot.title = item.description;
     slot.onclick = () => {
-      if (S.interactTarget) {
-        // Try using item on current target
-        tryUseItemOnTarget(id);
-      } else {
-        // Show item info
-        S.selectedItem = id;
-        showItemInfo(id);
-        renderInventory();
-      }
+      S.selectedItem = id;
+      showItemInfo(id);
+      renderInventory();
     };
     grid.appendChild(slot);
   });
@@ -1727,39 +1751,43 @@ function triggerWin() {
   | ESCAPED |
   +---------+`;
   $('win-time-display').textContent = formatTime(elapsed);
-  $('win-message').textContent = S.isFool
-    ? "You escaped the April Fools version. Something was definitely off."
-    : "You escaped. Time recorded.";
-
   $('win-screen').classList.remove('hidden');
-  if (!S.uid) $('win-save').style.display = 'none';
-  else $('win-save').style.display = '';
 
-  $('win-save').onclick = () => saveTime(elapsed);
   $('win-replay').onclick = () => { $('win-screen').classList.add('hidden'); resetGame(); };
   $('win-hub').onclick = () => window.location.href = 'index.html';
+
+  // Auto-save
+  autoSaveTime(elapsed);
 }
 
-async function saveTime(elapsed) {
-  if (S.savedTime) { toast('Already saved!', 'info'); return; }
-  if (!S.uid) { toast('Sign in to save.', 'error'); return; }
+async function autoSaveTime(elapsed) {
+  const winMsg = $('win-message');
+  if (!S.uid) {
+    winMsg.textContent = S.isFool
+      ? "You escaped the April Fools version."
+      : "You escaped. Sign in to record your time.";
+    return;
+  }
   const col = S.isFool ? 'april_times_fool' : 'april_times_normal';
   try {
     const ref = window.firebaseDoc(window.firebaseDb, col, S.uid);
     const existing = await window.firebaseGetDoc(ref);
-    if (existing.exists()) { toast('Already have a saved time — only first counts!', 'info'); return; }
+    if (existing.exists()) {
+      winMsg.textContent = "You escaped. But this isn't your first attempt so your time will not be saved.";
+      return;
+    }
     await window.firebaseSetDoc(ref, {
       uid: S.uid, codename: S.codename, time: elapsed, ts: Date.now(), isFool: S.isFool
     });
     S.savedTime = true;
-    $('win-save').textContent = '✓ Saved!';
-    $('win-save').disabled = true;
+    winMsg.textContent = S.isFool
+      ? "You escaped the April Fools version. Time saved!"
+      : "You escaped. Time saved to the leaderboard!";
     toast('Time saved to leaderboard!', 'success');
   } catch(e) {
-    toast('Failed to save. Check your connection.', 'error');
+    winMsg.textContent = "You escaped. Failed to save time — check connection.";
   }
 }
-
 function resetGame() {
   S.inventory = []; S.unlockedDoors = {}; S.solvedPuzzles = {};
   S.searchedCovers = {}; S.openedSafes = {}; S.flags = {};

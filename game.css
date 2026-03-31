@@ -10,7 +10,7 @@
   --border: rgba(0, 255, 65, 0.2);
   --border-bright: rgba(0, 255, 65, 0.55);
   --accent: #00ff41;
-  --text: #c8ffda;
+  --text: #dfffea;
   --muted: #4d8f5f;
   --red: #ff4141;
   --amber: #ffb300;
@@ -195,6 +195,8 @@ html, body {
   padding: 8px 14px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+  overflow-y: auto;
+  max-height: 220px;
 }
 .sidebar-label { font-size: 0.68rem; color: var(--muted); letter-spacing: 2px; margin-bottom: 6px; }
 .sidebar-empty { font-size: 0.78rem; color: var(--muted); }
@@ -203,7 +205,7 @@ html, body {
   width: 100%; background: rgba(0,255,65,0.04); border: 1px solid var(--border);
   color: var(--text); padding: 6px 10px; border-radius: 4px; cursor: pointer;
   font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; text-align: left;
-  transition: all 0.12s; margin-bottom: 4px;
+  transition: all 0.12s; margin-bottom: 4px; flex-shrink: 0; min-height: 38px;
 }
 .item-use-btn:hover { background: rgba(0,255,65,0.12); border-color: var(--accent); color: var(--accent); }
 .item-use-icon { font-size: 1rem; flex-shrink: 0; }

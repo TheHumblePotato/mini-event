@@ -11,7 +11,7 @@
 - **Carpet** (prop) searching gives 'everyone searches the carpet'. Using UV flashlight gives text 'hour times min'.
 - **Locked cabinet** (safe, 3-digit code) → contains "Secret Key" → opens door to Room 2
   - Code: 296
-- **Electical Socket** search gives "Shocking". When used with wire from room 2 activates power grid in room 3
+- **Electical Socket** search gives "Shocking". When used with wire from room 2 activates power grid in room 3. Electrical socket is not moved
 
 ### Room 2 — The Library / Archive
 *Mid-difficulty.*
@@ -53,7 +53,7 @@
 - **Carpet** (prop) searching gives 'hour plus min'. Using UV flashlight gives text 'nobody searches the carpet'.
 - **Locked cabinet** (safe, 3-digit code) → contains "Secret Key" → opens door to Room 2
   - Code: 066
-- **Electical Wire** search gives "Looks like a snake". When used with power socket from room 2 activates power grid in room 3
+- **Electical Wire** search gives "Looks like a snake". When used with power socket from room 2 activates power grid in room 3. Electrical Wire is not moved (it's a joke)
 
 ### Room 2 — The Library / Archive
 *Mid-difficulty.*
@@ -84,11 +84,12 @@
 *Troll*
 
 **Objects:**
-- **Door #1** unlocked. entering this door ends the game (you escape)
-- **Door #2** unlocked. entering this door ends the game (you escape)
-- **Door #3** unlocked. entering this door ends the game (you escape)
-- **Door #4** unlocked. entering this door ends the game (you escape)
-- **Door #5** unlocked. entering this door ends the game (you escape)
+- **Fragile Key** description says that it can only open one door before it breaks and you may be softlocked
+- **Door #1** unlocked by fragile key. entering this door ends the game (you escape)
+- **Door #2** unlocked by fragile key. entering this door ends the game (you escape)
+- **Door #3** unlocked by fragile key. entering this door ends the game (you escape)
+- **Door #4** unlocked by fragile key. entering this door ends the game (you escape)
+- **Door #5** unlocked by fragile key. entering this door ends the game (you escape)
 - **Note** Tells you that only one door is real and that entering the wrong door will void the run. Also tells you that this room was made by AI.
 
 Here just insert a bunch of random objects that interact with each other in random ways but don't impact the run at all because you escape no matter what door you pick

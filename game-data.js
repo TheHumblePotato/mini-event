@@ -130,6 +130,21 @@ const ITEMS = {
     id: 'lukewarm_coffee_af', name: 'Lukewarm Coffee', icon: '☕',
     description: 'Lukewarm coffee. It was probably hot once. Maybe this morning. Maybe last week.',
     useWith: []
+  },
+  archive_notes: {
+    id: 'archive_notes', name: 'Archive Notes', icon: '📄',
+    description: 'Handwritten notes copied from Bookshelf #1:\n\n"The laboratory archives contain thousands of classified documents. Each folder holds secrets from decades of research. Scientists recorded every experiment with great precision. Nothing was overlooked by the dedicated staff."',
+    useWith: []
+  },
+  archive_notes_af: {
+    id: 'archive_notes_af', name: 'Archive Notes', icon: '📄',
+    description: 'Handwritten notes copied from Bookshelf #1:\n\n"The laboratory archives contain thousands of classified documents. Each folder holds secrets from decades of research. Scientists recorded every experiment with great precision. Nothing was overlooked by the dedicated staff."',
+    useWith: []
+  },
+  cipher_text_paper: {
+    id: 'cipher_text_paper', name: 'Cipher Text', icon: '📜',
+    description: 'A sheet of paper that fell from behind the blackboard equation:\n\n{!(}^<!{%\n\nThe symbols need decoding.',
+    useWith: []
   }
 };
 
@@ -142,7 +157,7 @@ const PUZZLES = {
     label: 'Typewriter',
     hint: 'Enter 4 words from Bookshelf #1, at the positions shown by the UV numbers on Bookshelf #2. Separate words with spaces.',
     answer: 'contain holds experiment overlooked',
-    reward: 'wire'
+    reward: 'red_access_card'
   },
 
   chem_mixer: {
@@ -165,7 +180,7 @@ const PUZZLES = {
     id: 'mainframe',
     type: 'text_input',
     label: 'MAINFRAME TERMINAL',
-    hint: 'Enter the system name. The cipher text on the blackboard in Room 2 will help you decode it. You\'ll need the cipher keys.',
+    hint: 'AWAITING PASSWORD',
     answer: 'MAINFRAME',
     requiresFlag: 'power_on',
     onSolveEffect: 'computer_unlocked'
@@ -179,6 +194,7 @@ const PUZZLES = {
     label: 'Typewriter',
     hint: 'Enter 4 words from Bookshelf #1. The UV numbers on Bookshelf #2 are negative — count from the BACK of the text. Separate words with spaces.',
     answer: 'by experiment holds thousands',
+    reward: 'red_access_card',
     onSolveEffect: 'af_power_socket_revealed'
   },
 
@@ -202,7 +218,7 @@ const PUZZLES = {
     id: 'mainframe_af',
     type: 'text_input',
     label: 'MAINFRAME TERMINAL',
-    hint: 'Enter the system name. The numbers on the blackboard in Room 2 spell it out — use the cipher keys to decode.',
+    hint: 'AWAITING PASSWORD',
     answer: 'MAINFRAME',
     requiresFlag: 'power_on_af',
     onSolveEffect: 'computer_af_unlocked'
@@ -292,7 +308,7 @@ const ROOMS = {
       // Carpet (cover, large, bottom)
       {
         id: 'carpet', type: 'cover', label: 'Carpet',
-        description: "A worn carpet. Everyone searches the carpet.",
+        description: "A worn carpet.",
         searchText: "Everyone searches the carpet. Nothing obvious here.",
         uvText: 'hour times min',
         colour: '#180808',
@@ -302,7 +318,7 @@ const ROOMS = {
       // Locked cabinet (safe, 3-digit: 296)
       {
         id: 'locked_cabinet_r1', type: 'safe', label: 'Locked Cabinet',
-        description: 'A locked cabinet. The combination lock has 3 digits.\n\nThe clock reads 8:37. The carpet hint might help.',
+        description: 'A locked cabinet. The combination lock has 3 digits.',
         code: '296',
         colour: '#0f1a10',
         x: 0.70, y: 0.24, w: 0.13, h: 0.54,
@@ -315,6 +331,15 @@ const ROOMS = {
         description: 'Shocking.',
         colour: '#101010',
         x: 0.83, y: 0.72, w: 0.05, h: 0.07
+      },
+      // Equipment bin (cover — contains wire)
+      {
+        id: 'equipment_bin', type: 'cover', label: 'Equipment Bin',
+        description: 'A metal bin of spare electrical equipment.',
+        searchText: 'You dig through the bin and find a usable electrical wire.',
+        colour: '#101414',
+        x: 0.57, y: 0.50, w: 0.10, h: 0.28,
+        contains: [{ item: 'wire' }]
       },
       // Door to library (locked, requires secret_key)
       {
@@ -344,9 +369,10 @@ const ROOMS = {
       {
         id: 'bookshelf_1', type: 'cover', label: 'Bookshelf #1',
         description: 'A tall bookshelf packed with folders and binders.',
-        searchText: 'The laboratory archives contain thousands of classified documents. Each folder holds secrets from decades of research. Scientists recorded every experiment with great precision. Nothing was overlooked by the dedicated staff.',
+        searchText: 'Inside a binder you find handwritten notes. You copy them down.',
         colour: '#0e0c08',
-        x: 0.02, y: 0.04, w: 0.14, h: 0.76
+        x: 0.02, y: 0.04, w: 0.14, h: 0.76,
+        contains: [{ item: 'archive_notes' }]
       },
       // Bookshelf #2 (cover — UV text reveals positions)
       {
@@ -370,7 +396,7 @@ const ROOMS = {
       {
         id: 'typewriter_obj', type: 'puzzle', label: 'Typewriter',
         description: 'An old typewriter. A note taped to it reads:\n"Enter 4 words from Bookshelf #1\nat positions given by the UV numbers on Bookshelf #2.\nSeparate with spaces."',
-        solvedDescription: 'The typewriter. [Already used — a wire dropped out of a hidden compartment.]',
+        solvedDescription: 'The typewriter. [Already used — a red access card dropped from a hidden compartment.]',
         puzzleId: 'typewriter',
         colour: '#12100a',
         x: 0.35, y: 0.25, w: 0.20, h: 0.30
@@ -390,7 +416,7 @@ const ROOMS = {
         itemKey: 'employee_badge',
         colour: '#0f1410',
         x: 0.72, y: 0.50, w: 0.12, h: 0.38,
-        contains: [{ item: 'red_access_card' }, { item: 'confidential_papers' }]
+        contains: [{ item: 'confidential_papers' }]
       },
       // Computer (device)
       {
@@ -475,7 +501,7 @@ const ROOMS = {
       // Exit panel (safe — code 3892, triggers win)
       {
         id: 'exit_panel', type: 'safe', label: 'Exit Keypad',
-        description: 'Exit keypad. Enter the passcode to unlock the exit.\n\nThe printout from the computer should have it.',
+        description: 'Exit keypad. Enter the 4-digit code to unlock the exit.',
         code: '3892',
         triggersWin: true,
         colour: '#0a160a',
@@ -559,7 +585,7 @@ const ROOMS = {
       // Locked cabinet (safe — code 066)
       {
         id: 'locked_cabinet_af_r1', type: 'safe', label: 'Locked Cabinet',
-        description: 'A locked cabinet. 3-digit combination.\n\nThe clock reads -1:67.',
+        description: 'A locked cabinet. The combination lock has 3 digits.',
         code: '066',
         colour: '#0f1a10',
         x: 0.70, y: 0.24, w: 0.13, h: 0.54,
@@ -568,8 +594,8 @@ const ROOMS = {
       },
       // Tangled cables (cover — gives electrical_wire_af)
       {
-        id: 'tangled_cables_af', type: 'cover', label: 'Tangled Cables',
-        description: 'A coil of wire. Looks like a snake.',
+        id: 'tangled_cables_af', type: 'cover', label: 'Equipment Bin',
+        description: 'A bin of electrical equipment. Something is tangled up in here.',
         searchText: 'After untangling for 20 minutes, you find a usable wire.',
         colour: '#101010',
         x: 0.83, y: 0.65, w: 0.08, h: 0.15,
@@ -603,9 +629,10 @@ const ROOMS = {
       {
         id: 'bookshelf_1_af', type: 'cover', label: 'Bookshelf #1',
         description: 'A tall bookshelf. Familiar looking.',
-        searchText: 'The laboratory archives contain thousands of classified documents. Each folder holds secrets from decades of research. Scientists recorded every experiment with great precision. Nothing was overlooked by the dedicated staff.',
+        searchText: 'Inside a binder you find handwritten notes. You copy them down.',
         colour: '#0e0c08',
-        x: 0.02, y: 0.04, w: 0.14, h: 0.76
+        x: 0.02, y: 0.04, w: 0.14, h: 0.76,
+        contains: [{ item: 'archive_notes_af' }]
       },
       // Bookshelf #2 AF (cover — UV text: negative positions)
       {
@@ -629,7 +656,7 @@ const ROOMS = {
       {
         id: 'typewriter_af_obj', type: 'puzzle', label: 'Typewriter',
         description: 'An old typewriter. Taped note:\n"Enter 4 words from Bookshelf #1\nThe UV numbers on Bookshelf #2 are negative.\nCount from the BACK. Separate with spaces."',
-        solvedDescription: 'The typewriter. [Solved — a hidden compartment opened in the wall.]',
+        solvedDescription: 'The typewriter. [Solved — a red access card fell out and a hidden compartment opened in the wall.]',
         puzzleId: 'typewriter_af',
         colour: '#12100a',
         x: 0.35, y: 0.25, w: 0.20, h: 0.30
@@ -644,11 +671,11 @@ const ROOMS = {
       },
       // Power socket fixture (prop — visibleFlag: af_power_socket_revealed)
       {
-        id: 'power_socket_af_obj', type: 'prop', label: 'Power Socket',
-        description: 'A power socket. It just appeared after the typewriter compartment opened.\n\nSomething with a plug might connect here.',
+        id: 'power_socket_af_obj', type: 'device', label: 'Power Socket',
+        description: 'A power socket in the wall. Something with a plug could connect here.',
         visibleFlag: 'af_power_socket_revealed',
         colour: '#101010',
-        x: 0.58, y: 0.58, w: 0.08, h: 0.12
+        x: 0.70, y: 0.60, w: 0.08, h: 0.12
       },
       // Employee safe AF (same as normal)
       {
@@ -657,14 +684,14 @@ const ROOMS = {
         itemKey: 'employee_badge',
         colour: '#0f1410',
         x: 0.72, y: 0.50, w: 0.12, h: 0.38,
-        contains: [{ item: 'red_access_card' }, { item: 'confidential_papers' }]
+        contains: [{ item: 'confidential_papers' }]
       },
       // Computer AF (device)
       {
         id: 'computer_af', type: 'device', label: 'Computer',
         description: 'I forgot my password.',
         colour: '#080f08',
-        x: 0.68, y: 0.04, w: 0.12, h: 0.30
+        x: 0.58, y: 0.56, w: 0.10, h: 0.28
       },
       // Door to AF laboratory
       {
@@ -742,7 +769,7 @@ const ROOMS = {
       // Exit panel AF (safe — code 6666, triggers april_fools win sequence)
       {
         id: 'exit_panel_af', type: 'safe', label: 'Exit Keypad',
-        description: 'Exit keypad. Enter the passcode.\n\nSomething about this seems too easy.',
+        description: 'Exit keypad. Enter the 4-digit code to unlock the exit.',
         code: '6666',
         triggersWin: 'april_fools',
         colour: '#160a0a',
@@ -895,7 +922,7 @@ const TUTORIAL_STEPS = [
     html: `<h2>NAVIGATION</h2><p>Use the <strong>← → arrow buttons</strong> or keyboard arrows to move between rooms.<br>Locked doors need the right key or access card.</p>`
   },
   {
-    html: `<h2>GOOD LUCK</h2><p>Observe everything. Connect the clues. Escape.</p><p style="color:var(--amber);font-size:0.85rem;">⚠ This is an April 1st escape room. Something may be... off.</p>`
+    html: `<h2>GOOD LUCK</h2><p>Observe everything. Connect the clues. Escape.</p>`
   }
 ];
 
