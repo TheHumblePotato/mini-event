@@ -143,7 +143,7 @@ const ITEMS = {
   },
   cipher_text_paper: {
     id: 'cipher_text_paper', name: 'Cipher Text', icon: '📜',
-    description: 'A sheet of paper that fell from behind the blackboard equation:\n\n{ ! ( }\n\nThe symbols need decoding.',
+    description: 'A sheet of paper that fell from behind the blackboard equation:\n\n{ ! ( } ^ < ! { % \n\nThe symbols need decoding.',
     useWith: []
   }
 };
@@ -181,7 +181,7 @@ const PUZZLES = {
     type: 'text_input',
     label: 'MAINFRAME TERMINAL',
     hint: 'AWAITING PASSWORD',
-    answer: 'MAIN',
+    answer: 'MAINFRAME',
     requiresFlag: 'power_on',
     onSolveEffect: 'computer_unlocked'
   },
@@ -219,7 +219,7 @@ const PUZZLES = {
     type: 'text_input',
     label: 'MAINFRAME TERMINAL',
     hint: 'AWAITING PASSWORD',
-    answer: 'MAIN',
+    answer: 'MAINFRAME',
     requiresFlag: 'power_on_af',
     onSolveEffect: 'computer_af_unlocked'
   }
@@ -395,7 +395,7 @@ const ROOMS = {
       {
         id: 'blackboard', type: 'note', label: 'Blackboard',
         description: 'A blackboard. It shows the equation:\n\n(8 × 4) ÷ 2 + 7 = ?\n\nThe equation seems to have no relevance whatsoever.',
-        chalkReveal: '{ ! ( }',
+        chalkReveal: '{ ! ( } ^ < ! { %',
         colour: '#080f08',
         x: 0.58, y: 0.04, w: 0.22, h: 0.50
       },
