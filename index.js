@@ -388,8 +388,47 @@ document.querySelectorAll('.modal').forEach(modal => {
   });
 });
 
+// ---- Boot Sequence ----
+function runBootSequence() {
+  const overlay = document.getElementById('boot-overlay');
+  if (!overlay) return;
+  if (sessionStorage.getItem('boot_played')) { overlay.style.display = 'none'; return; }
+  const linesEl = document.getElementById('boot-lines');
+  const entries = [
+    { t: 'BIOS v4.1.0   Self-test...', c: 'dim' },
+    { t: 'CPU: TEMPORAL PROCESSOR T-2025 ........ OK', c: 'ok' },
+    { t: 'LOADING PUZZLE ENGINE v2.1 ............. OK', c: 'ok' },
+    { t: 'SEALING EXIT ROUTES .................... OK', c: 'ok' },
+    { t: '', c: 'dim' },
+    { t: '  WARNING: ANOMALY IN DATE BUFFER', c: 'warn' },
+    { t: '  SYSTEM DATE READS: APRIL -1, 2025', c: 'warn' },
+    { t: '', c: 'dim' },
+    { t: 'CONTAINMENT PROTOCOLS ACTIVE ........... OK', c: 'ok' },
+    { t: '', c: 'dim' },
+    { t: '> WELCOME. DO NOT LEAVE.', c: 'accent' },
+  ];
+  function dismiss() {
+    overlay.classList.add('fade-out');
+    setTimeout(() => { overlay.style.display = 'none'; }, 420);
+    sessionStorage.setItem('boot_played', '1');
+    document.removeEventListener('keydown', dismiss);
+  }
+  overlay.addEventListener('click', dismiss, { once: true });
+  document.addEventListener('keydown', dismiss);
+  entries.forEach((e, i) => {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'boot-line' + (e.c ? ' ' + e.c : '');
+      el.textContent = e.t;
+      linesEl.appendChild(el);
+    }, 80 + i * 130);
+  });
+  setTimeout(dismiss, 80 + entries.length * 130 + 1000);
+}
+
 // ---- Init ----
 function initApp() {
+  runBootSequence();
   applyTitleAndTheme();
   setFavicon();
   initBgCanvas();

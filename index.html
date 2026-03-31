@@ -10,6 +10,14 @@
 </head>
 <body>
 
+  <!-- Boot overlay -->
+  <div id="boot-overlay">
+    <div id="boot-inner">
+      <div id="boot-lines"></div>
+      <div id="boot-skip">[ click or press any key to skip ]</div>
+    </div>
+  </div>
+
   <div id="scanlines"></div>
   <div id="noise-overlay"></div>
   <canvas id="bg-canvas"></canvas>
@@ -38,16 +46,48 @@
   </header>
 
   <main>
-    <div class="games-container">
-      <div class="game-card" id="play-card">
-        <div class="card-icon">🚪</div>
-        <h2 class="game-title">The Escape Room</h2>
-        <button class="btn-play" id="start-game-btn">Enter</button>
+    <!-- Terminal window (main CTA) -->
+    <div id="terminal-window">
+      <div id="tw-bar">
+        <div id="tw-dots">
+          <span class="tw-dot d-red"></span>
+          <span class="tw-dot d-amber"></span>
+          <span class="tw-dot d-grn"></span>
+        </div>
+        <span id="tw-title">escape_room.exe &mdash; /events/april-1st</span>
+        <span id="tw-pid">PID&nbsp;2025</span>
       </div>
-      <div class="game-card info-card">
-        <div class="card-icon">📋</div>
-        <h2 class="game-title">How It Works</h2>
-        <p class="card-body">Solve puzzles, find clues, escape. Your time is recorded on first completion only.</p>
+      <div id="tw-output">
+        <div class="t-line t-comment">// NERD MINI EVENTS &mdash; APRIL -1ST ESCAPE ROOM</div>
+        <div class="t-line t-comment">// ════════════════════════════════════════════</div>
+        <div class="t-line"><span class="t-k">EVENT  </span><span class="t-v">April -1st Escape Room</span></div>
+        <div class="t-line"><span class="t-k">STATUS </span><span class="t-v t-blink">◉ ACTIVE</span></div>
+        <div class="t-line"><span class="t-k">ROOMS  </span><span class="t-v">3 interconnected chambers</span></div>
+        <div class="t-line"><span class="t-k">TIMER  </span><span class="t-v">Records first completion only</span></div>
+        <div class="t-line t-comment">// ════════════════════════════════════════════</div>
+        <div class="t-line"><span class="t-k">RULES  </span><span class="t-v">Click objects. Solve puzzles. Escape.</span></div>
+        <div class="t-line t-warn"><span class="t-k">WARN   </span><span>Do not trust everything you see.</span></div>
+      </div>
+      <div id="tw-prompt">
+        <span class="t-ps">$</span>
+        <button class="btn-play" id="start-game-btn">./run_escape_room --enter</button>
+        <span class="t-cur">█</span>
+      </div>
+    </div>
+
+    <!-- Info sidebar -->
+    <div id="side-panel">
+      <div class="sp-block">
+        <div class="sp-label">OBJECTIVE</div>
+        <p class="sp-text">Navigate 3 interconnected rooms. Find clues, solve puzzles, crack codes. Locate the exit.</p>
+      </div>
+      <div class="sp-block">
+        <div class="sp-label">SCORING</div>
+        <p class="sp-text">First completion time only. Replays are not recorded to the leaderboard.</p>
+      </div>
+      <div class="sp-block sp-hint">
+        <div class="sp-label">// HINT</div>
+        <p class="sp-text">Pay attention to what you can <em>search</em>, not just what you can see.</p>
       </div>
     </div>
   </main>
