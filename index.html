@@ -68,10 +68,14 @@
         <div class="t-line"><span class="t-k">RULES  </span><span class="t-v">Click objects. Solve puzzles. Escape.</span></div>
         <div class="t-line t-warn"><span class="t-k">WARN   </span><span>Do not trust everything you see.</span></div>
       </div>
-      <div id="tw-prompt">
-        <span class="t-ps">$</span>
-        <button class="btn-play" id="start-game-btn">./run_escape_room --enter</button>
-        <span class="t-cur">█</span>
+
+      <!-- Prominent Enter Button -->
+      <div id="tw-enter-block">
+        <button id="start-game-btn">
+          <span id="enter-arrow">▶</span>
+          ENTER THE ESCAPE ROOM
+        </button>
+        <div id="tw-enter-sub">click to begin &mdash; timer starts immediately</div>
       </div>
     </div>
 

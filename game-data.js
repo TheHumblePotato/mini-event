@@ -325,22 +325,6 @@ const ROOMS = {
         contains: [{ item: 'secret_key' }],
         easterEggId: 'safe_wrong_code'
       },
-      // Electrical socket (prop)
-      {
-        id: 'electrical_socket', type: 'prop', label: 'Electrical Socket',
-        description: 'Shocking.',
-        colour: '#101010',
-        x: 0.83, y: 0.72, w: 0.05, h: 0.07
-      },
-      // Equipment bin (cover — contains wire)
-      {
-        id: 'equipment_bin', type: 'cover', label: 'Equipment Bin',
-        description: 'A metal bin of spare electrical equipment.',
-        searchText: 'You dig through the bin and find a usable electrical wire.',
-        colour: '#101414',
-        x: 0.57, y: 0.50, w: 0.10, h: 0.28,
-        contains: [{ item: 'wire' }]
-      },
       // Door to library (locked, requires secret_key)
       {
         id: 'door_r1_to_r2', type: 'door', label: 'Door to Room 2',
@@ -425,6 +409,22 @@ const ROOMS = {
         colour: '#080f08',
         x: 0.58, y: 0.58, w: 0.12, h: 0.30
       },
+      // Equipment bin (cover — contains wire) — moved here from Room 1
+      {
+        id: 'equipment_bin', type: 'cover', label: 'Equipment Locker',
+        description: 'A metal locker of spare electrical equipment.',
+        searchText: 'You dig through the locker and find a usable electrical wire.',
+        colour: '#101414',
+        x: 0.84, y: 0.50, w: 0.05, h: 0.28,
+        contains: [{ item: 'wire' }]
+      },
+      // Electrical socket (prop) — moved here from Room 1
+      {
+        id: 'electrical_socket', type: 'prop', label: 'Electrical Socket',
+        description: 'Shocking.',
+        colour: '#101010',
+        x: 0.84, y: 0.82, w: 0.05, h: 0.07
+      },
       // Door to laboratory (locked — requires red_access_card)
       {
         id: 'door_r2_to_r3', type: 'door', label: 'Door to Room 3',
@@ -435,7 +435,7 @@ const ROOMS = {
         keyItem: 'red_access_card',
         leadsTo: 'laboratory',
         colour: '#0a120a',
-        x: 0.88, y: 0.10, w: 0.10, h: 0.80
+        x: 0.90, y: 0.10, w: 0.09, h: 0.68
       }
     ]
   },
@@ -592,15 +592,6 @@ const ROOMS = {
         contains: [{ item: 'secret_key_af' }],
         easterEggId: 'safe_wrong_code'
       },
-      // Tangled cables (cover — gives electrical_wire_af)
-      {
-        id: 'tangled_cables_af', type: 'cover', label: 'Equipment Bin',
-        description: 'A bin of electrical equipment. Something is tangled up in here.',
-        searchText: 'After untangling for 20 minutes, you find a usable wire.',
-        colour: '#101010',
-        x: 0.83, y: 0.65, w: 0.08, h: 0.15,
-        contains: [{ item: 'electrical_wire_af' }]
-      },
       // Door to AF library
       {
         id: 'door_af_r1_to_r2', type: 'door', label: 'Door to Room 2',
@@ -693,6 +684,15 @@ const ROOMS = {
         colour: '#080f08',
         x: 0.58, y: 0.56, w: 0.10, h: 0.28
       },
+      // Tangled cables (cover — gives electrical_wire_af) — moved here from AF Room 1
+      {
+        id: 'tangled_cables_af', type: 'cover', label: 'Equipment Locker',
+        description: 'A locker of electrical equipment. Something is tangled up in here.',
+        searchText: 'After untangling for 20 minutes, you find a usable wire.',
+        colour: '#101010',
+        x: 0.84, y: 0.48, w: 0.05, h: 0.20,
+        contains: [{ item: 'electrical_wire_af' }]
+      },
       // Door to AF laboratory
       {
         id: 'door_af_r2_to_r3', type: 'door', label: 'Door to Room 3',
@@ -703,7 +703,7 @@ const ROOMS = {
         keyItem: 'red_access_card',
         leadsTo: 'af_laboratory',
         colour: '#0a120a',
-        x: 0.88, y: 0.10, w: 0.10, h: 0.80
+        x: 0.90, y: 0.10, w: 0.09, h: 0.68
       }
     ]
   },

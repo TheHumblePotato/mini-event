@@ -441,3 +441,79 @@ footer {
   .sp-block { flex: 1 1 200px; }
   header { padding: 72px 16px 16px; }
 }
+
+    #tw-enter-block {
+      padding: 16px 20px 20px;
+      border-top: 1px solid rgba(0, 255, 65, 0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+
+    #start-game-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      padding: 16px 24px;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 5px;
+      font-family: 'VT323', monospace;
+      font-size: 1.7rem;
+      letter-spacing: 2px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 0 28px rgba(0, 255, 65, 0.45), 0 0 8px rgba(0, 255, 65, 0.2);
+      transition: opacity 0.15s, box-shadow 0.15s, transform 0.1s;
+      animation: btn-pulse 2.5s ease-in-out infinite;
+    }
+
+    #start-game-btn:hover {
+      opacity: 0.9;
+      box-shadow: 0 0 48px rgba(0, 255, 65, 0.7), 0 0 16px rgba(0, 255, 65, 0.4);
+      transform: translateY(-1px);
+    }
+
+    #start-game-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 0 16px rgba(0, 255, 65, 0.3);
+    }
+
+    #enter-arrow {
+      font-size: 1.4rem;
+      animation: arrow-bounce 1s ease-in-out infinite;
+      display: inline-block;
+    }
+
+    @keyframes arrow-bounce {
+      0%, 100% { transform: translateX(0); }
+      50%       { transform: translateX(4px); }
+    }
+
+    @keyframes btn-pulse {
+      0%, 100% { box-shadow: 0 0 28px rgba(0,255,65,0.45), 0 0 8px rgba(0,255,65,0.2); }
+      50%       { box-shadow: 0 0 42px rgba(0,255,65,0.65), 0 0 18px rgba(0,255,65,0.35); }
+    }
+
+    #tw-enter-sub {
+      text-align: center;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+      opacity: 0.7;
+    }
+
+    body.april-fools #start-game-btn {
+      box-shadow: 0 0 28px rgba(255, 107, 0, 0.5), 0 0 8px rgba(255, 107, 0, 0.2);
+      animation: btn-pulse-af 2.5s ease-in-out infinite;
+    }
+
+    @keyframes btn-pulse-af {
+      0%, 100% { box-shadow: 0 0 28px rgba(255,107,0,0.5), 0 0 8px rgba(255,107,0,0.2); }
+      50%       { box-shadow: 0 0 42px rgba(255,107,0,0.75), 0 0 18px rgba(255,107,0,0.4); }
+    }

@@ -1379,7 +1379,7 @@ function openEquationPuzzle(boardObj) {
     const val = document.getElementById('eq-answer').value.trim();
     const fb = document.getElementById('eq-feedback');
     if (!val) return;
-    if (val === '39') {
+    if (val === '23') {
       fb.style.color = 'var(--green)'; fb.textContent = '✓ Correct! Something falls from behind the board.';
       S.flags.blackboard_chalk_done = true;
       setTimeout(() => {
