@@ -78,12 +78,12 @@ const ITEMS = {
   // ── APRIL FOOLS ──
   cipher_key_af_1: {
     id: 'cipher_key_af_1', name: 'Cipher Key AF (A–M)', icon: '📄',
-    description: 'CIPHER KEY — First Half (A through M)\nNumber-based. Add dashes between.\n\nA=1  B=2  C=3  D=4  E=5\nF=6  G=7  H=8  I=9  J=10\nK=11  L=12  M=13\n\n⚠ NOTE: S and T are SWAPPED!\n  (S=20, T=19)',
+    description: 'CIPHER KEY — First Half (A through M)\nNumber-based. Add dashes between.\n\nA=1  B=2  C=3  D=4  E=5\nF=6  G=7  H=8  I=9  J=10\nK=11  L=12  M=13\n',
     useWith: []
   },
   cipher_key_af_2: {
     id: 'cipher_key_af_2', name: 'Cipher Key AF (N–Z)', icon: '📄',
-    description: 'CIPHER KEY — Second Half (N through Z)\n\nN=14  O=15  P=16  Q=17  R=18\nS=20 ← SWAPPED with T\nT=19 ← SWAPPED with S\nU=21  V=22  W=23  X=24\nY=25  Z=26',
+    description: 'CIPHER KEY — Second Half (N through Z)\n\nN=14  O=15  P=16  Q=17  R=18 \nS=20  T=19  U=21  V=22  W=23\nX=24  Y=25  Z=26',
     useWith: []
   },
   secret_key_af: {
@@ -155,7 +155,7 @@ const PUZZLES = {
     id: 'typewriter',
     type: 'text_input',
     label: 'Typewriter',
-    hint: 'Enter 4 words from Bookshelf #1, at the positions shown by the UV numbers on Bookshelf #2. Separate words with spaces.',
+    hint: 'Enter 4 words. Separate words with spaces.',
     answer: 'contain holds experiment overlooked',
     reward: 'red_access_card'
   },
@@ -192,7 +192,7 @@ const PUZZLES = {
     id: 'typewriter_af',
     type: 'text_input',
     label: 'Typewriter',
-    hint: 'Enter 4 words from Bookshelf #1. The UV numbers on Bookshelf #2 are negative — count from the BACK of the text. Separate words with spaces.',
+    hint: 'Enter 4 words. Separate words with spaces.',
     answer: 'by experiment holds thousands',
     reward: 'red_access_card',
     onSolveEffect: 'af_power_socket_revealed'
@@ -219,7 +219,7 @@ const PUZZLES = {
     type: 'text_input',
     label: 'MAINFRAME TERMINAL',
     hint: 'AWAITING PASSWORD',
-    answer: 'MAINFRAME',
+    answer: 'SIXSEVEN',
     requiresFlag: 'power_on_af',
     onSolveEffect: 'computer_af_unlocked'
   }
@@ -576,8 +576,8 @@ const ROOMS = {
       {
         id: 'carpet_af', type: 'cover', label: 'Carpet',
         description: 'A carpet. It looks normal. Suspiciously normal.',
-        searchText: 'hour plus min',
-        uvText: 'nobody searches the carpet',
+        searchText: 'hour times min (trust)',
+        uvText: 'hour plus min',
         colour: '#180808',
         x: 0.07, y: 0.82, w: 0.82, h: 0.15,
         easterEggClicks: 4, easterEggId: 'carpet_clicks'
@@ -655,8 +655,8 @@ const ROOMS = {
       // Blackboard AF (note — eraser reveals AF cipher)
       {
         id: 'blackboard_af', type: 'note', label: 'Blackboard',
-        description: 'A blackboard. Complex equation:\n\n((2^100 × e^π) + ∑(n→∞) + √(-9)) × 0 + 0 = ?\n\nThe answer is 0. That was easy.',
-        eraserReveal: '13-1-9-14-6-18-1-13-5',
+        description: 'A blackboard. \n\n((2^100 × e^π) + ∑(n→∞) + √(-9))^0 + 943 = ?\n',
+        eraserReveal: '20-9-24-20-5-22-5-14',
         colour: '#080f08',
         x: 0.58, y: 0.04, w: 0.22, h: 0.50
       },
