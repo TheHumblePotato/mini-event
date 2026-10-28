@@ -1,0 +1,16 @@
+// Merge these matches INSIDE the existing project's /databases/{database}/documents block.
+// Do not replace the rules used by the older events. A broader existing wildcard allow
+// would also allow ledger writes; audit/remove such overlaps for this collection.
+match /halloween2026Players/{uid} {
+  allow read: if request.auth != null && request.auth.uid == uid;
+  allow create, update: if request.auth != null && request.auth.uid == uid
+    && request.resource.data.keys().hasOnly(['displayName','progress','updatedAt'])
+    && request.resource.data.displayName is string
+    && request.resource.data.displayName.size() <= 100
+    && request.resource.data.progress is map;
+  allow delete: if false;
+}
+match /halloween2026Ledger/{uid} {
+  allow read: if request.auth != null && request.auth.uid == uid;
+  allow write: if false; // Only the Admin SDK in the callable function advances stages.
+}

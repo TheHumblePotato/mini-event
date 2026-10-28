@@ -1,0 +1,8 @@
+{
+  "functions": [{ "source": "functions", "codebase": "halloween2026", "predeploy": ["node sync-functions.mjs"] }],
+  "hosting": {
+    "public": ".",
+    "ignore": ["firebase.json", ".*", "node_modules/**", "functions/**", "tests/**", "*.md", "server.mjs", "sync-functions.mjs", "firestore.rules.fragment", "package*.json"],
+    "headers": [{"source":"**/*.js","headers":[{"key":"Cache-Control","value":"no-cache"}]}]
+  }
+}

@@ -1,0 +1,8 @@
+node_modules/
+functions/node_modules/
+.preview-ledger.json
+.firebase/
+*-debug.log
+screenshots/
+
+.npm-cache/

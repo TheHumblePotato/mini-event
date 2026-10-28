@@ -1,0 +1,3 @@
+import {THREE} from './visuals.js';
+// A closed gable roof with explicit eaves, ridge and end faces.
+export function gableGeometry(w,d,rise){const x=w/2,z=d/2,vertices=[];const tri=(a,b,c)=>vertices.push(...a,...b,...c);const a=[-x,0,-z],b=[x,0,-z],c=[x,0,z],e=[-x,0,z],r=[0,rise,-z],s=[0,rise,z];tri(a,e,s);tri(a,s,r);tri(r,s,c);tri(r,c,b);tri(a,r,b);tri(e,c,s);tri(a,b,c);tri(a,c,e);const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));const uv=[];for(let i=0;i<vertices.length;i+=3)uv.push((vertices[i]+x)/4,(vertices[i+2]+z)/4);g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.computeVertexNormals();g.computeBoundingBox();return g}

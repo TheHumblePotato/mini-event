@@ -1,0 +1,26 @@
+import {localQA} from './state.js';
+const guidePreferenceKey=localQA?'grave-field-guide-offered-qa':'grave-field-guide-offered';
+import {createChamber} from './engine/chamber.js';
+import {createGraveyard} from './engine/graveyard.js';
+import {createDelivery} from './engine/delivery.js';
+import {createRide} from './engine/ride.js';
+
+export function startGame(id,canvas,hooks,options={}){
+ canvas.width=1280;canvas.height=720;
+ let running=false,dead=false,frame,last=performance.now(),elapsed=0,game;
+ const held=new Set(),pressed=new Set();
+ const valid=new Set(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','ShiftLeft','ShiftRight','Escape','KeyW','KeyA','KeyS','KeyD','KeyE','KeyF','KeyL','KeyB','KeyQ','KeyR','KeyH','KeyC','KeyM','KeyT','Digit1','Digit2','Digit3','KeyZ']);
+ const keydown=e=>{if(!valid.has(e.code)||hooks.paused())return;e.preventDefault();if(!held.has(e.code))pressed.add(e.code);held.add(e.code)};
+ const keyup=e=>held.delete(e.code),blur=()=>{held.clear();pressed.clear()};
+ window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);window.addEventListener('blur',blur);
+ const input={held:(...keys)=>keys.some(k=>held.has(k)),tap:(...keys)=>keys.some(k=>pressed.has(k))};
+ const sceneHooks={...hooks,onEnd:result=>{if(dead)return;dead=true;running=false;hooks.onEnd(result)}};
+ try{game=id==='chamber'?createChamber(canvas,input,sceneHooks):id==='grave'?createGraveyard(canvas,input,sceneHooks,options):id==='delivery'?createDelivery(canvas,input,sceneHooks,options):createRide(canvas,input,sceneHooks,options)}catch(e){window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',blur);throw new Error('Could not start the rendered scene. WebGL 2 is required for the 3D games. '+e.message)}
+ const help=document.querySelector('#game-help');if(help)help.textContent=game.help;
+ const touch=document.querySelector('#touch-controls');if(touch){touch.innerHTML=game.buttons.map(([code,label])=>`<button data-key="${code}" aria-label="${label}">${label}</button>`).join('');for(const b of touch.querySelectorAll('button')){b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);if(!held.has(b.dataset.key))pressed.add(b.dataset.key);held.add(b.dataset.key)};b.onpointerup=b.onpointercancel=()=>held.delete(b.dataset.key)}}
+ let dragging=false;function pointer(e,type){const r=canvas.getBoundingClientRect();game.pointer?.(type,(e.clientX-r.left)/r.width*1280,(e.clientY-r.top)/r.height*720,e.pointerType)}
+ const pd=e=>{if(hooks.paused())return;dragging=true;canvas.setPointerCapture(e.pointerId);pointer(e,'down')},pm=e=>pointer(e,dragging?'drag':'move'),pu=()=>{dragging=false};canvas.addEventListener('pointerdown',pd);canvas.addEventListener('pointermove',pm);canvas.addEventListener('pointerup',pu);canvas.addEventListener('pointercancel',pu);const pl=e=>pointer(e,'leave');canvas.addEventListener('pointerleave',pl);
+ function loop(now){const dt=Math.min((now-last)/1000,game?.maxStep??.04);last=now;if(running&&!dead&&!hooks.paused()&&!document.hidden){elapsed+=dt;game.update(dt,elapsed)}game.draw(elapsed);pressed.clear();frame=requestAnimationFrame(loop)}frame=requestAnimationFrame(loop);
+ const closeIntro=()=>{const guide=canvas.parentElement.querySelector('[data-tutorial]')?.checked;canvas.parentElement.querySelector('.game-intro')?.remove();running=true;canvas.focus();game.unlockAudio?.();if(guide)game.startTutorial?.();if(game.tutorial)localStorage.setItem(guidePreferenceKey,'1')};
+ return {destroy(){dead=true;running=false;cancelAnimationFrame(frame);game.destroy?.();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',blur);canvas.removeEventListener('pointerdown',pd);canvas.removeEventListener('pointermove',pm);canvas.removeEventListener('pointerup',pu);canvas.removeEventListener('pointercancel',pu);canvas.removeEventListener('pointerleave',pl);canvas.parentElement?.querySelector('.game-intro')?.remove();if(touch)touch.innerHTML=''},showIntro(){const intro=document.createElement('div');intro.className='game-intro';intro.innerHTML=`<span class="eyebrow">${options.investigation?'INVESTIGATION':'OCTOBER 2026'}</span><h2>${game.title}</h2><p>${game.intro}</p><small>${game.help}</small>${game.tutorial?`<label class="guide-choice"><input type="checkbox" data-tutorial ${localStorage.getItem(guidePreferenceKey)?'':'checked'}> Show me the field guide</label>`:''}<button class="btn primary">${options.investigation?'RETURN':'BEGIN'} ↗</button>`;canvas.parentElement.append(intro);intro.querySelector('button').onclick=closeIntro},start:closeIntro};
+}

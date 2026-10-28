@@ -1,0 +1,7 @@
+import {THREE} from './visuals.js';
+let trafficMaterial;
+// One draw call per traffic vehicle, with the same shape/palette as the player car.
+export function makeTrafficCar(scene,color){const positions=[],normals=[],colors=[];function part(g,x,y,z,hex,rotate=false){if(g.index)g=g.toNonIndexed();if(rotate)g.rotateZ(Math.PI/2);g.translate(x,y,z);positions.push(...g.attributes.position.array);normals.push(...g.attributes.normal.array);const c=new THREE.Color(hex);for(let i=0;i<g.attributes.position.count;i++)colors.push(c.r,c.g,c.b);g.dispose()}
+ const box=(x,y,z,w,h,d,c)=>part(new THREE.BoxGeometry(w,h,d),x,y,z,c);box(0,.8,0,2.3,.65,4.1,color);box(0,1.35,-.2,2,.7,1.9,color);box(0,1.4,-1.18,1.8,.55,.08,0x263b4b);box(0,1.4,.78,1.8,.5,.08,0x263b4b);for(const x of [-1.18,1.18])for(const z of [-1.25,1.2])part(new THREE.CylinderGeometry(.44,.44,.32,8),x,.45,z,0x131a24,true);for(const x of [-.78,.78]){box(x,.83,-2.09,.45,.24,.07,0xe6c69b);box(x,.83,2.09,.4,.2,.07,0x9c3c35)}box(0,.52,-2.1,2.4,.15,.15,0x8c8990);
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.computeBoundingSphere();trafficMaterial||=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.8});const mesh=new THREE.Mesh(g,trafficMaterial);scene.add(mesh);return mesh;
+}
