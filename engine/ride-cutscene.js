@@ -1,7 +1,7 @@
 import {THREE,box,lantern} from './visuals.js';
 import {clamp,rng} from './physics.js';
 // The terminal ghost cutscene: a fragment appears, leaves a clue, then shows the cart a way out.
-const FONT="'Creepster','Nosifer',Impact,'Arial Black',fantasy";
+const FONT="'IM Fell English','Creepster',Georgia,serif";
 const BW=2048,BH=1024,BOARD={cx:11.25,cy:4.5,cz:-5.5,w:18,h:9};
 const ease=u=>{u=clamp(u,0,1);return u*u*(3-2*u)},easeOut=u=>1-Math.pow(1-clamp(u,0,1),2.2);
 const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
@@ -68,7 +68,7 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
  const boardCv=mk(BW,BH),bc=boardCv.getContext('2d'),boardTex=tex(boardCv),boardMat=new THREE.MeshBasicMaterial({map:boardTex,transparent:true,depthWrite:false});
  const board=new THREE.Mesh(new THREE.PlaneGeometry(BOARD.w,BOARD.h),boardMat);board.position.set(BOARD.cx,BOARD.cy,BOARD.cz);board.rotation.y=-Math.PI/2;station.add(board);
  const lampGroup=lantern(station,10.3,6.4,-5.5,0xffa24a),deadGroup=lantern(station,10.3,6.4,-13.8,0x6a4a2a),stationLight=new THREE.PointLight(0xffa24a,0,24,1.5);stationLight.position.set(9.6,6.2,-5.5);station.add(stationLight);
- const ghost=buildGhost(mats,eyeMats);ghost.root.rotation.y=-Math.PI/2;ghost.root.position.set(7.6,.5,-11.3);ghost.root.visible=false;station.add(ghost.root);
+ const ghost=buildGhost(mats,eyeMats);ghost.root.rotation.y=-Math.PI/2;ghost.root.position.set(3,-2.8,-9);ghost.root.scale.setScalar(.52);ghost.root.visible=false;camera.add(ghost.root);
  // ---- timeline
  const A=5.4,B=2.6,FLICKER=8.9,BLACKOUT=10.4,GHOST0=11.6;
  const steps=[
@@ -82,7 +82,7 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
  ];
  let acc=GHOST0;for(const s of steps){s.t0=acc;acc+=s.d}
  const END=acc;
- let t=0,started=false,done=false,lastBoard='',windClock=3,blackoutPlayed=false,ghostAppeared=false,leaveFlag=0,paperShown=false;
+ let t=0,started=false,done=false,lastBoard='',windClock=3,blackoutPlayed=false,ghostAppeared=false,staticStarted=false,leaveFlag=0,paperShown=false;
  const dim0=[];
  const paperCanvas=mk(720,960),paperContext=paperCanvas.getContext('2d');
  paperContext.fillStyle='#ded0b1';paperContext.fillRect(0,0,720,960);
@@ -90,8 +90,8 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
  paperContext.fillStyle='#e7dec7';paperContext.fillRect(35,35,650,890);
  paperContext.strokeStyle='#7b6c58';paperContext.lineWidth=3;paperContext.strokeRect(54,54,612,852);
  paperContext.textAlign='center';paperContext.textBaseline='middle';paperContext.fillStyle='#211a1b';
- paperContext.font='600 43px Georgia';paperContext.fillText('A NOTE FROM THE DARK',360,160);
- paperContext.font='italic 39px Georgia';
+ paperContext.font='400 43px "IM Fell English", Georgia, serif';paperContext.fillText('A NOTE FROM THE DARK',360,160);
+ paperContext.font='italic 39px "IM Fell English", Georgia, serif';
  ['Return where first you raised your light;','Turn its beam from left to right.','The shadow that refuses flight','Marks the earth to dig tonight.'].forEach((line,i)=>paperContext.fillText(line,360,330+i*105));
  const paperTexture=tex(paperCanvas),paperMat=new THREE.MeshBasicMaterial({map:paperTexture,transparent:true,side:THREE.DoubleSide});
  const paper=new THREE.Mesh(new THREE.PlaneGeometry(1.62,2.16),paperMat);paper.position.set(.35,-2.5,-4);paper.rotation.z=-.12;paper.visible=false;camera.add(paper);
@@ -101,7 +101,7 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
   if(step?.type==='reveal'){
    const lines=step.lines,font=lines.length>2?148:lines.length===1?260:220;
    bc.textAlign='center';bc.textBaseline='middle';bc.font=`${font}px ${FONT}`;
-   bc.shadowColor='#ff2118';bc.shadowBlur=24;bc.lineWidth=12;bc.strokeStyle='#300507';bc.fillStyle='#a30a12';
+   bc.shadowColor='#ff2118';bc.shadowBlur=16;bc.lineWidth=4;bc.strokeStyle='#300507';bc.fillStyle='#a30a12';
    lines.forEach((line,i)=>{const y=BH/2+(i-(lines.length-1)/2)*font*1.12;bc.strokeText(line,BW/2,y);bc.fillText(line,BW/2,y)});
   }
   boardTex.needsUpdate=true;
@@ -119,7 +119,7 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
  const offA=new THREE.Vector3(-.7,3.9,9.5),offB=new THREE.Vector3(-.3,4.3,2.1);
  let cartZ=cartStartZ,speed=0,yaw=0,camLocal=new THREE.Vector3(),dolly=0,shakeAmp=0;
  return {end:END,
-  start(){started=true;collectLights();for(const d of dimmed)dim0.push(d);scene.fog.color.setHex(0x050407);scene.background.setHex(0x050407);document.fonts?.load?.(`120px Creepster`)?.catch?.(()=>{});if(vignetteEl)vignetteEl.style.opacity='1';audio.horrorBed(true);cart.position.set(T.x,.1,T.z+cartStartZ);cart.rotation.y=0},
+  start(){started=true;collectLights();for(const d of dimmed)dim0.push(d);scene.fog.color.setHex(0x050407);scene.background.setHex(0x050407);document.fonts?.load?.(`120px "IM Fell English"`)?.catch?.(()=>{});if(vignetteEl)vignetteEl.style.opacity='1';cart.position.set(T.x,.1,T.z+cartStartZ);cart.rotation.y=0},
   update(dt){if(!started||done)return;t+=dt;
    // dim lights
    let dim=1,lampK=1,lampFlick=1;
@@ -150,7 +150,7 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
     else{alpha=1;eyes=1;red=24+Math.sin(t*3.1)*3+(Math.random()<.03?10:0)}
    }else if(t>=GHOST0)alpha=0;
    fadeGhost(alpha);eyeLevel(eyes);g.redLight.intensity=red;
-   const near=Math.max(0,t-GHOST0);const gx=6.4-Math.min(.35,near*.008)-lunge*.45;g.root.position.set(gx,.65+Math.sin(t*1.3)*.08,-11.3+lunge*.35);g.root.rotation.y=-Math.PI/2+Math.sin(t*.5)*.035;g.root.scale.setScalar(.68);
+   const near=Math.max(0,t-GHOST0);g.root.position.set(3+Math.sin(t*.7)*.06,-2.8+Math.sin(t*1.3)*.06,-9+lunge*.35);g.root.rotation.y=-Math.PI/2+Math.sin(t*.5)*.035;g.root.scale.setScalar(.52);
    for(const tt of g.tatters){tt.m.rotation.x=Math.sin(t*1.3+tt.phase)*tt.amp+.05;tt.m.rotation.z=Math.cos(t*1.1+tt.phase)*tt.amp*.6}
    for(const h of g.hair){h.m.rotation.z=Math.sin(t*1.4+h.phase)*.1;h.m.rotation.x=Math.cos(t*1.1+h.phase)*.07}
    // head: tilt, creep toward camera
@@ -160,6 +160,7 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
    if(paperShown){const u=clamp((t-steps.find(s=>s.type==='paper').t0)/1.2,0,1);paper.position.y=-1.5+easeOut(u)*1.5+Math.sin(t*9)*.025;paper.position.x=.35+Math.sin(t*3.1)*.08;paper.rotation.z=-.12+Math.sin(t*5.7)*.035}
    if(cur?.type==='leave'&&lastBoard!=='cleared'){drawBoard(null);lastBoard='cleared'}
    if(cur?.type==='appear'&&!ghostAppeared&&t-cur.t0>1.0){ghostAppeared=true;audio.cue('keeper',undefined,{volume:.9});audio.cue('ghost',undefined,{volume:.9})}
+   if(cur?.type==='appear'&&!staticStarted&&t-cur.t0>=1.6){staticStarted=true;audio.horrorBed(true,{intensity:.52})}
    if(cur?.type==='leave'&&!leaveFlag&&t-cur.t0>1.4){leaveFlag=1;audio.cue('door',undefined,{volume:.8});audio.cue('ghost',undefined,{volume:1})}
    if(t>=END&&!done){done=true;audio.horrorBed(false);paper.visible=false;onDone()}
   },

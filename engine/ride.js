@@ -2,13 +2,13 @@ import {createSpatialAudio} from './spatial-audio.js';
 import {createProjector} from './projector.js';
 import {THREE,createStage,material,box,cylinder,lantern,textTexture,planeText} from './visuals.js';
 import {makeRider,buildMine,makePickup,makeHazard} from './ride-models.js';
-import {newRideRun,stepRide,WORD,darkness,LOOP,trackCountAt,trackHeight,trackOffset} from './ride-run.js';
+import {newRideRun,stepRide,WORD,darkness,fogIntensity,LOOP,trackCountAt,trackHeight,trackOffset} from './ride-run.js';
 import {buildRideTracks} from './ride-track.js';
 import {createCutscene} from './ride-cutscene.js';
 import {clamp,damp} from './physics.js';
 const curve=d=>Math.sin(d/LOOP*Math.PI*2)*5+Math.sin(d/LOOP*Math.PI*6)*2.5;
 export function createRide(canvas,input,hooks,options={}){
- const stage=createStage(canvas,{fog:0x151620,near:42,far:155,antialias:true}),{scene,camera,renderer}=stage,audio=createSpatialAudio(hooks,85);renderer.shadowMap.enabled=false;renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.toneMappingExposure=1.25;
+ const stage=createStage(canvas,{fog:0x151620,near:82,far:270,antialias:true}),{scene,camera,renderer}=stage,audio=createSpatialAudio(hooks,85);renderer.shadowMap.enabled=false;renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.toneMappingExposure=1.25;
  const mine=buildMine(scene,curve,LOOP),{iron,wood}=mine;
  for(const object of scene.children)if(object.isInstancedMesh)object.visible=false;
  buildRideTracks(scene,curve,LOOP,iron,wood);
@@ -37,7 +37,6 @@ export function createRide(canvas,input,hooks,options={}){
    g.position.set(curve(d)+trackOffset(laneF,count),height,-d);
    if(h.type==='boulder'){const k=clamp((row.distance-run.distance-8)/30,0,1);g.position.y=height+k*k*16;if(g.userData.mark){g.userData.mark.position.y=.06-g.position.y;g.userData.mark.material.opacity=.3+.25*Math.sin(t*10)}}
    g.visible=!h.broken&&row.distance>run.distance-7;
-   if(g.userData.clouds)g.userData.clouds.forEach((m,i)=>{m.position.y=.7+((t*2+i*.5)%2.8);m.scale.setScalar(.7+Math.sin(t*3+i)*.2)});
   }
   for(const [h,g]of hazardMeshes)if(!activeHazards.has(h)){disposeNode(g);hazardMeshes.delete(h)}
   const activePickups=new Set(run.pickups);
@@ -75,7 +74,7 @@ export function createRide(canvas,input,hooks,options={}){
   stage.moon.position.set(x-25,40,-d+10);stage.moon.target.position.set(x,0,-d-30);
   if(!stage.moon.target.parent)scene.add(stage.moon.target);
   lights.forEach((l,n)=>{const at=Math.floor(d/22)*22+n*22-8;l.position.set(curve(at)+(n%2?11:-11),5,-at)});
- const zone=Math.floor(run.distance/600)%3;if(zone!==theme){theme=zone;mine.floor.color.setHex([0x373b3d,0x253a3b,0x43332f][zone]);scene.fog.color.setHex([0x151620,0x15262c,0x291b24][zone]);scene.background.copy(scene.fog.color)}const dk=darkness(run.distance);scene.fog.near=42-dk*30;scene.fog.far=155-dk*95;lamp.intensity=100+dk*60;
+ const zone=Math.floor(run.distance/600)%3;if(zone!==theme){theme=zone;mine.floor.color.setHex([0x373b3d,0x253a3b,0x43332f][zone]);scene.fog.color.setHex([0x151620,0x15262c,0x291b24][zone]);scene.background.copy(scene.fog.color)}const dk=darkness(run.distance),fog=fogIntensity(run.distance);scene.fog.near=82-fog*48;scene.fog.far=270-fog*125;lamp.intensity=100+dk*60;
  }
  camera.position.set(0,6.1,13);camera.lookAt(0,2.5,-28);if(projection){camera.position.set(curve(420)-2,5.5,-441);camera.lookAt(curve(420)+8,3,-462);lamp.position.set(curve(420)+4,5,-454);lampTarget.position.set(curve(420)+9,2,-465);cart.visible=false}
  if(options.cutscene){for(const l of WORD)run.letters.add(l);run.score=options.score||0;arrive()}

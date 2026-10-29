@@ -18,6 +18,8 @@ route('marsh','hollow-south',[[0,390],[140,650],[420,850],[700,1000]],'rookhaven
 // A separate upper bridge gives Hollow–Briarwick a second way across.
 const northA={id:'hollow-north',x:0,y:-250,district:'hollow'},northB={id:'briarwick-north',x:1100,y:-250,district:'briarwick'};ROAD_NODES.push(northA,northB);link(node('hollow-15'),northA,'street',18);link(northB,node('briarwick-12'),'street',18);
 route('north-bridge','hollow-north',[[0,-350],[170,-430],[930,-430],[1100,-350]],'briarwick-north','highway',25);
+const briarwickEast={id:'briarwick-east',x:1580,y:205,district:'briarwick'};ROAD_NODES.push(briarwickEast);
+route('east-bridge','briarwick-16',[[1415,150],[1505,180]],'briarwick-east','shadow-bridge',30);
 export const ADJACENCY=new Map(ROAD_NODES.map(n=>[n.id,[]]));for(const e of ROAD_SEGMENTS){ADJACENCY.get(e.a.id).push({node:e.b,edge:e});ADJACENCY.get(e.b.id).push({node:e.a,edge:e})}
 export function projectOnRoad(p,e){const dx=e.b.x-e.a.x,dy=e.b.y-e.a.y,t=clamp(((p.x-e.a.x)*dx+(p.y-e.a.y)*dy)/(dx*dx+dy*dy),0,1);return {x:e.a.x+dx*t,y:e.a.y+dy*t,t}}
 export function nearestRoad(p){let best=null,distance=Infinity;for(const edge of ROAD_SEGMENTS){const point=projectOnRoad(p,edge),d=dist(p,point);if(d<distance){distance=d;best={edge,point,distance}}}return best}

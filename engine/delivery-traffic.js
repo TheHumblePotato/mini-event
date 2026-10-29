@@ -11,6 +11,6 @@ export function createDeliveryTraffic(scene,world,audio,onCrash,onNotice,seed,on
  const old={x:c.x,y:c.y},dx=c.goal.x-c.x,dy=c.goal.y-c.y,d=Math.hypot(dx,dy)||1,blocked=segmentBlocked(c,{x:c.x+dx/d*22,y:c.y+dy/d*22},closures),f={x:dx/d,y:dy/d},near=dist(c,p)<12&&(p.x-c.x)*f.x+(p.y-c.y)*f.y>0,max=c.edge.type==='highway'?31:!c.edge.district?24:10+Math.abs(Math.sin(c.x)) *3;c.speed=damp(c.speed,c.stopped||blocked||near?0:max,3,dt);moveCircle(c,f.x*Math.min(d,c.speed*dt),f.y*Math.min(d,c.speed*dt),1.1,world.solids);const wanted=Math.atan2(dx,-dy);c.angle+=Math.atan2(Math.sin(wanted-c.angle),Math.cos(wanted-c.angle))*Math.min(1,dt*5);c.model.position.set(c.x,0,c.y);c.model.rotation.y=carModelYaw(c.angle);
  if(!c.passed&&Math.hypot(p.vx,p.vy)>18&&dist(c,p)>3.5&&dist(c,p)<5){c.passed=true;onNear(c)}
  if(c.cooldown===0&&bodyContact(beforePlayer,p,old,c)){const len=dist(c,p)||1,nx=(p.x-c.x)/len,ny=(p.y-c.y)/len,closing=Math.max(0,-(p.vx-f.x*c.speed)*nx-(p.vy-f.y*c.speed)*ny);onCrash(closing,c);p.vx+=nx*(closing+2);p.vy+=ny*(closing+2);c.cooldown=1;c.stopped=1.3}
- }return ghosts.update(dt,t,p,beforePlayer)}
+ }const active=ghosts.update(dt,t,p,beforePlayer);for(const g of ghosts.cars){if(['dormant','forming','fading'].includes(g.state))continue;for(const c of ordinary)if(bodyContact(g,g,c,c)){ghosts.impact(g);break}}return active}
  return {cars,get ghostStats(){return ghosts.stats},update,horn(p){for(const c of ordinary)if(dist(c,p)<35)c.stopped=2.5},destroy(){ghosts.destroy();for(const c of ordinary){scene.remove(c.model);c.model.geometry.dispose()}}};
 }

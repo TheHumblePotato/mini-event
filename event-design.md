@@ -110,7 +110,7 @@ The ghost claims the lamp was taken from its game to keep it weak. Its reaction 
 
 ### 4. Keeper awakening and escape
 
-Taking the lamp awakens the physical, armored Keeper. The Keeper is not a ghost. A short cutscene reveals it turning toward the flame; the ghost appears in the foreground and guides the player toward a hidden route.
+Taking the lamp awakens the physical, armored Keeper. The Keeper is not a ghost. A short cutscene shows it clawing up through the floor; the ghost appears in the foreground and reveals the hidden route. The Keeper pursues only along passages it can physically reach and telegraphs its close attacks. If caught, the player explicitly chooses whether to retry; accepting restores health, lamp fuel, and two flares.
 
 The exit ladder fails. The ghost opens a side gate:
 
@@ -141,16 +141,16 @@ The explicit destination is **Hollow Lane — dead end**. The ghost suggests the
 
 ### 6. Two finite-switch road puzzles
 
-Black headlights reveal the missing road. Beyond it are two fully mapped causeways, each a **25-island network** with a **four-switch budget**. Gold solid roads require warm light; purple dashed roads require black light. Shape/labels accompany color. Islands are safe in both states.
+Black headlights reveal a hidden eastbound bridge from Briarwick. Driving across it enters two linked, drivable causeways. Each is an irregular branching network with dead ends and multiple solver-verified routes; each allows **eight light swaps**. Gold roads require warm light and violet roads require black light. The depot is highlighted as the clear destination, the map remains visible while driving, and a swaps-remaining counter stays on the HUD. Wide road surfaces and stone islands make steering and swaps forgiving. Restarting resets only the current causeway.
 
 > Where pale roads fade, let black roads gleam;
 > On stone alone exchange the beam.
-> Four changes only: choose your way;
+> Eight changes only: choose your way;
 > The shortest road may lead astray.
 
-The player sees all roads before choosing a route. Some necessary segments travel backward on screen. Dead-end branches create planning decisions. Each authored map is solver-checked to have exactly one simple start-to-goal route within budget. Both road modes reverse in the second puzzle.
+The player sees all roads before choosing a route. Some necessary segments travel backward on screen. Dead-end branches create planning decisions and several valid routes require thoughtful swaps. Each authored map is checked for multiple simple start-to-goal routes within budget. Both road modes reverse in the second puzzle.
 
-No steering precision, hidden map tiles, loop maze, or arbitrary time limit. The route UI is a tactical map in the first implementation. Checkpoints, restart, and saved puzzle state support experimentation. Meaningless revisits do not count as distinct solutions; the implementation rejects loops in a submitted route.
+The routes are driven in the world rather than solved as a separate tactical grid. The minimap fits the entire causeway; restarting never silently returns the player to the previous puzzle. Meaningless revisits do not count as distinct solutions; the implementation rejects loops in a submitted route.
 
 ### 7. One package and the real post office
 

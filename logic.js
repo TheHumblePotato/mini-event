@@ -8,12 +8,25 @@ export const FILM_ORDER=['arrival','signal','shadow','return'];
 export const REPAIR_ORDER=['lens','film','shutter'];
 export const BINDING=['closed-eye','down-flame','barred-door'];
 export function roadPuzzle(variant=0){
- const path=variant?[0,5,10,11,6,1,2,3,8,7,12,17,18,19,24]:[0,1,2,7,6,11,12,13,8,9,14,19,18,23,24];
- const nodes=Array.from({length:25},(_,id)=>({id,x:90+(id%5)*100,y:65+Math.floor(id/5)*90,name:String.fromCharCode(65+id)}));
- const edges=[];for(let i=0;i<path.length-1;i++)edges.push({a:path[i],b:path[i+1],mode:((Math.floor(i/3)+variant)%2?'warm':'black')});
- const decoys=variant?[[3,4,'warm'],[4,9,'black'],[8,13,'warm'],[13,14,'black'],[10,15,'warm'],[15,16,'black'],[15,20,'warm'],[20,21,'black'],[21,22,'warm'],[22,23,'black']]:[[2,3,'warm'],[3,4,'black'],[0,5,'warm'],[5,10,'black'],[10,15,'warm'],[15,20,'black'],[11,16,'warm'],[16,17,'black'],[20,21,'warm'],[21,22,'black']];
- edges.push(...decoys.map(([a,b,mode])=>({a,b,mode:variant?(mode==='warm'?'black':'warm'):mode})));
- return {nodes,edges,start:0,goal:24,mode:variant?'warm':'black',budget:4};
+ const invert=mode=>variant?(mode==='warm'?'black':'warm'):mode;
+ const trunk=Array.from({length:20},(_,i)=>({id:i,x:55+i*82,y:250+Math.sin(i*.68)*170+Math.sin(i*1.71)*45,name:String.fromCharCode(65+i%26)}));
+ const branches=[
+  {id:20,x:trunk[5].x+12,y:trunk[5].y+245,name:'LOWER I'},
+  {id:21,x:trunk[7].x-10,y:trunk[7].y+245,name:'LOWER II'},
+  {id:22,x:trunk[11].x+8,y:trunk[11].y-245,name:'UPPER I'},
+  {id:23,x:trunk[13].x-14,y:trunk[13].y-245,name:'UPPER II'},
+  {id:24,x:trunk[19].x+125,y:trunk[19].y-18,name:'THE DEPOT'}
+ ];
+ const nodes=[...trunk,...branches],edges=[];
+ const mainMode=i=>invert(Math.floor(i/3)%2?'warm':'black');
+ for(let i=0;i<19;i++)edges.push({a:i,b:i+1,mode:mainMode(i)});
+ edges.push({a:19,b:24,mode:mainMode(19)});
+ edges.push(
+  {a:5,b:20,mode:mainMode(5)},{a:20,b:21,mode:mainMode(6)},{a:21,b:8,mode:mainMode(7)},
+  {a:11,b:22,mode:mainMode(11)},{a:22,b:23,mode:mainMode(12)},{a:23,b:15,mode:mainMode(13)},
+  {a:20,b:22,mode:mainMode(6)},{a:21,b:23,mode:mainMode(7)}
+ );
+ return {nodes,edges,start:0,goal:24,mode:invert('black'),budget:8};
 }
 export function verifyRoute(puzzle,route){if(!Array.isArray(route)||route[0]!==puzzle.start||route.at(-1)!==puzzle.goal||route.length>70)return false;let mode=puzzle.mode,switches=0;const seen=new Set();for(let i=0;i<route.length;i++){if(seen.has(route[i]))return false;seen.add(route[i]);if(!i)continue;const e=puzzle.edges.find(e=>(e.a===route[i-1]&&e.b===route[i])||(e.b===route[i-1]&&e.a===route[i]));if(!e)return false;if(e.mode!==mode){switches++;mode=e.mode}}return switches<=puzzle.budget}
 export function solveRoutes(puzzle){const answers=[];function visit(n,path,mode,used){if(n===puzzle.goal){answers.push(path);return}for(const e of puzzle.edges){const next=e.a===n?e.b:e.b===n?e.a:null;if(next===null||path.includes(next))continue;const count=used+(mode!==e.mode?1:0);if(count<=puzzle.budget)visit(next,[...path,next],e.mode,count)}}visit(puzzle.start,[puzzle.start],puzzle.mode,0);return answers}

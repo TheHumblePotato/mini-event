@@ -9,13 +9,15 @@ export function trackCountAt(distance){
 }
 
 export function trackHeight(lane,count){
- const heights=count===5?[0,.65,1.3,.65,0]:[0,0,0],low=Math.floor(lane),high=Math.ceil(lane);
+ const heights=count===5?[0,0,0,0,0]:[0,0,0],low=Math.floor(lane),high=Math.ceil(lane);
  return (heights[low]||0)+((heights[high]||0)-(heights[low]||0))*(lane-low);
 }
 
 export function trackOffset(lane,count){return (lane-(count-1)/2)*4.1}
 
 export function darkness(d){const p=d%1500;return p<900?0:p<1000?(p-900)/100:p<1300?1:p<1400?1-(p-1300)/100:0}
+const smoothstep=t=>{t=clamp(t,0,1);return t*t*(3-2*t)};
+export function fogIntensity(distance){const phase=((distance%1800)+1800)%1800;return smoothstep((phase-220)/460)*(1-smoothstep((phase-960)/420))}
 
 export function newRideRun({seed=1,letters=[],contactMet=false,startDistance=0}={}){
  const trackCount=trackCountAt(startDistance),lane=clamp(Math.round((trackCount-1)/2),0,trackCount-1);
@@ -23,7 +25,7 @@ export function newRideRun({seed=1,letters=[],contactMet=false,startDistance=0}=
 }
 
 export function runPattern(sequence,distance){
- const tier=Math.min(5,Math.floor(distance/600)),tracks=trackCountAt(distance),safe=(sequence*2+Math.floor(sequence/3))%tracks,others=Array.from({length:tracks},(_,lane)=>lane).filter(lane=>lane!==safe),mix=sequence%7,types=['cart','crate','beam','gap','crate','beam','cart','steam'];
+ const tier=Math.min(5,Math.floor(distance/600)),tracks=trackCountAt(distance),safe=(sequence*2+Math.floor(sequence/3))%tracks,others=Array.from({length:tracks},(_,lane)=>lane).filter(lane=>lane!==safe),mix=sequence%7,types=['cart','crate','beam','gap','crate','beam','cart','boulder'];
  const hazards=others.map((lane,i)=>({lane,type:types[(sequence+i*2)%types.length]}));
  if(tier>=3&&sequence%5===2)hazards[0]={lane:others[0],type:'drifter',toLane:safe};
  if(tier>=2&&sequence%6===1){const clearable=['crate','beam','gap'];hazards.splice(0,hazards.length,...others.map((lane,i)=>({lane,type:clearable[(sequence+lane*3)%clearable.length]})))}
@@ -118,7 +120,7 @@ export function stepRide(s,input,dt){
   const laneCount=row.tracks||3;
   if(Math.abs(s.lanePosition-trackOffset(h.toLane??h.lane,laneCount))>1.9)continue;
   if(s.powers.turbo>0){h.broken=true;s.score+=Math.round(60*s.combo);s.combo=Math.min(5,s.combo+.1);emit(s,'smash',{lane:h.lane});continue}
-  const cleared=h.type==='beam'?s.duck>.5&&s.jump<.65:h.type==='crate'||h.type==='cart'||h.type==='steam'?s.jump>.8:h.type==='gap'?s.jump>.55:false;
+  const cleared=h.type==='beam'?s.duck>.5&&s.jump<.65:h.type==='crate'||h.type==='cart'?s.jump>.8:h.type==='gap'?s.jump>.55:false;
   if(!cleared){h.broken=true;hitRide(s,h)}
   else{s.score+=Math.round(35*s.combo);s.combo=Math.min(5,s.combo+.08)}
  }

@@ -1,15 +1,14 @@
 /* Home screen: a dark, wrong-feeling arcade room. .reduced-motion (haunted.css) switches animation off. */
 body.room-home{background:#030204}
-body.room-home .night-scene{display:none}
 body.room-home .site-header{border:0;opacity:.7}
 body.room-home .grain{opacity:.11}
-.room{position:relative;margin:0 -5%;padding:30px 5% 90px;min-height:100vh;min-height:100svh;box-sizing:border-box;overflow:hidden;isolation:isolate;transition:filter .05s;
- background:radial-gradient(ellipse at 50% 0%,#281c2729,transparent 58%),radial-gradient(ellipse at 15% 65%,#34141d2b,transparent 38%),linear-gradient(180deg,#09070c 0%,#100c12 48%,#171019 77%,#050407 100%)}
-.room:before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 20% 85%,#2a000a30,transparent 45%),radial-gradient(ellipse at 85% 40%,#1a000a28,transparent 40%),radial-gradient(ellipse at 50% 76%,#3a18251c,transparent 42%);animation:sick 9s ease-in-out infinite}
+.room{position:relative;margin:0 calc((100% - 100vw)/2);width:100vw;padding:30px max(5%,calc((100vw - 1200px)/2)) 90px;min-height:100vh;min-height:100svh;box-sizing:border-box;overflow:hidden;isolation:isolate;transition:filter .05s;background:transparent}
+.room:before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(circle at 81% 16%,#c7a6bf12 0 2%,transparent 2.2% 16%),radial-gradient(ellipse at 81% 16%,#a58aa311,transparent 33%),radial-gradient(ellipse at 50% 76%,#5a21301c,transparent 48%),linear-gradient(180deg,#05040a33 0%,#09060d77 50%,#030206dd 100%),repeating-linear-gradient(78deg,transparent 0 7.7%,#03020788 7.8% 8.2%,transparent 8.3% 15%);background-size:auto,auto,auto,auto,100% 100%;animation:sick 9s ease-in-out infinite}
+.room-head,.home-whisper,.cabinet-row,.board{position:relative;z-index:1}
 @keyframes sick{50%{opacity:.35}}
 .room:after{content:'';position:absolute;left:0;right:0;bottom:0;height:150px;z-index:-1;background:linear-gradient(180deg,#05040700,#030205bb),repeating-linear-gradient(0deg,#18121a22 0 1px,transparent 1px 42px);box-shadow:inset 0 40px 60px #000}
 body.blackout .room{filter:brightness(.12)}body.blackout .room-light{opacity:0}
-.room-fog{position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 60% 18% at 30% 82%,#7a6a8a14,transparent 70%),radial-gradient(ellipse 50% 16% at 75% 70%,#7a6a8a10,transparent 70%);animation:fog 26s ease-in-out infinite alternate}
+.room-fog{position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 60% 18% at 30% 82%,#7a6a8a22,transparent 70%),radial-gradient(ellipse 50% 16% at 75% 70%,#7a6a8a1b,transparent 70%);animation:fog 26s ease-in-out infinite alternate}
 @keyframes fog{to{transform:translateX(9%)}}
 .room-bulb{position:absolute;top:0;left:50%;width:2px;height:90px;background:#1c1418;z-index:1;transform-origin:top;animation:swing 6s ease-in-out infinite}
 @keyframes swing{0%,100%{transform:rotate(-1.6deg)}50%{transform:rotate(1.6deg)}}
