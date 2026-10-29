@@ -14,9 +14,10 @@ export async function initFirebase(options={}){
 export async function account(){if(!sdk){await initFirebase();if(!sdk)throw Error('Firebase could not load. Check your connection.')}if(user){await sdk.signOut(auth);return}await sdk.signInWithPopup(auth,new sdk.GoogleAuthProvider());}
 export const getUser=()=>user;
 export const signedIn=()=>!!(auth&&auth.currentUser);
+export const currentName=()=>String(auth?.currentUser?.displayName||'Player').slice(0,16);
 const BOARDS=['grave','delivery','ride'];
 // Leaderboard: halloween2026Boards/{game}/scores/{uid}. One personal best per player per game.
-export async function submitScore(game,score,name){
+export async function submitScore(game,score){
  if(!BOARDS.includes(game))throw Error('This game has no leaderboard.');
  if(!sdk||!auth?.currentUser)throw Error('Sign in to save your score.');
  const uid=auth.currentUser.uid,value=Math.round(score);
@@ -24,7 +25,7 @@ export async function submitScore(game,score,name){
  const ref=sdk.doc(db,'halloween2026Boards',game,'scores',uid);
  const snap=await sdk.getDoc(ref);
  if(snap.exists()&&snap.data().score>=value)return {improved:false,best:snap.data().score};
- try{await sdk.setDoc(ref,{uid,name:String(name||auth.currentUser.displayName||'Player').slice(0,16),score:value,updatedAt:sdk.serverTimestamp()})}catch{throw Error('Could not save the score. The leaderboard may not be set up yet.')}
+ try{await sdk.setDoc(ref,{uid,name:currentName(),score:value,updatedAt:sdk.serverTimestamp()})}catch{throw Error('Could not save the score. The leaderboard may not be set up yet.')}
  return {improved:true,best:value};
 }
 export async function fetchScores(game,count=10){

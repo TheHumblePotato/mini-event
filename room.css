@@ -1,66 +1,69 @@
-/* Home screen: a dark arcade room. Reduced motion disables animation via .reduced-motion in haunted.css. */
-body.room-home{background:#050307}
+/* Home screen: a dark, wrong-feeling arcade room. .reduced-motion (haunted.css) switches animation off. */
+body.room-home{background:#030204}
 body.room-home .night-scene{display:none}
-body.room-home .site-header{border:0}
-.room{position:relative;margin:0 -5%;padding:30px 5% 90px;min-height:85vh;overflow:hidden;isolation:isolate;transition:filter .06s;
- background:
-  radial-gradient(ellipse at 50% 0%,transparent 20%,#020104 85%),
-  repeating-linear-gradient(90deg,#1a0d14 0 38px,#150a10 38px 40px,#1d0f17 40px 78px,#110810 78px 80px),
-  #120911}
-.room:after{content:'';position:absolute;left:0;right:0;bottom:0;height:140px;z-index:-1;background:repeating-linear-gradient(90deg,#0c0709 0 70px,#070405 70px 72px);box-shadow:inset 0 30px 50px #000c}
-body.blackout .room{filter:brightness(.22)}
-body.blackout .room-light{opacity:0}
-.room-bulb{position:absolute;top:0;left:50%;width:2px;height:90px;background:#2a2024;z-index:1}
-.room-bulb:after{content:'';position:absolute;left:-9px;bottom:-14px;width:20px;height:20px;border-radius:50%;background:#ffd9a0;box-shadow:0 0 25px 8px #ffb35a66,0 0 90px 30px #ff8a3a22;animation:bulb 7s linear infinite}
-.room-light{position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse 55% 60% at 50% 8%,#ffb35a2e,transparent 70%);animation:bulb 7s linear infinite;transition:opacity .05s}
-@keyframes bulb{0%,18%,22%,60%,63%,100%{opacity:1}19%{opacity:.35}20%{opacity:.9}21%{opacity:.2}61%{opacity:.5}62%{opacity:.15}}
-.room-eyes{position:absolute;left:3%;bottom:34%;display:flex;gap:14px;z-index:0;animation:eyes 23s linear infinite;opacity:0}
-.room-eyes i{width:9px;height:5px;border-radius:50%;background:#e8e2c0;box-shadow:0 0 8px #e8e2c0aa}
-@keyframes eyes{0%,70%,100%{opacity:0}72%,76%{opacity:.9}74%{opacity:0}78%{opacity:0}}
-.room-crack{position:absolute;right:6%;top:10%;width:3px;height:170px;background:linear-gradient(#0000,#000 20%,#000 80%,#0000);transform:rotate(14deg);opacity:.7;box-shadow:12px 40px 0 #000,-10px 90px 0 #000}
+body.room-home .site-header{border:0;opacity:.7}
+body.room-home .grain{opacity:.11}
+.room{position:relative;margin:0 -5%;padding:30px 5% 90px;min-height:85vh;overflow:hidden;isolation:isolate;transition:filter .05s;
+ background:radial-gradient(ellipse at 50% 0%,transparent 8%,#010001 78%),repeating-linear-gradient(90deg,#0d0609 0 38px,#080407 38px 40px,#0f070b 40px 78px,#060305 78px 80px),#080408}
+.room:before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 20% 85%,#2a000a30,transparent 45%),radial-gradient(ellipse at 85% 40%,#1a000a28,transparent 40%);animation:sick 9s ease-in-out infinite}
+@keyframes sick{50%{opacity:.35}}
+.room:after{content:'';position:absolute;left:0;right:0;bottom:0;height:150px;z-index:-1;background:repeating-linear-gradient(90deg,#060304 0 70px,#030102 70px 72px);box-shadow:inset 0 40px 60px #000}
+body.blackout .room{filter:brightness(.12)}body.blackout .room-light{opacity:0}
+.room-fog{position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 60% 18% at 30% 82%,#7a6a8a14,transparent 70%),radial-gradient(ellipse 50% 16% at 75% 70%,#7a6a8a10,transparent 70%);animation:fog 26s ease-in-out infinite alternate}
+@keyframes fog{to{transform:translateX(9%)}}
+.room-bulb{position:absolute;top:0;left:50%;width:2px;height:90px;background:#1c1418;z-index:1;transform-origin:top;animation:swing 6s ease-in-out infinite}
+@keyframes swing{0%,100%{transform:rotate(-1.6deg)}50%{transform:rotate(1.6deg)}}
+.room-bulb:after{content:'';position:absolute;left:-8px;bottom:-12px;width:17px;height:17px;border-radius:50%;background:#c9935a;box-shadow:0 0 14px 4px #b5622a55,0 0 60px 18px #8a2a1a1c;animation:bulb 7s linear infinite}
+.room-light{position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse 45% 50% at 50% 6%,#c8742a22,transparent 70%);animation:bulb 7s linear infinite;transition:opacity .05s}
+@keyframes bulb{0%,16%,22%,41%,44%,60%,63%,81%,84%,100%{opacity:1}17%{opacity:.3}18%{opacity:.85}19%{opacity:.1}21%{opacity:.6}42%{opacity:.15}43%{opacity:.7}61%{opacity:.4}62%{opacity:.08}82%{opacity:.5}83%{opacity:.1}}
+.room-eyes{position:absolute;left:3%;bottom:34%;display:flex;gap:14px;z-index:0;animation:eyes 19s linear infinite;opacity:0}
+.room-eyes i{width:9px;height:5px;border-radius:50%;background:#e8d8b0;box-shadow:0 0 9px #ff3a2aaa}
+@keyframes eyes{0%,64%,100%{opacity:0}66%,70%{opacity:.95}68%{opacity:0}72%{opacity:0}}
+.room-figure{position:absolute;right:2%;bottom:6%;width:90px;height:320px;z-index:0;opacity:0;pointer-events:none;animation:figure 31s linear infinite;background:radial-gradient(ellipse 22px 30px at 50% 12%,#000 98%,transparent),radial-gradient(ellipse 36px 120px at 50% 62%,#000 98%,transparent)}
+.room-figure:before,.room-figure:after{content:'';position:absolute;top:34px;width:5px;height:3px;border-radius:50%;background:#ff2a1a;box-shadow:0 0 8px #ff2a1a}.room-figure:before{left:34px}.room-figure:after{left:50px}
+@keyframes figure{0%,78%,100%{opacity:0}79%,80%{opacity:.85}80.5%{opacity:0}81.5%,83%{opacity:.85}83.5%{opacity:0}}
+.room-crack{position:absolute;right:6%;top:10%;width:3px;height:170px;background:linear-gradient(#0000,#000 20%,#000 80%,#0000);transform:rotate(14deg);opacity:.8;box-shadow:12px 40px 0 #000,-10px 90px 0 #000}
 .room-head{text-align:center;padding:60px 0 34px;position:relative}
-.room-title{font:600 clamp(48px,7vw,92px)/.95 'Cormorant Garamond',Georgia,serif;letter-spacing:9px;text-transform:uppercase;color:#e7ded2;margin:0;text-shadow:0 3px 20px #000;animation:title-flick 11s linear infinite}
-.room-title span{display:block;color:#b5483f;letter-spacing:13px;text-shadow:0 0 30px #7a1a1a99}
-@keyframes title-flick{0%,41%,43%,45%,100%{opacity:1}42%{opacity:.25}44%{opacity:.7}}
-.cabinet-row{display:flex;flex-wrap:wrap;justify-content:center;gap:30px;max-width:1200px;margin:0 auto 60px}
-.cabinet{position:relative;width:250px;display:flex;flex-direction:column;background:linear-gradient(90deg,#1a1016,#2a1a22 50%,#1a1016);border:2px solid #0a0508;border-radius:14px 14px 3px 3px;box-shadow:0 0 0 1px #4a2d3a55,0 25px 50px #000c;transition:transform .25s}
-.cabinet:hover{transform:translateY(-4px)}
-.cab-top{padding:12px 8px;text-align:center;background:#0d070a;border-radius:12px 12px 0 0;border-bottom:2px solid #000}
-.cab-marquee{font:600 20px 'Cormorant Garamond',Georgia,serif;letter-spacing:2px;color:#ffcf8a;text-shadow:0 0 12px #ff9a3c;animation:marquee 9s linear infinite;animation-delay:calc(var(--i)*-3.1s)}
-@keyframes marquee{0%,30%,32%,34%,100%{opacity:1}31%{opacity:.15}33%{opacity:.6}}
-.cab-screen{position:relative;margin:12px;aspect-ratio:16/10;background:#000;border:6px solid #07040a;border-radius:10px;overflow:hidden;box-shadow:inset 0 0 25px #000}
-.cab-screen img{display:block!important;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;animation:crt 6s linear infinite;animation-delay:calc(var(--i)*-1.7s)}
-.cab-screen:after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(transparent 0 2px,#0006 2px 3px),radial-gradient(ellipse,transparent 50%,#000a)}
-@keyframes crt{0%,60%,100%{filter:brightness(1)}61%{filter:brightness(.4)}62%{filter:brightness(1.2)}63%{filter:brightness(.7)}}
-.cab-screen .art-tag{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:2;font-size:9px;letter-spacing:3px;color:#e6c79a;text-shadow:0 0 6px #000;white-space:nowrap}
-.cab-screen .card-lock{position:absolute;z-index:2;left:50%;bottom:10px;right:auto;transform:translateX(-50%);color:#e6c79acc}
-.cab-static{position:absolute;inset:0;z-index:1;background:repeating-linear-gradient(0deg,#ffffff10 0 1px,#0008 1px 3px);animation:static .4s steps(4) infinite;background-color:#000a}
+.room-title{font:600 clamp(48px,7vw,92px)/.95 'Cormorant Garamond',Georgia,serif;letter-spacing:9px;text-transform:uppercase;color:#a89a90;margin:0;text-shadow:0 3px 20px #000;animation:title-flick 9s linear infinite}
+.room-title span{display:block;color:#8a1f1f;letter-spacing:13px;text-shadow:0 0 30px #5a0a0acc}
+@keyframes title-flick{0%,31%,33%,35%,52%,54%,100%{opacity:1}32%{opacity:.15}34%{opacity:.6}53%{opacity:.3}}
+.cabinet-row{display:grid;grid-template-columns:repeat(auto-fit,250px);grid-auto-rows:1fr;justify-content:center;gap:30px;max-width:1200px;margin:0 auto 60px}
+.cabinet{position:relative;display:flex;flex-direction:column;height:100%;background:linear-gradient(90deg,#0f0a0d,#1a1116 50%,#0f0a0d);border:2px solid #050204;border-radius:14px 14px 3px 3px;box-shadow:0 0 0 1px #3a202a44,0 25px 50px #000;transition:transform .25s}
+.cabinet:hover{transform:translateY(-3px)}
+.cab-top{padding:12px 8px;text-align:center;background:#070406;border-radius:12px 12px 0 0;border-bottom:2px solid #000}
+.cab-marquee{font:600 20px 'Cormorant Garamond',Georgia,serif;letter-spacing:2px;color:#c98a52;text-shadow:0 0 10px #a04418;animation:marquee 8s linear infinite;animation-delay:calc(var(--i)*-2.7s)}
+@keyframes marquee{0%,24%,26%,28%,60%,62%,100%{opacity:1}25%{opacity:.08}27%{opacity:.5}61%{opacity:.2}}
+.cab-screen{position:relative;margin:12px;aspect-ratio:16/10;background:#000;border:6px solid #040203;border-radius:10px;overflow:hidden;box-shadow:inset 0 0 25px #000}
+.cab-screen img{display:block!important;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;filter:brightness(.55) saturate(.7);animation:crt 5s linear infinite;animation-delay:calc(var(--i)*-1.7s)}
+.cab-screen:after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(transparent 0 2px,#0007 2px 3px),radial-gradient(ellipse,transparent 40%,#000d)}
+@keyframes crt{0%,55%,100%{filter:brightness(.55) saturate(.7)}56%{filter:brightness(.12)}57%{filter:brightness(.8)}58%{filter:brightness(.25)}}
+.cab-screen .art-tag{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:2;font-size:9px;letter-spacing:3px;color:#c9a07a;text-shadow:0 0 6px #000;white-space:nowrap}
+.cab-screen .card-lock{position:absolute;z-index:2;left:50%;bottom:10px;right:auto;transform:translateX(-50%);color:#c9a07acc}
+.cab-static{position:absolute;inset:0;z-index:1;background:repeating-linear-gradient(0deg,#ffffff0e 0 1px,#000a 1px 3px);animation:static .35s steps(4) infinite;background-color:#000b}
 @keyframes static{to{background-position:0 9px}}
-.unreleased .cab-screen img{filter:brightness(.35) grayscale(.6);animation:none}
-.cab-panel{margin:0 12px 12px;padding:12px;background:#0f0a0f;border:1px solid #3a2530;border-radius:3px;text-align:center}
-.cab-panel .game-desc{min-height:0;margin:0 0 12px;font-size:12px;color:#a8949c}
-.cab-panel .play-button{justify-content:center;gap:12px}
-.cab-base{height:26px;background:#0a0508;border-top:2px solid #000}
-/* The fourth cabinet: chained, sealed. Four cabinets simply wrap to the centre; three never show a gap. */
-.cabinet.chained{border-color:#2d2933;background:linear-gradient(90deg,#0f0d13,#191620 50%,#0f0d13);animation:strain 13s ease-in-out infinite}
-.cabinet.chained .cab-marquee{color:#9fb6c9;text-shadow:0 0 12px #5a7fa8;letter-spacing:4px}
-.cab-screen.dead{background:#070a10}
-.cab-screen.dead:before{content:'';position:absolute;inset:0;z-index:1;background:radial-gradient(ellipse at 50% 60%,#8ab4d433,transparent 60%);animation:ghostpulse 5s ease-in-out infinite}
-@keyframes ghostpulse{50%{opacity:.2}}
+.unreleased .cab-screen img{filter:brightness(.2) grayscale(.8);animation:none}
+.cab-panel{margin:0 12px 12px;padding:12px;flex:1;display:flex;flex-direction:column;background:#090609;border:1px solid #2c1a22;border-radius:3px;text-align:center}
+.cab-panel .game-desc{flex:1;min-height:0;margin:0 0 12px;font-size:12px;color:#8f7c85}
+.cab-panel .play-button{justify-content:center;gap:12px;margin-top:auto}
+.cab-base{height:26px;background:#050304;border-top:2px solid #000}
+.cabinet.chained{border-color:#1f1c25;background:linear-gradient(90deg,#09080c,#121019 50%,#09080c);animation:strain 13s ease-in-out infinite}
+.cabinet.chained .cab-marquee{color:#7f95a8;text-shadow:0 0 12px #3a5a80;letter-spacing:4px}
+.cab-screen.dead{background:#05070b}
+.cab-screen.dead:before{content:'';position:absolute;inset:0;z-index:1;background:radial-gradient(ellipse at 50% 60%,#8ab4d430,transparent 60%);animation:ghostpulse 5s ease-in-out infinite}
+@keyframes ghostpulse{50%{opacity:.15}}
 @keyframes strain{0%,88%,100%{transform:none}90%{transform:translateX(-3px) rotate(-.4deg)}92%{transform:translateX(3px) rotate(.4deg)}94%{transform:none}}
-.chain{position:absolute;left:-14px;right:-14px;height:14px;z-index:5;pointer-events:none;background:repeating-linear-gradient(90deg,#6b6f78 0 10px,#2a2c31 10px 13px,#555963 13px 22px,#15161a 22px 25px);border-radius:7px;box-shadow:0 4px 8px #000a}
+.chain{position:absolute;left:-14px;right:-14px;height:14px;z-index:5;pointer-events:none;background:repeating-linear-gradient(90deg,#5b5f68 0 10px,#222428 10px 13px,#474b55 13px 22px,#101114 22px 25px);border-radius:7px;box-shadow:0 4px 8px #000a}
 .chain-a{top:34%;transform:rotate(-8deg)}.chain-b{top:62%;transform:rotate(7deg)}
-.lamp-button{display:block;width:100%;margin-bottom:9px;padding:10px;background:#1a1420;border:1px solid #6f5d86;color:#b8a4d6;font:10px 'DM Mono',monospace;letter-spacing:1px}
-.board{max-width:520px;margin:0 auto;padding:22px 26px 18px;background:#0b0f0d;border:10px solid #2a1c12;box-shadow:0 18px 40px #000c,inset 0 0 40px #000;color:#cfd8cf;transform:rotate(-.6deg)}
-.board h2{margin:0 0 12px;text-align:center;font:600 26px 'Caveat','Cormorant Garamond',cursive;letter-spacing:5px;color:#e4e0cf}
+.lamp-button{display:block;width:100%;margin-bottom:9px;padding:10px;background:#140f19;border:1px solid #5a4a70;color:#a894c6;font:10px 'DM Mono',monospace;letter-spacing:1px}
+.board{max-width:520px;margin:0 auto;padding:22px 26px 18px;background:#070a08;border:10px solid #1c120c;box-shadow:0 18px 40px #000,inset 0 0 40px #000;color:#b8c2b8;transform:rotate(-.6deg)}
+.board h2{margin:0 0 12px;text-align:center;font:600 26px 'Caveat','Cormorant Garamond',cursive;letter-spacing:5px;color:#c9c4b4}
 .board-tabs{display:flex;justify-content:center;gap:6px;margin-bottom:12px}
-.board-tabs button{background:none;border:1px dashed #6b7a6c;color:#9fb0a0;padding:6px 10px;font:10px 'DM Mono',monospace;letter-spacing:1px}
-.board-tabs button[aria-selected=true]{background:#1d2a20;color:#f0ecd8;border-style:solid}
+.board-tabs button{background:none;border:1px dashed #56635a;color:#86978a;padding:6px 10px;font:10px 'DM Mono',monospace;letter-spacing:1px}
+.board-tabs button[aria-selected=true]{background:#17211a;color:#e0dcc8;border-style:solid}
 .board ol{list-style:none;margin:0;padding:0;min-height:230px}
-.board li{display:flex;gap:12px;padding:6px 2px;border-bottom:1px dashed #3a463b;font:20px 'Caveat',cursive}
-.board li span{width:24px;color:#8a9a8b}.board li b{flex:1;font-weight:500;color:#ece8d6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.board li em{font-style:normal;color:#e0b76f}
-.board li.board-empty{display:block;border:0;text-align:center;color:#8a9a8b;padding-top:40px}
-.board-note{margin:12px 0 0;text-align:center;font:9px 'DM Mono',monospace;color:#7d8c7e}
-.save-score{display:flex;gap:8px;margin:14px 0 4px}
-.save-score input{flex:1;min-width:0}
-@media(max-width:700px){.cabinet{width:100%;max-width:340px}.room-title{letter-spacing:5px}.room-head{padding-top:40px}}
+.board li{display:flex;gap:12px;padding:6px 2px;border-bottom:1px dashed #2f3a31;font:20px 'Caveat',cursive}
+.board li span{width:24px;color:#6e7e70}.board li b{flex:1;font-weight:500;color:#d6d2c0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.board li em{font-style:normal;color:#b8935a}
+.board li.board-empty{display:block;border:0;text-align:center;color:#6e7e70;padding-top:40px}
+.board-note{margin:12px 0 0;text-align:center;font:9px 'DM Mono',monospace;color:#66756a}
+.save-score{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 4px;font-size:12px;color:#a8949c}
+@media(max-width:700px){.cabinet-row{grid-template-columns:minmax(0,340px)}.room-title{letter-spacing:5px}.room-head{padding-top:40px}.room-figure{display:none}}
