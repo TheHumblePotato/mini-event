@@ -18,3 +18,35 @@ test('moving out of the marked area avoids the Keeper attack',()=>{
  assert.equal(attack.update(.9,keeper,player),'miss');
  assert.equal(attack.update(0,keeper,player),null);
 });
+
+test('the Keeper cycles through telegraphed dash, pull, and blindness attacks',()=>{
+ const attack=createKeeperAttack(),keeper={x:0,y:0},player={x:100,y:0};
+ assert.equal(attack.update(1.6,keeper,player),'tell');
+ assert.equal(attack.update(.9,keeper,player),'hit');
+ assert.equal(attack.update(2.6,keeper,player),'tell');
+ assert.equal(attack.kind,'dash');
+ assert.equal(attack.update(1.05,keeper,player),'hit');
+ assert.equal(keeper.x,100);
+ assert.equal(attack.update(3.3,keeper,player),'tell');
+ assert.equal(attack.kind,'pull');
+ player.x=keeper.x+120;
+ const pulledFrom=player.x;
+ attack.update(.2,keeper,player);
+ assert.ok(player.x<pulledFrom);
+});
+
+test('the blinding attack is telegraphed and clears after a short duration',()=>{
+ const attack=createKeeperAttack(),keeper={x:0,y:0},player={x:100,y:0};
+ attack.update(1.6,keeper,player);attack.update(.9,keeper,player);
+ attack.update(2.6,keeper,player);attack.update(1.05,keeper,player);
+ attack.update(3.3,keeper,player);attack.update(1.25,keeper,player);
+ assert.equal(attack.update(3.3,keeper,player),'tell');
+ assert.equal(attack.kind,'blind');
+ player.x=attack.target.x;
+ assert.equal(attack.update(1.4,keeper,player),'hit');
+ assert.equal(player.blindTime,1.1);
+ attack.update(.4,keeper,player);
+ assert.ok(player.blindTime<1.1);
+ attack.reset();
+ assert.equal(player.blindTime,0);
+});

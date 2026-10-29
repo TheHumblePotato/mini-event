@@ -6,7 +6,6 @@ const BW=2048,BH=1024,BOARD={cx:11.25,cy:4.5,cz:-5.5,w:18,h:9};
 const ease=u=>{u=clamp(u,0,1);return u*u*(3-2*u)},easeOut=u=>1-Math.pow(1-clamp(u,0,1),2.2);
 const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
 const tex=(c,repeat)=>{const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;if(repeat){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(repeat[0],repeat[1])}return t};
-const toLocal=(px,py)=>new THREE.Vector3(BOARD.cx-.25,BOARD.cy+BOARD.h/2-py/BH*BOARD.h,BOARD.cz-BOARD.w/2+px/BW*BOARD.w);
 
 export function faceCanvas(){
  const cv=mk(256,320),c=cv.getContext('2d'),r=rng(11);c.fillStyle='#000';c.fillRect(0,0,256,320);
@@ -68,14 +67,15 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
  const boardCv=mk(BW,BH),bc=boardCv.getContext('2d'),boardTex=tex(boardCv),boardMat=new THREE.MeshBasicMaterial({map:boardTex,transparent:true,depthWrite:false});
  const board=new THREE.Mesh(new THREE.PlaneGeometry(BOARD.w,BOARD.h),boardMat);board.position.set(BOARD.cx,BOARD.cy,BOARD.cz);board.rotation.y=-Math.PI/2;station.add(board);
  const lampGroup=lantern(station,10.3,6.4,-5.5,0xffa24a),deadGroup=lantern(station,10.3,6.4,-13.8,0x6a4a2a),stationLight=new THREE.PointLight(0xffa24a,0,24,1.5);stationLight.position.set(9.6,6.2,-5.5);station.add(stationLight);
- const ghost=buildGhost(mats,eyeMats);ghost.root.rotation.y=-Math.PI/2;ghost.root.position.set(3,-2.8,-9);ghost.root.scale.setScalar(.52);ghost.root.visible=false;camera.add(ghost.root);
+ const ghost=buildGhost(mats,eyeMats);ghost.root.rotation.y=-Math.PI/2;ghost.root.position.set(.9,-.35,-4.1);ghost.root.scale.setScalar(.43);ghost.root.visible=false;camera.add(ghost.root);
  // ---- timeline
  const A=5.4,B=2.6,FLICKER=8.9,BLACKOUT=10.4,GHOST0=11.6;
  const steps=[
   {type:'appear',d:2.8},
   {type:'reveal',lines:['YOU CAN','HEAR ME NOW'],d:3.2},
   {type:'reveal',lines:['FREE ME'],d:3},
-  {type:'reveal',lines:['THE KEY','IS BENEATH THE EARTH','IN THE WEST HALL'],d:4},
+  {type:'reveal',lines:['RETURN TO THE PLACE','WHERE THE FIRST LIGHT','WAS RAISED'],d:3.4},
+  {type:'draw-symbol',d:4},
   {type:'paper',d:5.2},
   {type:'leave',d:3.4},
   {type:'roll',d:5.8}
@@ -91,18 +91,27 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
  paperContext.strokeStyle='#7b6c58';paperContext.lineWidth=3;paperContext.strokeRect(54,54,612,852);
  paperContext.textAlign='center';paperContext.textBaseline='middle';paperContext.fillStyle='#211a1b';
  paperContext.font='400 43px "IM Fell English", Georgia, serif';paperContext.fillText('A NOTE FROM THE DARK',360,160);
- paperContext.font='italic 39px "IM Fell English", Georgia, serif';
- ['Return where first you raised your light;','Turn its beam from left to right.','The shadow that refuses flight','Marks the earth to dig tonight.'].forEach((line,i)=>paperContext.fillText(line,360,330+i*105));
+ paperContext.font='italic 32px "IM Fell English", Georgia, serif';
+ ['Return where first you raised your light;','The graveyard waits beneath the night.','No mark is named, no grave is shown—','Go back, and let the dark be known.'].forEach((line,i)=>paperContext.fillText(line,360,320+i*88));
  const paperTexture=tex(paperCanvas),paperMat=new THREE.MeshBasicMaterial({map:paperTexture,transparent:true,side:THREE.DoubleSide});
  const paper=new THREE.Mesh(new THREE.PlaneGeometry(1.62,2.16),paperMat);paper.position.set(.35,-2.5,-4);paper.rotation.z=-.12;paper.visible=false;camera.add(paper);
  // Board messages appear all at once; no writing hand or drip effect.
- function drawBoard(step){
+ const symbolPoints=[[1024,150],[1225,350],[1425,512],[1225,674],[1024,874],[823,674],[623,512],[823,350],[1024,150],[1024,350],[1024,512],[1024,674],[1024,874]];
+ function drawBoard(step,progress=1){
   bc.clearRect(0,0,BW,BH);
   if(step?.type==='reveal'){
    const lines=step.lines,font=lines.length>2?148:lines.length===1?260:220;
    bc.textAlign='center';bc.textBaseline='middle';bc.font=`${font}px ${FONT}`;
    bc.shadowColor='#ff2118';bc.shadowBlur=16;bc.lineWidth=4;bc.strokeStyle='#300507';bc.fillStyle='#a30a12';
    lines.forEach((line,i)=>{const y=BH/2+(i-(lines.length-1)/2)*font*1.12;bc.strokeText(line,BW/2,y);bc.fillText(line,BW/2,y)});
+  }else if(step?.type==='draw-symbol'){
+   bc.strokeStyle='#b30a13';bc.shadowColor='#ff2118';bc.shadowBlur=22;bc.lineWidth=28;bc.lineCap='round';bc.lineJoin='round';
+   const total=progress*(symbolPoints.length-1),segments=Math.floor(total),fraction=total-segments;
+   bc.beginPath();bc.moveTo(...symbolPoints[0]);for(let i=1;i<=segments&&i<symbolPoints.length;i++)bc.lineTo(...symbolPoints[i]);
+   let hand=symbolPoints[Math.min(segments,symbolPoints.length-1)];
+   if(segments<symbolPoints.length-1){const a=symbolPoints[segments],b=symbolPoints[segments+1];hand=[a[0]+(b[0]-a[0])*fraction,a[1]+(b[1]-a[1])*fraction];bc.lineTo(...hand)}
+   bc.stroke();bc.shadowBlur=35;bc.fillStyle='#ff2720';bc.beginPath();bc.arc(hand[0],hand[1],36,0,Math.PI*2);bc.fill();
+   bc.shadowBlur=0;bc.fillStyle='#d5c7b1';bc.textAlign='center';bc.font=`${78}px ${FONT}`;bc.fillText('A MARK LEFT IN THE DARK',BW/2,956);
   }
   boardTex.needsUpdate=true;
  }
@@ -144,23 +153,24 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
    // ghost
    const g=ghost;let alpha=0,eyes=0,red=0,stare=0,lunge=0;
    if(t>=GHOST0&&cur){ghost.root.visible=true;const ls=t-steps[0].t0;
-    if(cur.type==='appear'){const u=t-cur.t0;eyes=u<.25?0:(u<.6?1:(Math.sin(u*40)>.2?1:.2));red=u<.25?0:6;alpha=u<1?0:u<1.15?.8:u<1.3?0:u<1.45?.6:u<1.6?0:clamp((u-1.6)/1.2,0,1);if(alpha>0)red=22}
+    if(cur.type==='appear'){const u=t-cur.t0;eyes=u<.25?0:(u<.6?1:(Math.sin(u*40)>.2?1:.2));red=u<.25?0:6;alpha=clamp((u-.35)/.8,0,1);if(alpha>0)red=22}
     else if(cur.type==='leave'){const u=t-cur.t0;alpha=1;eyes=1;red=22+Math.sin(u*11)*4;stare=clamp(u/.8,0,1);lunge=clamp((u-1.4)/1.8,0,.7)}
     else if(cur.type==='roll'){alpha=.9}
     else{alpha=1;eyes=1;red=24+Math.sin(t*3.1)*3+(Math.random()<.03?10:0)}
    }else if(t>=GHOST0)alpha=0;
    fadeGhost(alpha);eyeLevel(eyes);g.redLight.intensity=red;
-   const near=Math.max(0,t-GHOST0);g.root.position.set(3+Math.sin(t*.7)*.06,-2.8+Math.sin(t*1.3)*.06,-9+lunge*.35);g.root.rotation.y=-Math.PI/2+Math.sin(t*.5)*.035;g.root.scale.setScalar(.52);
+   const near=Math.max(0,t-GHOST0);g.root.position.set(.15+Math.sin(t*.7)*.025,-.38+Math.sin(t*1.3)*.02,-5.2+lunge*.2);g.root.rotation.y=-Math.PI/2+Math.sin(t*.5)*.025;g.root.scale.setScalar(.4);
    for(const tt of g.tatters){tt.m.rotation.x=Math.sin(t*1.3+tt.phase)*tt.amp+.05;tt.m.rotation.z=Math.cos(t*1.1+tt.phase)*tt.amp*.6}
    for(const h of g.hair){h.m.rotation.z=Math.sin(t*1.4+h.phase)*.1;h.m.rotation.x=Math.cos(t*1.1+h.phase)*.07}
    // head: tilt, creep toward camera
    const twitch=Math.random()<.012?(Math.random()-.5)*.4:0;g.head.rotation.z=.2+Math.sin(t*.9)*.05+twitch;g.head.rotation.x=.12+stare*.1;g.head.rotation.y=(1-stare)*(-.35+Math.sin(t*.6)*.1);
    if(cur?.type==='reveal'&&lastBoard!==cur.lines.join('|')){drawBoard(cur);lastBoard=cur.lines.join('|')}
+   if(cur?.type==='draw-symbol')drawBoard(cur,clamp((t-cur.t0)/cur.d,0,1));
    if(cur?.type==='paper'&&!paperShown){paperShown=true;paper.visible=true;audio.cue('paper',undefined,{volume:.9})}
    if(paperShown){const u=clamp((t-steps.find(s=>s.type==='paper').t0)/1.2,0,1);paper.position.y=-1.5+easeOut(u)*1.5+Math.sin(t*9)*.025;paper.position.x=.35+Math.sin(t*3.1)*.08;paper.rotation.z=-.12+Math.sin(t*5.7)*.035}
    if(cur?.type==='leave'&&lastBoard!=='cleared'){drawBoard(null);lastBoard='cleared'}
    if(cur?.type==='appear'&&!ghostAppeared&&t-cur.t0>1.0){ghostAppeared=true;audio.cue('keeper',undefined,{volume:.9});audio.cue('ghost',undefined,{volume:.9})}
-   if(cur?.type==='appear'&&!staticStarted&&t-cur.t0>=1.6){staticStarted=true;audio.horrorBed(true,{intensity:.52})}
+   if(cur?.type==='appear'&&!staticStarted&&t-cur.t0>=1.6){staticStarted=true;audio.horrorBed(true,{intensity:.88})}
    if(cur?.type==='leave'&&!leaveFlag&&t-cur.t0>1.4){leaveFlag=1;audio.cue('door',undefined,{volume:.8});audio.cue('ghost',undefined,{volume:1})}
    if(t>=END&&!done){done=true;audio.horrorBed(false);paper.visible=false;onDone()}
   },

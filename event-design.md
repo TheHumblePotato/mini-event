@@ -1,4 +1,37 @@
-> **Implemented mystery revision:** After first contact, the poem is saved to the casebook and Grave Robber begins automatically. The compass leads to a fixed key site; tracing the seal frees the key, which opens a hidden wall in the vault. The chamber warning must be read before taking the black lantern. The Keeper then pursues the player through a branching, two-light escape route back to the gate.
+> **Latest player feedback — priority implementation TODOs (October 28, 2026).** This section supersedes conflicting descriptions below, especially the existing Keeper fight. Do not treat the current Keeper fight as approved: remove its encounter implementation and rebuild it to this specification. Keep this checklist until every item is implemented and verified.
+>
+> ### Last Ride / game 3
+> - Do not play the ghost cutscene until the run has ended. After the run, rapidly flicker every letter red, then leave them steadily red; wait 1–2 seconds before starting the cutscene.
+> - Keep the ghost visible in frame throughout the cutscene. Make static sharper, more intense, and difficult to ignore.
+> - Have the ghost actually draw the symbol. Replace the current saved clue with a vague hint to return to the graveyard; do not reveal where to dig. Save that hint in the clue book.
+> - When the cutscene ends, return to the main menu as usual; do not launch or navigate directly into Grave Robber.
+>
+> ### Investigation flow and Grave Robber
+> - Never show a “Continue Investigation” button; players should infer the next step themselves.
+> - In the first investigation, make the compass red and clearly show/tell that the ghost is manipulating it to guide the player. Fix E-key interaction with the key site and seal.
+> - Keep the key-search symbol distinct from the seal; the target to search for must not itself be the seal. During seal tracing, display this exact clue above it:
+>   > The mark that waits when play is still<br>
+>   > Must cross this lock to work your will.<br>
+>   > Its shape alone unseals the stone;<br>
+>   > Trace every line, then leave it lone.
+> - Show the player's ordinary lamp in the secret chamber. Do not expose lamp-switch controls until the black lamp is part of the story; have the ghost explain the control when it becomes relevant.
+> - Move the optional lamp-danger clues to a distant chamber area. Interacting with either clue must visibly show its text, not just announce that it was saved. Present both as paper-scroll overlays and persist them in the casebook:
+>   > This coal-black flame gives dead things might;<br>
+>   > What sleeps below will wake tonight.<br>
+>   > If one begs, “Bring it here; let it shine,”<br>
+>   > Keep dark the glass that guards its shrine.
+>   >
+>   > No oil it drinks, no warmth it lends;<br>
+>   > It feeds the mouths where breathing ends.<br>
+>   > Beneath its wick the buried wake;<br>
+>   > The dead grow strong with each step you take.
+> - Verify clue-book persistence and visibility; a “saved” message without a readable, retained entry is not sufficient.
+>
+> ### Keeper fight — delete and rebuild the current encounter
+> - Remove the current Keeper-fight implementation rather than polishing its existing maze/chase. Start with a cutscene of the Keeper digging out of the ground, then give it a strong sprite and clear walking/attacking animations.
+> - After awakening, the ghost must explain the newly unlocked side door and how to use the lamp. Build full, large rooms and corridors. A corridor for the wrong lamp must be completely invisible, not drawn as a blocked/dashed path.
+> - Both lamps retain ordinary shadows and visibility; make visibility more extreme overall and more extreme again when the Keeper is close. Require exploration and light swaps to discover passages of the other type while being chased.
+> - Make the chase long, dangerous, and difficult. Give the Keeper powerful, readable abilities, including dashing at the player, pulling the player in, and briefly blinding them. The ghost should speak during the chase and provide useful guidance.
 
 # Midnight Arcade — Halloween 2026
 
@@ -70,12 +103,12 @@ Distribute this lore through ghost conversations, depot labels, and maintenance 
 
 ### 1. Find the buried key
 
-The ghost's first clue:
+The ghost's first clue is intentionally vague: it points back to the graveyard, not to the key or a specific place to dig.
 
 > Return where first you raised your light;
-> Turn its beam from left to right.
-> The shadow that refuses flight
-> Marks the earth to dig tonight.
+> The graveyard waits beneath the night.
+> No mark is named, no grave is shown—
+> Go back, and let the dark be known.
 
 The poem is saved to the casebook when contact ends. In Grave Robber, the ghost controls the compass and guides the player to a fixed site in the West Burial Hall. The site is distinct from ordinary random caches. Interacting with the burial mark advances the story and reveals the seal puzzle.
 
@@ -124,7 +157,7 @@ The player carries both lamps but burns only one at a time:
 | Warm | Ordinary floor and pale bridges; shadow doors are closed | Slower, searching by sound |
 | Black | Shadow doors/bridges appear; pale bridges disappear | Stronger and attracted to the flame |
 
-Solid stone islands exist in both states. Swap there. Teach a safe shadow doorway, a pale bridge, then a route combining both. Inactive paths remain marked clearly enough to plan. Switching off a phase-dependent bridge is refused rather than causing an unexpected fall or softlock. Failure restarts the extraction and preserves evidence.
+Solid stone islands exist in both states. Swap there. Teach a safe shadow doorway, a pale bridge, then a route combining both. Passages hidden by the current light are entirely invisible; encourage deliberate exploration and switching. Switching off a phase-dependent bridge is refused rather than causing an unexpected fall or softlock. Failure restarts the extraction and preserves evidence.
 
 After escape, the black lantern appears on the main menu and the first cabinet connection breaks. Its glass can reflect the ghost.
 
