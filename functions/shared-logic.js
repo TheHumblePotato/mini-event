@@ -1,5 +1,5 @@
 // Shared by browser puzzles, local preview service and Firebase Functions.
-export const ORDER=['contact','hatch','seal','lantern','escape','menuLamp','road','package','delivered','film','repair','entered'];
+export const ORDER=['contact','key','seal','lantern','escape','menuLamp','road','package','delivered','film','repair','entered'];
 export const SYMBOL_PATH=[2,8,14,18,22,16,10,6,2,7,12,17,22];
 export const edgeKey=(a,b)=>[a,b].sort((x,y)=>x-y).join('-');
 export const SYMBOL_EDGES=SYMBOL_PATH.slice(1).map((n,i)=>edgeKey(SYMBOL_PATH[i],n)).sort();
@@ -22,8 +22,9 @@ export function transition(current,action,p={},options={}){
  if(action==='ending'){if(next.stage<ORDER.length)throw Error('The chamber is still sealed.');if(!['release','contain'].includes(p.kind))throw Error('Unknown ending.');if(p.kind==='contain'&&JSON.stringify(p.binding)!==JSON.stringify(BINDING))throw Error('The binding has not settled.');if(!next.endings.includes(p.kind))next.endings.push(p.kind);return next}
  const required=ORDER.indexOf(action);if(required<0)throw Error('Unknown action.');if(required<next.stage)return next;if(required!==next.stage)throw Error('An earlier part of the investigation is unfinished.');if(!options.released)throw Error('The listening platform opens on Halloween.');
  if(action==='contact'&&p.finished!==true)throw Error('Finish the introductory ride first.');
- if(action==='hatch'&&p.shadow!==true)throw Error('Find the shadow that refuses to move.');
+ if(action==='key'&&p.found!==true)throw Error('Find the fixed key beneath the West Burial Hall.');
  if(action==='seal'&&!validSeal(p.edges))throw Error('The shape does not match the pause-screen seal.');
+ if(action==='lantern'&&p.warningRead!==true)throw Error('Read the warning before taking the black lantern.');
  if(action==='escape'&&p.escaped!==true)throw Error('Carry the lantern out first.');
  if(action==='road'&&(!verifyRoute(roadPuzzle(0),p.route)||!verifyRoute(roadPuzzle(1),p.route2)))throw Error('Both causeways need a route within their switch budgets.');
  if(action==='delivered'&&p.postOffice!==true)throw Error('Find the post office in the city.');

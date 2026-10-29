@@ -4,6 +4,8 @@ export const TILE=64,COLS=80,ROWS=70,WORLD_WIDTH=COLS*TILE,WORLD_HEIGHT=ROWS*TIL
 export const EXPEDITION_ENTRY={x:40*TILE+32,y:64*TILE+32};
 export const EXPEDITION_STAND={x:40*TILE+32,y:61*TILE+32};
 export const EXPEDITION_HATCH={x:37*TILE+32,y:62*TILE+32};
+export const EXPEDITION_KEY={x:15*TILE+32,y:42*TILE+32};
+export const EXPEDITION_SECRET_DOOR={x:64*TILE+32,y:15*TILE+32};
 const layouts=[
  ['Gatehouse Court',32,54,16,13,'yard'],['The Bell Court',29,33,22,15,'yard'],
  ['West Burial Hall',7,36,14,12,'crypt'],['East Mausoleum',59,34,14,14,'crypt'],
@@ -34,7 +36,7 @@ export function createExpedition(seed=1031){
  }
  let nextCacheId=0;
  function spawnCache(player=EXPEDITION_ENTRY){
- const active=caches.filter(c=>!c.collected),spots=open.filter(v=>{const r=roomAt(v);return r&&r.id!==0&&dist(v,player)>300&&!blocked(v)&&active.every(c=>dist(c,v)>180)&&[-32,32].every(dx=>[-32,32].every(dy=>walkable(v.x+dx,v.y+dy)))});
+ const active=caches.filter(c=>!c.collected),spots=open.filter(v=>{const r=roomAt(v);return r&&r.id!==0&&dist(v,player)>300&&dist(v,EXPEDITION_KEY)>160&&!blocked(v)&&active.every(c=>dist(c,v)>180)&&[-32,32].every(dx=>[-32,32].every(dy=>walkable(v.x+dx,v.y+dy)))});
  if(!spots.length)return null;const spot=spots[Math.floor(random()*spots.length)],id=nextCacheId++,roll=random(),treasure=rollTreasure(random);
  const cache={id,x:spot.x,y:spot.y,room:roomAt(spot).name,type:random()<.7?'buried':random()<.65?'coffin':'relic',supply:rollSupply(roll),treasure:treasure.id,value:treasure.value+Math.floor(random()*25),collected:false,hits:0,opened:false,opening:0};caches.push(cache);return cache;
  }

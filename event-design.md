@@ -1,4 +1,4 @@
-> **Accepted revision — next mystery pass:** The black lantern belongs in a secret room hidden behind another room. Entry requires a key dug from one specific, fixed map location. That key must only spawn after the appropriate story unlock; it is separate from random endless treasure. Ghost clues should lead to the key and then the concealed doorway. This replaces the starting-lamp / buried-hatch access chain described below. It is recorded here for later implementation; this gameplay pass does not change the live mystery.
+> **Implemented mystery revision:** After first contact, the poem is saved to the casebook and Grave Robber begins automatically. The compass leads to a fixed key site; tracing the seal frees the key, which opens a hidden wall in the vault. The chamber warning must be read before taking the black lantern. The Keeper then pursues the player through a branching, two-light escape route back to the gate.
 
 # Midnight Arcade — Halloween 2026
 
@@ -32,7 +32,7 @@ You cannot fight entities:
 - **Follower:** investigates digging sounds.
 - **Keeper:** a dormant demon, introduced during the secret black-lantern extraction.
 
-The secret escape uses warm and black light to traverse different passages. It has a checkpoint and can be retried without solving the hatch again.
+The secret escape uses warm and black light to traverse different passages. Its map-version-5 checkpoint stores the route state; Keeper deaths return the player to the chamber entrance without discarding the investigation.
 
 ### Midnight Delivery
 
@@ -42,11 +42,11 @@ Its investigation route reveals an unmapped road, then a larger two-light networ
 
 ### Last Ride
 
-A stylized 3D endless minecart runner with three main tracks and a locomotive service rail. Players switch lanes, jump crates and gaps, duck beams, collect valuables and spend limited braking charge. The opening already contains paired hazards; speed and pattern pressure rise with distance. There are three chances, buffered arcade jumps, quick landing and free airborne lane changes. Hits never rewind or pin the cart. Every attempt starts at the entrance; no run checkpoints are saved or loaded.
+A stylized 3D endless minecart runner with odd-sized sections of three or five tracks. Players switch lanes, jump crates and gaps, duck beams, collect valuables and spend limited braking charge. The opening already contains paired hazards; speed and pattern pressure rise with distance. There are three chances, buffered arcade jumps, quick landing and free airborne lane changes. Ducking does not slow the cart, but prevents track changes while held. Hits never rewind or pin the cart. Every attempt starts at the entrance; no run checkpoints are saved or loaded.
 
 Rare collectible letters spell **GHOST**. Letter discoveries are saved between attempts as collectible progress, while distance, score, health and powers restart. Collecting the complete word routes the cart into the results platform and ghost-writing scene. After first contact, letters stop and the same game remains endless.
 
-Power-ups include a one-hit shield, coin magnet, double gold and brake batteries. A recurring haunted locomotive sends steam obstacles onto the tracks; collecting three switch tokens drives it off for a bonus and braking recharge. Rider, graves and ghost are modeled in 3D; decorative track arrows are removed.
+Power-ups include a one-hit shield, the Veil Lantern (which phases through the next collision), coin magnet, double gold, turbo, jackpot and brake batteries. The haunted locomotive has been removed. Rider, graves and ghost are modeled in 3D; decorative track arrows are removed.
 
 ## The ghost and its story
 
@@ -58,7 +58,7 @@ The ghost says:
 >
 > FREE ME.
 
-It draws the recurring seal and provides a cemetery illustration. The drawing shows the starting lantern stand, with a shadow pointing toward the light.
+The messages appear at once. A poem flutters toward the camera on a sheet of paper, then the ghost reveals the route back to the cemetery.
 
 Its explanation: it was a character in a removed fourth game. That game's pieces were scattered into the other games. Bringing back its lantern, route, and recording will restore the game and let the player help it.
 
@@ -68,7 +68,7 @@ Distribute this lore through ghost conversations, depot labels, and maintenance 
 
 ## Investigation chain
 
-### 1. Find the impossible shadow
+### 1. Find the buried key
 
 The ghost's first clue:
 
@@ -77,31 +77,29 @@ The ghost's first clue:
 > The shadow that refuses flight
 > Marks the earth to dig tonight.
 
-Return to Grave Robber's starting lantern. Its handle becomes usable only after contact. Rotate the beam; normal shadows move, one stays fixed. Separate them and dig the fixed outline to expose the hatch. The saved illustration identifies the location and experiment.
+The poem is saved to the casebook when contact ends. In Grave Robber, the ghost controls the compass and guides the player to a fixed site in the West Burial Hall. The site is distinct from ordinary random caches. Interacting with the burial mark advances the story and reveals the seal puzzle.
 
-### 2. Trace the seal
+### 2. Trace the seal and take the key
 
-The hatch presents an Android-lock-style **5×5 dot grid**. Trace the emblem shown in the header and on machinery: a diamond with a vertical spine joining its top and bottom points. Match the set of connected segments, not a numbered sequence. Direction and starting point do not matter, and lifting between strokes is allowed. Intermediate collinear dots are included automatically. Touch dragging and keyboard/click input both work.
+The key site presents an Android-lock-style **5×5 dot grid**. Trace the emblem shown in the header and on machinery: a diamond with a vertical spine joining its top and bottom points. Match the set of connected segments, not a numbered sequence. Direction and starting point do not matter, and lifting between strokes is allowed. Intermediate collinear dots are included automatically. Touch dragging and keyboard/click input both work. Solving the seal releases the fixed key; only then can the player pick it up.
 
 > The mark that waits when play is still
 > Must cross this lock to work your will.
 > Its shape alone unseals the stone;
 > Trace every line, then leave it lone.
 
-The seal is visible in the header and on machinery. Recognizing it connects the hatch to the arcade. No unrelated eye/flame ring puzzle remains.
+The seal is visible in the header and on machinery. Recognizing it connects the key site to the arcade. No unrelated eye/flame ring puzzle remains.
 
 ### 3. The black lantern
 
-The chamber contains a cradle, black lantern, main warning, and a diagram. Entering automatically saves the warning, so rushing the pickup cannot lose it.
+The hidden vault wall closes behind the player. The small chamber contains the black lantern and nearby clues. The first interaction with the lamp reads and saves its warning; a second interaction takes it and awakens the Keeper.
 
 > This coal-black flame gives dead things might;
 > What sleeps below will wake tonight.
 > If one begs, “Bring it here; let it shine,”
 > Keep dark the glass that guards its shrine.
 
-A diagram shows a lamp directed at a bound figure while the mirror remains dark.
-
-Additional text is hidden beneath the cradle's lip. Players must inspect it; it is optional evidence, not a requirement:
+A rubbing and torn ledger are found elsewhere in the chamber. They are optional evidence, not requirements:
 
 > No oil it drinks, no warmth it lends;
 > It feeds the mouths where breathing ends.
@@ -112,7 +110,7 @@ The ghost claims the lamp was taken from its game to keep it weak. Its reaction 
 
 ### 4. Keeper awakening and escape
 
-Taking the lamp breaks its cradle seal and ignites it. A short first-time cutscene shows a vast hand uncurling, dust falling, and the Keeper turning toward the flame. Reduced motion removes shaking/flashes. Retries skip the cutscene but allow replay from the casebook.
+Taking the lamp awakens the physical, armored Keeper. The Keeper is not a ghost. A short cutscene reveals it turning toward the flame; the ghost appears in the foreground and guides the player toward a hidden route.
 
 The exit ladder fails. The ghost opens a side gate:
 

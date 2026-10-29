@@ -3,11 +3,11 @@ body.room-home{background:#030204}
 body.room-home .night-scene{display:none}
 body.room-home .site-header{border:0;opacity:.7}
 body.room-home .grain{opacity:.11}
-.room{position:relative;margin:0 -5%;padding:30px 5% 90px;min-height:85vh;overflow:hidden;isolation:isolate;transition:filter .05s;
- background:radial-gradient(ellipse at 50% 0%,transparent 8%,#010001 78%),repeating-linear-gradient(90deg,#0d0609 0 38px,#080407 38px 40px,#0f070b 40px 78px,#060305 78px 80px),#080408}
-.room:before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 20% 85%,#2a000a30,transparent 45%),radial-gradient(ellipse at 85% 40%,#1a000a28,transparent 40%);animation:sick 9s ease-in-out infinite}
+.room{position:relative;margin:0 -5%;padding:30px 5% 90px;min-height:100vh;min-height:100svh;box-sizing:border-box;overflow:hidden;isolation:isolate;transition:filter .05s;
+ background:radial-gradient(ellipse at 50% 0%,#281c2729,transparent 58%),radial-gradient(ellipse at 15% 65%,#34141d2b,transparent 38%),linear-gradient(180deg,#09070c 0%,#100c12 48%,#171019 77%,#050407 100%)}
+.room:before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 20% 85%,#2a000a30,transparent 45%),radial-gradient(ellipse at 85% 40%,#1a000a28,transparent 40%),radial-gradient(ellipse at 50% 76%,#3a18251c,transparent 42%);animation:sick 9s ease-in-out infinite}
 @keyframes sick{50%{opacity:.35}}
-.room:after{content:'';position:absolute;left:0;right:0;bottom:0;height:150px;z-index:-1;background:repeating-linear-gradient(90deg,#060304 0 70px,#030102 70px 72px);box-shadow:inset 0 40px 60px #000}
+.room:after{content:'';position:absolute;left:0;right:0;bottom:0;height:150px;z-index:-1;background:linear-gradient(180deg,#05040700,#030205bb),repeating-linear-gradient(0deg,#18121a22 0 1px,transparent 1px 42px);box-shadow:inset 0 40px 60px #000}
 body.blackout .room{filter:brightness(.12)}body.blackout .room-light{opacity:0}
 .room-fog{position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 60% 18% at 30% 82%,#7a6a8a14,transparent 70%),radial-gradient(ellipse 50% 16% at 75% 70%,#7a6a8a10,transparent 70%);animation:fog 26s ease-in-out infinite alternate}
 @keyframes fog{to{transform:translateX(9%)}}
@@ -24,6 +24,8 @@ body.blackout .room{filter:brightness(.12)}body.blackout .room-light{opacity:0}
 @keyframes figure{0%,78%,100%{opacity:0}79%,80%{opacity:.85}80.5%{opacity:0}81.5%,83%{opacity:.85}83.5%{opacity:0}}
 .room-crack{position:absolute;right:6%;top:10%;width:3px;height:170px;background:linear-gradient(#0000,#000 20%,#000 80%,#0000);transform:rotate(14deg);opacity:.8;box-shadow:12px 40px 0 #000,-10px 90px 0 #000}
 .room-head{text-align:center;padding:60px 0 34px;position:relative}
+.home-whisper{position:relative;min-height:1.5em;margin:-22px auto 28px;color:#b29aa2;text-align:center;font:italic 16px Georgia,serif;text-shadow:0 0 18px #aa425866;animation:whisper-in 1.8s ease both}
+@keyframes whisper-in{from{opacity:0;filter:blur(5px)}to{opacity:.9;filter:blur(0)}}
 .room-title{font:600 clamp(48px,7vw,92px)/.95 'Cormorant Garamond',Georgia,serif;letter-spacing:9px;text-transform:uppercase;color:#a89a90;margin:0;text-shadow:0 3px 20px #000;animation:title-flick 9s linear infinite}
 .room-title span{display:block;color:#8a1f1f;letter-spacing:13px;text-shadow:0 0 30px #5a0a0acc}
 @keyframes title-flick{0%,31%,33%,35%,52%,54%,100%{opacity:1}32%{opacity:.15}34%{opacity:.6}53%{opacity:.3}}
@@ -50,6 +52,12 @@ body.blackout .room{filter:brightness(.12)}body.blackout .room-light{opacity:0}
 .cabinet.chained .cab-marquee{color:#7f95a8;text-shadow:0 0 12px #3a5a80;letter-spacing:4px}
 .cab-screen.dead{background:#05070b}
 .cab-screen.dead:before{content:'';position:absolute;inset:0;z-index:1;background:radial-gradient(ellipse at 50% 60%,#8ab4d430,transparent 60%);animation:ghostpulse 5s ease-in-out infinite}
+.secret-figure{position:absolute;z-index:2;left:50%;top:24%;width:42px;height:74px;transform:translateX(-50%);opacity:.2;background:radial-gradient(ellipse at 50% 22%,#b4d7e8 0 13%,transparent 14%),radial-gradient(ellipse at 50% 70%,#a7c7d833 0 34%,transparent 36%);filter:drop-shadow(0 0 12px #9bc9e855);animation:secret-figure 7s steps(1) infinite}
+.secret-figure:before,.secret-figure:after{content:'';position:absolute;top:14px;width:4px;height:2px;background:#e8f4fc;box-shadow:0 0 7px #c9eeff}.secret-figure:before{left:16px}.secret-figure:after{right:16px}
+@keyframes secret-figure{0%,74%,100%{opacity:.08;transform:translate(-50%,5px)}76%,78%{opacity:.85;transform:translate(-50%,0)}79%{opacity:.12;transform:translate(-50%,-4px)}81%{opacity:.65}}
+.cabinet.awakened .cab-screen.dead{box-shadow:inset 0 0 35px #18101f,0 0 18px #9ab8da21}
+.cabinet.awakened .cab-marquee{animation:marquee 3.8s linear infinite,color-shiver 2.8s steps(2) infinite}
+@keyframes color-shiver{0%,80%,100%{color:#7f95a8}82%{color:#c6a9c5}84%{color:#758eaa}}
 @keyframes ghostpulse{50%{opacity:.15}}
 @keyframes strain{0%,88%,100%{transform:none}90%{transform:translateX(-3px) rotate(-.4deg)}92%{transform:translateX(3px) rotate(.4deg)}94%{transform:none}}
 .chain{position:absolute;left:-14px;right:-14px;height:14px;z-index:5;pointer-events:none;background:repeating-linear-gradient(90deg,#5b5f68 0 10px,#222428 10px 13px,#474b55 13px 22px,#101114 22px 25px);border-radius:7px;box-shadow:0 4px 8px #000a}

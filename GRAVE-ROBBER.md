@@ -22,15 +22,19 @@ M pauses danger and shows the complete floor plan, pillars, room names, explored
 
 The entry screen offers an optional illustrated field guide, selected on a first visit. T or the GUIDE touch button reopens it. The twelve-page guide has animated examples, back navigation, enemy-specific counters, including ghost resistance and a playable shovel timing practice. It freezes gameplay while open. WASD/arrows move; mouse aims; SHIFT sprints; E interacts; F toggles light; R uses a ward flare.
 
-Run saves include replacement caches and inventory. This layout/balance version starts a fresh run rather than loading an old map-version-3 expedition. Story evidence and account progress are retained.
+Run saves include replacement caches and inventory. The mystery revision uses map version 5; older expedition checkpoints restart without discarding story evidence or account progress.
 
 ## Verification
 
 Automated checks cover cache reachability across seeds, randomized opening locations, 100 successive replacements, restored IDs, supplies, dimming, escalating pressure, ghost beam stopping (including walls/range), threat lifetimes, excavation and existing story validation. Browser checks cover the optional guide, map routing, movement, and an actual flare pickup/replacement.
 
-## Deferred mystery revision
+## Ghost investigation
 
-The black lantern will move to a secret room behind another room. A key dug from a specific fixed map location will unlock it. The key must be gated to the appropriate story stage and separate from endless random loot. This is accepted for the later mystery pass; the current puzzle implementation is unchanged. See the revision note at the top of event-design.md.
+After the Last Ride cutscene, the poem is saved to the casebook and the investigation starts automatically. The compass leads to a fixed key site in the West Burial Hall. Discovering it reveals the seal puzzle; tracing the seal frees the key, which opens a hidden wall in the Sealed Vault. The wall closes behind the player.
+
+The small chamber contains the black lantern and nearby inscriptions. The first interaction reads and saves the warning; a second takes the lantern and awakens the Keeper. The Keeper is an armored, physical figure, not another ghost. Escape requires following the long branching passage: warm light holds pale paths, while black light reveals shadow paths. Switch only on stone islands. Dead ends and the pursuing Keeper make the route dangerous. Reaching the far threshold returns the player near the cemetery gate; interact there to secure the lantern and finish the investigation.
+
+The admin test bench has direct starts for the key, seal, chamber warning and Keeper chase. Test runs advance their local story stage but never save account progress or evidence.
 
 ## Late enemies and directional audio
 

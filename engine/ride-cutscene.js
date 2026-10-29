@@ -1,7 +1,6 @@
 import {THREE,box,lantern} from './visuals.js';
 import {clamp,rng} from './physics.js';
-// The terminal ghost cutscene: the cart rolls in, the camera turns to the station wall,
-// the lights die, and something writes on the boards in blood.
+// The terminal ghost cutscene: a fragment appears, leaves a clue, then shows the cart a way out.
 const FONT="'Creepster','Nosifer',Impact,'Arial Black',fantasy";
 const BW=2048,BH=1024,BOARD={cx:11.25,cy:4.5,cz:-5.5,w:18,h:9};
 const ease=u=>{u=clamp(u,0,1);return u*u*(3-2*u)},easeOut=u=>1-Math.pow(1-clamp(u,0,1),2.2);
@@ -36,18 +35,9 @@ export function plankCanvas(){
  return cv;
 }
 
-function makeArm(parent,x,sleeve,skin,tip){
- const root=new THREE.Group();root.position.set(x,4.55,.05);parent.add(root);
- const geo=new THREE.CylinderGeometry(.05,.15,1,8);geo.rotateX(Math.PI/2);geo.translate(0,0,.5);const tube=new THREE.Mesh(geo,sleeve);root.add(tube);
- const hand=new THREE.Group();root.add(hand);const palm=new THREE.Mesh(new THREE.BoxGeometry(.34,.09,.36),skin);palm.position.z=.18;hand.add(palm);
- for(const [fx,len,curl] of [[-.125,.5,1.0],[-.045,.82,.04],[.045,.6,.9],[.125,.42,1.1]]){const f=new THREE.Group();f.position.set(fx,0,.36);hand.add(f);const a=new THREE.Mesh(new THREE.BoxGeometry(.05,.045,len*.55),skin);a.position.z=len*.275;f.add(a);const j=new THREE.Group();j.position.z=len*.55;j.rotation.x=curl;f.add(j);const b=new THREE.Mesh(new THREE.BoxGeometry(.042,.04,len*.45),skin);b.position.z=len*.225;j.add(b);const t=new THREE.Mesh(new THREE.BoxGeometry(.044,.042,.07),tip);t.position.z=len*.45;j.add(t)}
- const th=new THREE.Mesh(new THREE.BoxGeometry(.05,.05,.3),skin);th.position.set(.2,0,.12);th.rotation.y=-.7;hand.add(th);
- return {root,tube,hand};
-}
 function buildGhost(mats,eyeMats){
  const r=rng(23),root=new THREE.Group(),body=new THREE.Group();root.add(body);
- const dark=new THREE.MeshStandardMaterial({color:0x040308,roughness:1,transparent:true,opacity:0,side:THREE.DoubleSide}),mid=new THREE.MeshStandardMaterial({color:0x0b0810,roughness:1,transparent:true,opacity:0,side:THREE.DoubleSide});
- const skin=new THREE.MeshStandardMaterial({color:0x9b958a,roughness:.9,emissive:0x1d1514,transparent:true,opacity:0}),tip=new THREE.MeshStandardMaterial({color:0x5c070b,roughness:.6,emissive:0x2a0204,transparent:true,opacity:0});mats.push(dark,mid,skin,tip);
+ const dark=new THREE.MeshStandardMaterial({color:0x040308,roughness:1,transparent:true,opacity:0,side:THREE.DoubleSide}),mid=new THREE.MeshStandardMaterial({color:0x0b0810,roughness:1,transparent:true,opacity:0,side:THREE.DoubleSide});mats.push(dark,mid);
  const prof=[[.45,5.25],[.8,4.75],[.95,3.6],[1.15,2.4],[1.5,1.2],[1.95,.1]].map(([x,y])=>new THREE.Vector2(x,y));
  body.add(new THREE.Mesh(new THREE.LatheGeometry(prof,18),dark));
  const outer=new THREE.Mesh(new THREE.LatheGeometry(prof.map(v=>new THREE.Vector2(v.x*1.07,v.y*.99)),14),mid);outer.rotation.y=.2;body.add(outer);
@@ -60,8 +50,7 @@ function buildGhost(mats,eyeMats){
  const eyes=[];for(const s of [-1,1]){const core=new THREE.MeshBasicMaterial({color:0xff2a1a,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}),halo=new THREE.MeshBasicMaterial({color:0xff1208,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});eyeMats.push({core,halo});const e=new THREE.Mesh(new THREE.CircleGeometry(.07,14),core),h=new THREE.Mesh(new THREE.CircleGeometry(.26,16),halo);e.position.set(s*.155,.15,.53);h.position.set(s*.155,.15,.525);head.add(h,e);eyes.push(e,h)}
  const hair=[];for(let i=0;i<14;i++){const h=1.6+r()*1.9,g=new THREE.BoxGeometry(.035,h,.035);g.translate(0,-h/2,0);const m=new THREE.Mesh(g,dark);const a=(i/13-.5)*2.4;m.position.set(Math.sin(a)*.78,.55,Math.cos(a)*.35+.1);head.add(m);hair.push({m,phase:r()*6})}
  const redLight=new THREE.PointLight(0xff1a10,0,26,1.4);redLight.position.set(0,-.2,1.5);head.add(redLight);
- const right=makeArm(body,.9,dark,skin,tip),left=makeArm(body,-.9,dark,skin,tip);
- return {root,body,head,tatters,hair,right,left,redLight,eyes};
+ return {root,body,head,tatters,hair,redLight,eyes};
 }
 
 export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarget,audio,fadeEl,vignetteEl,onDone}){
@@ -70,7 +59,7 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
  const wallTex=tex(plankCanvas(),[5,2.6]),wallMat=new THREE.MeshStandardMaterial({map:wallTex,color:0xb9a9a0,roughness:1});
  const wall=new THREE.Mesh(new THREE.PlaneGeometry(46,18),wallMat);wall.position.set(11.4,4.5,-8);wall.rotation.y=-Math.PI/2;station.add(wall);
  const beamMat=new THREE.MeshStandardMaterial({color:0x1d120f,roughness:1});
- for(const z of [-26,-16,-1.5,9,19])box(station,11.1,4.5,z,.6,18,.7,beamMat,false);
+ for(const z of [-26,-16,9,19])box(station,11.1,4.5,z,.6,18,.7,beamMat,false);
  box(station,11.1,9.5,-8,.5,.5,48,beamMat,false);box(station,11.1,.9,-8,.5,.5,48,beamMat,false);
  const chainMat=new THREE.MeshStandardMaterial({color:0x2b2b30,roughness:.6,metalness:.7});
  for(const z of [-13.5,-2.5,5])for(let k=0;k<9;k++)box(station,10.2,9.2-k*.42,z+Math.sin(k)*.05,.09,.3,.09,chainMat,false);
@@ -82,38 +71,39 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
  const ghost=buildGhost(mats,eyeMats);ghost.root.rotation.y=-Math.PI/2;ghost.root.position.set(7.6,.5,-11.3);ghost.root.visible=false;station.add(ghost.root);
  // ---- timeline
  const A=5.4,B=2.6,FLICKER=8.9,BLACKOUT=10.4,GHOST0=11.6;
- const steps=[{type:'appear',d:2.8},
-  {type:'write',lines:['YOU CAN','HEAR ME NOW'],font:230,gap:1.02,cy:470,char:.15,hold:2.2,drip:2.7},
-  {type:'write',lines:['FREE ME'],font:340,gap:1,cy:500,char:.3,hold:1.7,drip:2.4},
-  {type:'write',lines:['RETURN TO WHERE','YOU STARTED','','FIND THE ROOM','UNCHARTED'],font:132,gap:1.02,cy:365,char:.085,hold:.5,symbol:2.8,endHold:4.8,drip:0},
-  {type:'leave',d:3.4},{type:'roll',d:5.8}];
- let acc=GHOST0;for(const s of steps){s.t0=acc;if(s.type==='write'){s.letters=null;s.writeTime=0}acc+=(s.d||0);if(s.type==='write'){s.count=s.lines.join('').length;s.writeTime=s.count*s.char;s.d=s.writeTime+s.hold+(s.symbol||0)+(s.endHold||0)+s.drip+.5;acc+=s.d}}
+ const steps=[
+  {type:'appear',d:2.8},
+  {type:'reveal',lines:['YOU CAN','HEAR ME NOW'],d:3.2},
+  {type:'reveal',lines:['FREE ME'],d:3},
+  {type:'reveal',lines:['THE KEY','IS BENEATH THE EARTH','IN THE WEST HALL'],d:4},
+  {type:'paper',d:5.2},
+  {type:'leave',d:3.4},
+  {type:'roll',d:5.8}
+ ];
+ let acc=GHOST0;for(const s of steps){s.t0=acc;acc+=s.d}
  const END=acc;
- let t=0,started=false,done=false,lastBoard='',dripClock=0,windClock=3,blackoutPlayed=false,ghostAppeared=false,leaveFlag=0,flares=0;
+ let t=0,started=false,done=false,lastBoard='',windClock=3,blackoutPlayed=false,ghostAppeared=false,leaveFlag=0,paperShown=false;
  const dim0=[];
- const tmp=new THREE.Vector3(),handPos=new THREE.Vector3(),worldT=new THREE.Vector3();
- // ---- board writing
- function layout(step){const ctx=bc;ctx.font=`100px ${FONT}`;const widest=Math.max(...step.lines.map(l=>ctx.measureText(l).width||1));const cx=1320,maxW=1380;let size=Math.min(step.font,step.font*(maxW/(widest*step.font/100)));size=Math.min(step.font,size);ctx.font=`${size}px ${FONT}`;const out=[];let yy=step.cy-((step.lines.length-1)*size*step.gap)/2;let idx=0;for(const line of step.lines){let w=0;const ws=[];for(const ch of line){const cw=ctx.measureText(ch).width+size*.04;ws.push(cw);w+=cw}let x=cx-w/2,i=0;for(const ch of line){if(ch!==' '){out.push({ch,x,y:yy,size,w:ws[i],rot:(R()-.5)*.14,jy:(R()-.5)*size*.08,delay:R()*1.1,seed:R(),i:idx++})}x+=ws[i++]}yy+=size*step.gap}step.letters=out;step.size=size}
- const SYM=[[0,-1],[1,0],[0,1],[-1,0],[0,-1],[0,1]];
- const symPoint=(f)=>{const n=SYM.length-1,k=Math.min(n-1,Math.floor(f*n)),u=f*n-k,cx=1320,cy=880,w=105,h=140,a=SYM[k],b=SYM[k+1];return {x:cx+(a[0]+(b[0]-a[0])*u)*w,y:cy+(a[1]+(b[1]-a[1])*u)*h}};
- let aimTarget=null;
- function drawBoard(step,local){const c=bc;c.clearRect(0,0,BW,BH);if(!step||step.type!=='write'){boardTex.needsUpdate=true;return}
-  if(!step.letters)layout(step);const wt=step.writeTime,shown=local/step.char,symStart=wt+step.hold,dripStart=wt+step.hold+(step.symbol||0)+(step.endHold||0);const dripT=local-dripStart;aimTarget=null;
-  c.textBaseline='alphabetic';c.font=`${step.size}px ${FONT}`;c.lineJoin='round';
-  for(const L of step.letters){const born=L.i*step.char;const age=local-born;if(age<0)continue;const pop=clamp(age/.28,0,1);let off=0,alpha=pop,stretch=1;
-   const idle=clamp((local-wt)/4,0,1);let streak=L.size*(.05+.22*L.seed)*idle*(dripT>0?0:1)+(age>.3?L.size*.04*pop:0);
-   if(dripT>0){const p=Math.max(0,dripT-L.delay);off=p*p*340+p*34;stretch=1+p*.9;alpha=clamp(1-p/1.5,0,1)*pop;streak=Math.max(streak,off+L.size*.28)}
-   if(alpha<=0)continue;
-   c.save();c.globalAlpha=alpha;
-   if(streak>2){const sx=L.x+L.w*.45,sy=L.y+L.jy,g=c.createLinearGradient(0,sy,0,sy+streak);g.addColorStop(0,'#8f0a12');g.addColorStop(1,'#5a060b');c.strokeStyle=g;c.lineCap='round';c.lineWidth=Math.max(5,L.size*.045);c.beginPath();c.moveTo(sx,sy-L.size*.1);c.lineTo(sx,sy+streak);c.stroke();c.fillStyle='#6d0709';c.beginPath();c.arc(sx,sy+streak+2,Math.max(5,L.size*.035),0,Math.PI*2);c.fill()}
-   c.translate(L.x+L.w/2,L.y+L.jy+off);c.rotate(L.rot);c.scale(1+(1-pop)*.2,(.8+pop*.2)*stretch);
-   c.shadowColor='#ff1b1b';c.shadowBlur=pop<1?28:16;c.lineWidth=L.size*.05;c.strokeStyle='#2c0205';c.strokeText(L.ch,-L.w/2,0);c.fillStyle='#a30a12';c.fillText(L.ch,-L.w/2,0);c.shadowBlur=0;c.fillStyle='#d83a36';c.globalAlpha=alpha*.28;c.fillText(L.ch,-L.w/2-L.size*.012,-L.size*.012);
-   c.restore();
-   if(shown>=L.i&&shown<L.i+1&&dripT<=0)aimTarget={x:L.x+L.w/2,y:L.y-L.size*.35};
+ const paperCanvas=mk(720,960),paperContext=paperCanvas.getContext('2d');
+ paperContext.fillStyle='#ded0b1';paperContext.fillRect(0,0,720,960);
+ paperContext.fillStyle='#b8aa8e';paperContext.fillRect(25,25,670,910);
+ paperContext.fillStyle='#e7dec7';paperContext.fillRect(35,35,650,890);
+ paperContext.strokeStyle='#7b6c58';paperContext.lineWidth=3;paperContext.strokeRect(54,54,612,852);
+ paperContext.textAlign='center';paperContext.textBaseline='middle';paperContext.fillStyle='#211a1b';
+ paperContext.font='600 43px Georgia';paperContext.fillText('A NOTE FROM THE DARK',360,160);
+ paperContext.font='italic 39px Georgia';
+ ['Return where first you raised your light;','Turn its beam from left to right.','The shadow that refuses flight','Marks the earth to dig tonight.'].forEach((line,i)=>paperContext.fillText(line,360,330+i*105));
+ const paperTexture=tex(paperCanvas),paperMat=new THREE.MeshBasicMaterial({map:paperTexture,transparent:true,side:THREE.DoubleSide});
+ const paper=new THREE.Mesh(new THREE.PlaneGeometry(1.62,2.16),paperMat);paper.position.set(.35,-2.5,-4);paper.rotation.z=-.12;paper.visible=false;camera.add(paper);
+ // Board messages appear all at once; no writing hand or drip effect.
+ function drawBoard(step){
+  bc.clearRect(0,0,BW,BH);
+  if(step?.type==='reveal'){
+   const lines=step.lines,font=lines.length>2?148:lines.length===1?260:220;
+   bc.textAlign='center';bc.textBaseline='middle';bc.font=`${font}px ${FONT}`;
+   bc.shadowColor='#ff2118';bc.shadowBlur=24;bc.lineWidth=12;bc.strokeStyle='#300507';bc.fillStyle='#a30a12';
+   lines.forEach((line,i)=>{const y=BH/2+(i-(lines.length-1)/2)*font*1.12;bc.strokeText(line,BW/2,y);bc.fillText(line,BW/2,y)});
   }
-  if(step.symbol){const f=clamp((local-symStart)/step.symbol,0,1),p=(local>=symStart)?symPoint(f):null;
-   if(local>=symStart){const total=SYM.length-1,full=Math.floor(f*total);c.save();c.strokeStyle='#a30a12';c.lineWidth=15;c.lineCap='round';c.lineJoin='round';c.shadowColor='#ff1b1b';c.shadowBlur=22;c.beginPath();let a=symPoint(0);c.moveTo(a.x,a.y);for(let k=1;k<=full;k++){const q=symPoint(k/total);c.lineTo(q.x,q.y)}c.lineTo(p.x,p.y);c.stroke();c.restore();
-    if(f<1)aimTarget={x:p.x,y:p.y};else{const dl=clamp((local-symStart-step.symbol)/2.5,0,1);c.save();c.strokeStyle='#6d0709';c.lineWidth=9;c.lineCap='round';for(const [dx,dy,k] of [[0,-1,.9],[1,0,1.4],[0,1,1.1],[-1,0,.7]]){const q=symPoint(0);const px=1320+dx*105,py=880+dy*140;c.beginPath();c.moveTo(px,py);c.lineTo(px,py+dl*70*k);c.stroke()}c.restore()}}}
   boardTex.needsUpdate=true;
  }
  // ---- lighting helpers
@@ -129,7 +119,7 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
  const offA=new THREE.Vector3(-.7,3.9,9.5),offB=new THREE.Vector3(-.3,4.3,2.1);
  let cartZ=cartStartZ,speed=0,yaw=0,camLocal=new THREE.Vector3(),dolly=0,shakeAmp=0;
  return {end:END,
-  start(){started=true;collectLights();for(const d of dimmed)dim0.push(d);scene.fog.color.setHex(0x050407);scene.background.setHex(0x050407);document.fonts?.load?.(`120px Creepster`)?.catch?.(()=>{});if(vignetteEl)vignetteEl.style.opacity='1';cart.position.set(T.x,.1,T.z+cartStartZ);cart.rotation.y=0},
+  start(){started=true;collectLights();for(const d of dimmed)dim0.push(d);scene.fog.color.setHex(0x050407);scene.background.setHex(0x050407);document.fonts?.load?.(`120px Creepster`)?.catch?.(()=>{});if(vignetteEl)vignetteEl.style.opacity='1';audio.horrorBed(true);cart.position.set(T.x,.1,T.z+cartStartZ);cart.rotation.y=0},
   update(dt){if(!started||done)return;t+=dt;
    // dim lights
    let dim=1,lampK=1,lampFlick=1;
@@ -141,7 +131,6 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
    setDim(dim,lampK);
    stationLight.intensity=34*lampFlick;lampGroup.children[0].material.color.setHex(lampFlick>.5?0xffa24a:0x2a1a10);
    if(t>=BLACKOUT&&!blackoutPlayed){blackoutPlayed=true;audio.cue('shatter',undefined,{volume:.8})}
-   if(t>FLICKER&&Math.random()<.04)audio.cue('armor',undefined,{volume:.2});
    windClock-=dt;if(windClock<=0){audio.cue('wind',undefined,{volume:.9});windClock=6}
    // cart + camera
    const camBase=new THREE.Vector3();
@@ -156,33 +145,24 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
    const g=ghost;let alpha=0,eyes=0,red=0,stare=0,lunge=0;
    if(t>=GHOST0&&cur){ghost.root.visible=true;const ls=t-steps[0].t0;
     if(cur.type==='appear'){const u=t-cur.t0;eyes=u<.25?0:(u<.6?1:(Math.sin(u*40)>.2?1:.2));red=u<.25?0:6;alpha=u<1?0:u<1.15?.8:u<1.3?0:u<1.45?.6:u<1.6?0:clamp((u-1.6)/1.2,0,1);if(alpha>0)red=22}
-    else if(cur.type==='leave'){const u=t-cur.t0;alpha=1;eyes=1;red=26+Math.sin(u*30)*6;stare=clamp(u/.8,0,1);if(u>1.4)lunge=clamp((u-1.4)/.38,0,1);if(u>1.8){alpha=0;eyes=0;red=0;lunge=1}}
-    else if(cur.type==='roll'){alpha=0}
+    else if(cur.type==='leave'){const u=t-cur.t0;alpha=1;eyes=1;red=22+Math.sin(u*11)*4;stare=clamp(u/.8,0,1);lunge=clamp((u-1.4)/1.8,0,.7)}
+    else if(cur.type==='roll'){alpha=.9}
     else{alpha=1;eyes=1;red=24+Math.sin(t*3.1)*3+(Math.random()<.03?10:0)}
    }else if(t>=GHOST0)alpha=0;
    fadeGhost(alpha);eyeLevel(eyes);g.redLight.intensity=red;
-   const near=Math.max(0,t-GHOST0);const gx=7.6-Math.min(.9,near*.02)-lunge*lunge*4.2;g.root.position.set(gx+(Math.random()<.01?.08:0),.5+Math.sin(t*1.3)*.12,-11.3+lunge*2.6);g.root.rotation.y=-Math.PI/2+Math.sin(t*.5)*.05;g.root.scale.setScalar(1+lunge*.25);
+   const near=Math.max(0,t-GHOST0);const gx=6.4-Math.min(.35,near*.008)-lunge*.45;g.root.position.set(gx,.65+Math.sin(t*1.3)*.08,-11.3+lunge*.35);g.root.rotation.y=-Math.PI/2+Math.sin(t*.5)*.035;g.root.scale.setScalar(.68);
    for(const tt of g.tatters){tt.m.rotation.x=Math.sin(t*1.3+tt.phase)*tt.amp+.05;tt.m.rotation.z=Math.cos(t*1.1+tt.phase)*tt.amp*.6}
    for(const h of g.hair){h.m.rotation.z=Math.sin(t*1.4+h.phase)*.1;h.m.rotation.x=Math.cos(t*1.1+h.phase)*.07}
    // head: tilt, creep toward camera
    const twitch=Math.random()<.012?(Math.random()-.5)*.4:0;g.head.rotation.z=.2+Math.sin(t*.9)*.05+twitch;g.head.rotation.x=.12+stare*.1;g.head.rotation.y=(1-stare)*(-.35+Math.sin(t*.6)*.1);
-   // arms
-   ghost.root.updateMatrixWorld(true);
-   const local=cur&&cur.type==='write'?t-cur.t0:0;
-   if(cur?.type==='write'){drawBoard(cur,local);const q=aimTarget;if(q){worldT.copy(toLocal(q.x,q.y));worldT.x=BOARD.cx-.5;worldT.y+=Math.sin(t*23)*.03;worldT.z+=Math.sin(t*17)*.03;terminal.localToWorld(worldT);handPos.lerp(worldT,1-Math.exp(-dt*10))}
-    else{worldT.set(10.0,2.6,-6);terminal.localToWorld(worldT);handPos.lerp(worldT,1-Math.exp(-dt*3))}}
-   else{if(cur?.type==='leave'&&t-cur.t0>1.8&&lastBoard!=='cleared'){bc.clearRect(0,0,BW,BH);boardTex.needsUpdate=true;lastBoard='cleared'}
-    ghost.root.localToWorld(worldT.set(1.4,2.6,1.4));handPos.lerp(worldT,1-Math.exp(-dt*3))}
-   {g.right.root.parent.updateWorldMatrix(true,false);g.right.root.lookAt(handPos);g.right.root.getWorldPosition(tmp);const d=tmp.distanceTo(handPos),len=Math.max(.7,d-1.18);g.right.tube.scale.z=len;g.right.hand.position.z=len;g.right.hand.rotation.z=Math.sin(t*7)*.08}
-   g.left.root.rotation.x=Math.PI/2*.93+Math.sin(t*.8)*.05;g.left.root.rotation.z=.12;g.left.tube.scale.z=3.3;g.left.hand.position.z=3.3;
-   // writing & drip sounds
-   if(cur?.type==='write'){const dripT=local-(cur.writeTime+cur.hold+(cur.symbol||0)+(cur.endHold||0));if(dripT>0&&dripT<cur.drip){dripClock-=dt;if(dripClock<=0){audio.cue('drip',undefined,{volume:.8});dripClock=.3}}
-    if(!cur.started){cur.started=true;audio.cue('mimic',undefined,{volume:.5})}}
-   if(cur?.type==='appear'&&!ghostAppeared&&t-cur.t0>1.0){ghostAppeared=true;audio.cue('boss',undefined,{volume:.9});audio.cue('ghost',undefined,{volume:.9})}
-   if(cur?.type==='leave'&&!leaveFlag&&t-cur.t0>1.4){leaveFlag=1;audio.cue('crash',undefined,{volume:.8});audio.cue('ghost',undefined,{volume:1})}
-   if(cur&&cur.type!=='write'&&cur.type!=='leave'&&lastBoard!=='blank'&&cur.type==='appear'){drawBoard(null);lastBoard='blank'}
-   if(t>=END&&!done){done=true;onDone()}
+   if(cur?.type==='reveal'&&lastBoard!==cur.lines.join('|')){drawBoard(cur);lastBoard=cur.lines.join('|')}
+   if(cur?.type==='paper'&&!paperShown){paperShown=true;paper.visible=true;audio.cue('paper',undefined,{volume:.9})}
+   if(paperShown){const u=clamp((t-steps.find(s=>s.type==='paper').t0)/1.2,0,1);paper.position.y=-1.5+easeOut(u)*1.5+Math.sin(t*9)*.025;paper.position.x=.35+Math.sin(t*3.1)*.08;paper.rotation.z=-.12+Math.sin(t*5.7)*.035}
+   if(cur?.type==='leave'&&lastBoard!=='cleared'){drawBoard(null);lastBoard='cleared'}
+   if(cur?.type==='appear'&&!ghostAppeared&&t-cur.t0>1.0){ghostAppeared=true;audio.cue('keeper',undefined,{volume:.9});audio.cue('ghost',undefined,{volume:.9})}
+   if(cur?.type==='leave'&&!leaveFlag&&t-cur.t0>1.4){leaveFlag=1;audio.cue('door',undefined,{volume:.8});audio.cue('ghost',undefined,{volume:1})}
+   if(t>=END&&!done){done=true;audio.horrorBed(false);paper.visible=false;onDone()}
   },
   debug:{board:boardCv,ghost},
-  dispose(){scene.remove(station);terminal.remove(station)}};
+  dispose(){audio.horrorBed(false);camera.remove(paper);paper.geometry.dispose();paperTexture.dispose();paperMat.dispose();scene.remove(station);terminal.remove(station)}};
 }

@@ -1,6 +1,6 @@
 export const RELEASE=Date.parse('2026-10-31T00:00:00-07:00');
 export const UNLOCKS={grave:Date.parse('2026-10-29T00:00:00-07:00'),delivery:Date.parse('2026-10-30T00:00:00-07:00'),ride:RELEASE};
-export const ORDER=['contact','hatch','seal','lantern','escape','menuLamp','road','package','delivered','film','repair','entered'];
+export const ORDER=['contact','key','seal','lantern','escape','menuLamp','road','package','delivered','film','repair','entered'];
 export const initial=()=>({version:1,stage:0,rideLetters:[],evidence:{},items:[],scores:{grave:0,delivery:0,ride:0,rideEndless:0},endings:[],prefs:{sound:true,motion:true},updatedAt:0});
 export const localQA=['127.0.0.1','localhost'].includes(location.hostname)&&new URLSearchParams(location.search).get('qa')==='1';
 const key='midnight-arcade-2026'+(localQA?'-qa':'');

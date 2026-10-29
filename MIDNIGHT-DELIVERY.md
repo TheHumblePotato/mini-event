@@ -6,7 +6,9 @@ Three towns share a connected road network: crooked old Hollow, Briarwick with i
 
 A shift lasts **150 active seconds with no job-count limit**. Choose one of three offers using **1 / 2 / 3** or the on-screen buttons. New offers appear after each completed job. The clock waits while choosing; M also pauses for navigation. One offer is nearby, one visits another ordinary town, and one visits Rookhaven. Offers exclude the last four completed addresses.
 
-Pay increases with route distance; Rookhaven work pays **double**. Clean deliveries build a multiplier up to ×2. Beat the displayed, distance-scaled rush deadline for +75. Completion restores three points of car condition. Crashes cost up to 48 condition, subtract points and reset the multiplier. Zero condition ends the shift. A job completed without a crash earns a +60 clean-run bonus.
+Pay increases with route distance; Rookhaven work pays **2.5× the ordinary base fare**. Clean deliveries build a multiplier up to ×2. Beat the displayed, distance-scaled rush deadline for +75. Completion restores three points of car condition. Crashes cost up to 48 condition, subtract points and reset the multiplier. Zero condition ends the shift. A job completed without a crash earns a +60 clean-run bonus.
+
+Choose one of four cars in the game intro. The Standard is balanced; the Blackbird Coupe is faster and scores more but has poor handling and low crash resistance; the Ironwood Hearse is slow and durable; the Witchlight Taxi favors steering and grip. The choice changes the car's handling, speed, condition damage and final job points.
 
 Fourteen quest types include sweets for porch bowls, vigil candles, costume crates, contest prizes, cider, glass seedlings, mail, protective charms, parade lanterns, generator fuel, batteries, signal lamps and an observatory prism. Each has a reason and a recognizable destination. Building types include chapels, hotels with balconies, theatres with marquees, a diner, fire station, greenhouse, observatory dome, station, witch shop and warehouse crane.
 
@@ -29,7 +31,7 @@ Buildings, boundary walls and bridge guardrails are physical. Compound car-body 
 
 Every closure affects **three connected streets**, with a five-second warning. Amber/red map lines mark the full route, and navigation recalculates a detour. Each pattern leaves every address reachable. A car already beside a new barricade can clear it before that barrier becomes solid. Pumpkin spills warn before rolling across ordinary-town junctions.
 
-Two ghost models alternate encounters, with only one active chase at a time. They form 90–155 units behind the player's travel direction, with a two-second harmless appearance and an audio warning. Their normal chase speed caps at 36, with 38 allowed while drawing alongside; the player can outrun them.
+Two ghost models alternate encounters, with only one active chase at a time. They form 90–155 units behind the player's travel direction, with a two-second harmless appearance and an audio warning. Ghosts now refresh their route more often and turn more responsively to follow the player. A longer flank warning and recovery window, slower committed ram, reduced knockback and 16-point base condition damage before vehicle resistance make impacts less punishing; breaking sight or outrunning them still ends the chase.
 
 Chasers approach from behind, steer with a limited turn rate and move alongside before signaling a side ram. Flashing lights and a horn warn for about one second. The ram follows its committed trajectory, so braking or turning can make it miss. Five seconds without sight, a lead of 215 units, or leaving the city/connecting roads ends the chase. Encounters also expire rather than following forever.
 
@@ -47,6 +49,6 @@ The missing-road entry, lamp-road puzzles and fixed post-office parcel route rem
 
 Every game has FULLSCREEN in its toolbar. The playfield fills the viewport while preserving its 16:9 shape. Arcade/exit controls are compact overlays; keyboard help and desktop touch buttons do not consume fullscreen space. Touch controls remain available on touch devices. The dedicated pause button, pause dialog and Escape-to-pause shortcut are removed. Escape can still close an in-game map or leave native fullscreen.
 
-Final tuning: ghost rams now add 48 units/second of impulse with a longer slide, while still causing no direct condition loss. Critical condition gets a red HUD; 30- and 10-second warnings signal the end of a shift. Results include completed jobs, peak speed and ghosts shaken. Unreadable city/route billboards were removed from the 3D world; map labels and delivery-business signs remain.
+Final tuning: ghost rams add 70 units/second of impulse, while causing no direct cargo damage. Critical condition gets a red HUD; 30- and 10-second warnings signal the end of a shift. Results include completed jobs, peak speed and ghosts shaken. Unreadable city/route billboards were removed from the 3D world; map labels and delivery-business signs remain.
 
 Closing a finished run's results with Escape, its close button or the backdrop returns to the arcade. Replay creates a fresh run. Leaving mid-run tears down input/rendering and invalidates pending starts/callbacks, preventing stale scenes from reappearing.
