@@ -36,7 +36,7 @@ export function plankCanvas(){
 
 function buildGhost(mats,eyeMats){
  const r=rng(23),root=new THREE.Group(),body=new THREE.Group();root.add(body);
- const dark=new THREE.MeshStandardMaterial({color:0x040308,roughness:1,transparent:true,opacity:0,side:THREE.DoubleSide}),mid=new THREE.MeshStandardMaterial({color:0x0b0810,roughness:1,transparent:true,opacity:0,side:THREE.DoubleSide});mats.push(dark,mid);
+ const dark=new THREE.MeshStandardMaterial({color:0x101018,emissive:0x191625,emissiveIntensity:.75,roughness:1,transparent:true,opacity:0,side:THREE.DoubleSide}),mid=new THREE.MeshStandardMaterial({color:0x272333,emissive:0x322941,emissiveIntensity:.8,roughness:1,transparent:true,opacity:0,side:THREE.DoubleSide});mats.push(dark,mid);
  const prof=[[.45,5.25],[.8,4.75],[.95,3.6],[1.15,2.4],[1.5,1.2],[1.95,.1]].map(([x,y])=>new THREE.Vector2(x,y));
  body.add(new THREE.Mesh(new THREE.LatheGeometry(prof,18),dark));
  const outer=new THREE.Mesh(new THREE.LatheGeometry(prof.map(v=>new THREE.Vector2(v.x*1.07,v.y*.99)),14),mid);outer.rotation.y=.2;body.add(outer);
@@ -152,14 +152,15 @@ export function createCutscene({scene,camera,terminal,cart,wheels,lamp,lampTarge
    if(cur?.type!=='roll'){lampTarget.position.set(T.x+8,1,T.z+cartZ-30);lamp.position.set(T.x,2.4,T.z+cartZ-1.7)}
    // ghost
    const g=ghost;let alpha=0,eyes=0,red=0,stare=0,lunge=0;
-   if(t>=GHOST0&&cur){ghost.root.visible=true;const ls=t-steps[0].t0;
+   if(t>=GHOST0&&cur){ghost.root.visible=true;
     if(cur.type==='appear'){const u=t-cur.t0;eyes=u<.25?0:(u<.6?1:(Math.sin(u*40)>.2?1:.2));red=u<.25?0:6;alpha=clamp((u-.35)/.8,0,1);if(alpha>0)red=22}
     else if(cur.type==='leave'){const u=t-cur.t0;alpha=1;eyes=1;red=22+Math.sin(u*11)*4;stare=clamp(u/.8,0,1);lunge=clamp((u-1.4)/1.8,0,.7)}
     else if(cur.type==='roll'){alpha=.9}
     else{alpha=1;eyes=1;red=24+Math.sin(t*3.1)*3+(Math.random()<.03?10:0)}
    }else if(t>=GHOST0)alpha=0;
+   if(t>=GHOST0&&t<GHOST0+4.4){const phase=(t-GHOST0)%1.1;if(phase>.76&&phase<.94)alpha=0;else if(phase>=.94)alpha*=.5}
    fadeGhost(alpha);eyeLevel(eyes);g.redLight.intensity=red;
-   const near=Math.max(0,t-GHOST0);g.root.position.set(.15+Math.sin(t*.7)*.025,-.38+Math.sin(t*1.3)*.02,-5.2+lunge*.2);g.root.rotation.y=-Math.PI/2+Math.sin(t*.5)*.025;g.root.scale.setScalar(.4);
+   g.root.position.set(.08+Math.sin(t*.7)*.025,-.22+Math.sin(t*1.3)*.02,-4.8+lunge*.2);g.root.rotation.y=-Math.PI/2+Math.sin(t*.5)*.025;g.root.scale.setScalar(.48);
    for(const tt of g.tatters){tt.m.rotation.x=Math.sin(t*1.3+tt.phase)*tt.amp+.05;tt.m.rotation.z=Math.cos(t*1.1+tt.phase)*tt.amp*.6}
    for(const h of g.hair){h.m.rotation.z=Math.sin(t*1.4+h.phase)*.1;h.m.rotation.x=Math.cos(t*1.1+h.phase)*.07}
    // head: tilt, creep toward camera
