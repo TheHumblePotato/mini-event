@@ -10,7 +10,7 @@ import {KEY_DIG_SITE,SECRET_DOOR,CHAMBER_LAMP,CHAMBER_CLUES} from './expedition-
 import {createThreats} from './expedition-ai.js';
 import {strikeCache,collectCache,advanceCoffins,closeCache} from './expedition-loot.js';
 import {drawWorld} from './expedition-art.js';
-import {pixelAtlas,pixelGhost} from './pixel-art.js';
+import {pixelAtlas} from './pixel-art.js';
 import {rng,clamp,damp,dist,moveCircle,lineBlocked,lerp} from './physics.js';
 import {SYMBOL_EDGES,edgeKey} from '../logic.js';
 const WW=WORLD_WIDTH,WH=WORLD_HEIGHT;
@@ -37,7 +37,7 @@ function drawChamber(c,cam,p,t,quest,warningRead,lit){
  c.restore();
 }
 export function createGraveyard(canvas,input,hooks,options={}){
- const seed=options.resume?.mapVersion===5?options.resume.seed:Math.floor(Math.random()*2147483647),world=createExpedition(seed),caches=world.caches;const c=canvas.getContext('2d'),W=1280,H=720,random=rng(seed^301029),atlas=pixelAtlas(),ghostImage=pixelGhost();
+ const seed=options.resume?.mapVersion===5?options.resume.seed:Math.floor(Math.random()*2147483647),world=createExpedition(seed),caches=world.caches;const c=canvas.getContext('2d'),W=1280,H=720,random=rng(seed^301029),atlas=pixelAtlas();
  const pixelRatio=Math.min(globalThis.devicePixelRatio||1,3);canvas.width=W*pixelRatio;canvas.height=H*pixelRatio;c.setTransform(pixelRatio,0,0,pixelRatio,0,0);
  const p={x:entry.x,y:entry.y,face:-Math.PI/2,blindTime:0};let cam={x:entry.x-W/2,y:entry.y-H/2},fuel=100,score=0,lit=true,stamina=100,mode='warm',time=0,dig=0,injury=0,fear=0,spawnClock=28,ended=false,pending=false,quest=options.stage>=1&&options.stage<=5?options.stage:0,layer=quest===4||options.testMode&&quest===3?'chamber':'cemetery',lampAngle=0,sealOpen=false,trace=new Set(),lastDot=null,health=100,flares=2,compassMode='treasure',mapOpen=false,activeLoot=null,lootClock=0,noise=null,noiseTTL=0,wardCooldown=0,warningRead=false,hasKey=quest>=4||options.testMode&&quest===3,doorClosed=quest>=4||options.testMode&&quest===3;let aimScreen=null,digSwing=0,tutorialPanel=null,mapRoute=[],expeditionAge=0;const seenEnemies=new Set();p.step=0;p.moving=false;const velocity={x:0,y:0},visited=new Set(),visitedTiles=new Set();
  let lanternWaveClock=0;
@@ -54,7 +54,6 @@ export function createGraveyard(canvas,input,hooks,options={}){
   for(const cache of caches)if(!cache.collected&&cache.type!=='buried')colliders.push({x:cache.x-20,y:cache.y-9,w:40,h:24});world.setObstacles(colliders);const torches=[{x:entry.x-90,y:entry.y+20},{x:entry.x+90,y:entry.y+20},...world.doors.filter((_,n)=>n%2===0).map(v=>({x:v.x+65,y:v.y})),...world.rooms.flatMap(r=>[{x:r.x+70,y:r.y+120},{x:r.x+r.w-70,y:r.y+r.h-110}])];const ground=document.createElement('canvas');ground.width=512;ground.height=512;const gc=ground.getContext('2d');gc.fillStyle='#222326';gc.fillRect(0,0,512,512);for(let n=0;n<15000;n++){const x=random()*512,y=random()*512;gc.fillStyle=['#383933','#303330','#191c21','#555044','#3b3230'][n%5];gc.globalAlpha=.2+random()*.4;gc.beginPath();gc.ellipse(x,y,random()*4+.5,random()*2+.4,random()*6,0,7);gc.fill()}gc.globalAlpha=1;const pattern=c.createPattern(ground,'repeat');
  const lighting=createLighting(W,H);
  const hud=document.createElement('div');hud.className='world-hud';canvas.parentElement.append(hud);hud.innerHTML='<div class="hud-top"><span id="grave-score"></span><span id="grave-fuel"></span></div><div class="world-prompt"></div><div class="world-whisper" aria-live="polite"></div><div class="cinema-bars"></div><section class="clue-scroll" hidden role="dialog" aria-modal="true" aria-labelledby="clue-scroll-title"><div class="scroll-paper"><span class="scroll-label">CASEBOOK · FIELD NOTE</span><h2 id="clue-scroll-title"></h2><p class="scroll-text"></p><button type="button" data-close-scroll>CLOSE</button></div></section>';let whisperUntil=0,clueScrollOpen=false;
- const guideGhost=document.createElement('canvas');guideGhost.width=96;guideGhost.height=144;guideGhost.className='ghost-guide';guideGhost.getContext('2d').drawImage(ghostImage,0,0);hud.append(guideGhost);
  const savedClues=new Set();function clue(id,text,title='Cemetery clue'){hooks.onEvidence?.('grave-'+id,title,text);savedClues.add(id)}
  const clueScroll=hud.querySelector('.clue-scroll');function closeClueScroll(){clueScroll.hidden=true;clueScrollOpen=false;tutorialPanel=null;canvas.focus()}function showClueScroll(id,title,text){if(id==='warning')text=LANTERN_WARNING;if(id==='chamber-rubbing')text=LANTERN_RUBBING;clue(id,text,title);clueScroll.querySelector('#clue-scroll-title').textContent=title;clueScroll.querySelector('.scroll-text').textContent=text;clueScroll.hidden=false;clueScrollOpen=true;tutorialPanel={close(){}};clueScroll.querySelector('[data-close-scroll]').focus()}
  clueScroll.querySelector('[data-close-scroll]').onclick=closeClueScroll;
