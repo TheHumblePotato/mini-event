@@ -1,5 +1,6 @@
 import {dist,clamp} from './physics.js';
 export const DISTRICTS=[{id:'hollow',name:'Hollow',cx:0,cy:0,theme:'oldtown'},{id:'briarwick',name:'Briarwick',cx:1100,cy:0,theme:'market'},{id:'rookhaven',name:'Rookhaven',cx:1100,cy:1000,theme:'harbor'}];
+export const GHOST_CITY={id:'gloaming',name:'Gloaming',cx:1860,cy:1030,theme:'harbor'};
 const layouts={
  hollow:{points:[[0,225],[-90,225],[-150,150],[-220,145],[-225,40],[-150,20],[-185,-80],[-205,-205],[-80,-225],[20,-170],[0,-75],[80,-35],[150,-95],[200,-100],[200,-250],[90,-235],[205,75],[150,165],[75,220],[0,80],[-80,85],[-80,-65],[250,0],[200,0],[100,75],[-20,5],[160,230]],edges:[[0,1],[1,2],[2,3],[3,4],[4,6],[6,7],[7,8],[8,9],[9,15],[15,14],[14,13],[13,23],[23,16],[16,17],[17,18],[18,0],[2,20],[20,19],[19,0],[20,5],[5,4],[5,21],[21,10],[10,9],[21,25],[25,19],[25,11],[11,12],[12,13],[11,24],[24,16],[24,19],[23,22],[18,26],[20,25,9],[10,11,10],[17,24,9]]},
  briarwick:{points:[[65,0],[46,46],[0,65],[-46,46],[-65,0],[-46,-46],[0,-65],[46,-46],[-250,0],[-170,0],[-205,-100],[-190,-210],[-50,-235],[120,-220],[210,-150],[205,10],[200,135],[90,220],[0,250],[-120,205],[-205,125],[0,225],[10,150],[-50,-130],[135,-115],[-110,110],[140,120],[-140,-100],[125,-25]],edges:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,9],[4,9],[6,23],[23,12],[7,24],[24,14],[0,15],[2,22],[22,21],[21,18],[3,25],[25,20],[1,26],[26,16],[5,27],[27,10],[2,25,9],[6,24,9],[24,28]]},
@@ -18,13 +19,15 @@ route('marsh','hollow-south',[[0,390],[140,650],[420,850],[700,1000]],'rookhaven
 // A separate upper bridge gives Hollow–Briarwick a second way across.
 const northA={id:'hollow-north',x:0,y:-250,district:'hollow'},northB={id:'briarwick-north',x:1100,y:-250,district:'briarwick'};ROAD_NODES.push(northA,northB);link(node('hollow-15'),northA,'street',18);link(northB,node('briarwick-12'),'street',18);
 route('north-bridge','hollow-north',[[0,-350],[170,-430],[930,-430],[1100,-350]],'briarwick-north','highway',25);
-const briarwickEast={id:'briarwick-east',x:1580,y:205,district:'briarwick'};ROAD_NODES.push(briarwickEast);
-route('east-bridge','briarwick-16',[[1415,150],[1505,180]],'briarwick-east','shadow-bridge',30);
+const gloamingPoints=[[1600,1100],[1640,900],[1785,835],[1970,850],[2110,970],[2120,1135],[1980,1230],[1780,1240],[1620,1200],[1760,1030],[1950,1035],[2020,1130]];
+const gloamingNodes=gloamingPoints.map(([x,y],i)=>({id:`gloaming-${i}`,x,y,district:GHOST_CITY.id}));ROAD_NODES.push(...gloamingNodes);
+for(const [a,b] of [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,0],[1,9],[9,0],[9,10],[10,3],[10,11],[11,5],[11,6]]){const from=gloamingNodes[a],to=gloamingNodes[b];ROAD_SEGMENTS.push({id:'road-'+ROAD_SEGMENTS.length,a:from,b:to,width:18,type:'street',district:GHOST_CITY.id,length:dist(from,to)})}
+route('gloaming-bridge','rookhaven-10',[[1415,1140],[1500,1120]],'gloaming-0','shadow-bridge',30);
 export const ADJACENCY=new Map(ROAD_NODES.map(n=>[n.id,[]]));for(const e of ROAD_SEGMENTS){ADJACENCY.get(e.a.id).push({node:e.b,edge:e});ADJACENCY.get(e.b.id).push({node:e.a,edge:e})}
 export function projectOnRoad(p,e){const dx=e.b.x-e.a.x,dy=e.b.y-e.a.y,t=clamp(((p.x-e.a.x)*dx+(p.y-e.a.y)*dy)/(dx*dx+dy*dy),0,1);return {x:e.a.x+dx*t,y:e.a.y+dy*t,t}}
 export function nearestRoad(p){let best=null,distance=Infinity;for(const edge of ROAD_SEGMENTS){const point=projectOnRoad(p,edge),d=dist(p,point);if(d<distance){distance=d;best={edge,point,distance}}}return best}
 export const roadDistance=p=>nearestRoad(p).distance;
-export const districtFor=p=>DISTRICTS.find(d=>Math.abs(p.x-d.cx)<280&&Math.abs(p.y-d.cy)<280)||null;
+export const districtFor=p=>Math.abs(p.x-GHOST_CITY.cx)<300&&Math.abs(p.y-GHOST_CITY.cy)<300?GHOST_CITY:DISTRICTS.find(d=>Math.abs(p.x-d.cx)<280&&Math.abs(p.y-d.cy)<280)||null;
 export const isHighway=p=>{const e=nearestRoad(p);return e.edge.type==='highway'&&e.distance<e.edge.width/2+1};
 export function segmentBlocked(a,b,boxes=[]){return boxes.some(box=>{let low=0,high=1;const dx=b.x-a.x,dy=b.y-a.y;for(const [p,q]of [[-dx,a.x-box.x],[dx,box.x+box.w-a.x],[-dy,a.y-box.y],[dy,box.y+box.h-a.y]]){if(Math.abs(p)<1e-9){if(q<0)return false;continue}const r=q/p;if(p<0)low=Math.max(low,r);else high=Math.min(high,r);if(low>high)return false}return true})}
 function pathfind(a,b,closures=[]){const open=[a],cost=new Map([[a.id,0]]),parents=new Map();while(open.length){open.sort((x,y)=>cost.get(x.id)-cost.get(y.id));const current=open.shift();if(current.id===b.id){const path=[current];while(parents.has(path[0].id))path.unshift(parents.get(path[0].id));return path}for(const {node,edge}of ADJACENCY.get(current.id)){if(segmentBlocked(current,node,closures))continue;const next=cost.get(current.id)+edge.length;if(next<(cost.get(node.id)??Infinity)){cost.set(node.id,next);parents.set(node.id,current);open.push(node)}}}return null}

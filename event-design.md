@@ -1,4 +1,4 @@
-> **Latest player feedback — priority implementation TODOs (October 28, 2026).** This section supersedes conflicting descriptions below, especially the existing Keeper fight. Do not treat the current Keeper fight as approved: remove its encounter implementation and rebuild it to this specification. Keep this checklist until every item is implemented and verified.
+> **Latest player feedback — priority implementation TODOs (October 29, 2026).** This section supersedes conflicting descriptions below, especially the Keeper maze and causeway puzzle.
 >
 > ### Last Ride / game 3
 > - Do not play the ghost cutscene until the run has ended. After the run, rapidly flicker every letter red, then leave them steadily red; wait 1–2 seconds before starting the cutscene.
@@ -27,15 +27,21 @@
 >   > The dead grow strong with each step you take.
 > - Verify clue-book persistence and visibility; a “saved” message without a readable, retained entry is not sufficient.
 >
-> ### Keeper fight — delete and rebuild the current encounter
-> - Remove the current Keeper-fight implementation rather than polishing its existing maze/chase. Start with a cutscene of the Keeper digging out of the ground, then give it a strong sprite and clear walking/attacking animations.
-> - After awakening, the ghost must explain the newly unlocked side door and how to use the lamp. Build full, large rooms and corridors. A corridor for the wrong lamp must be completely invisible, not drawn as a blocked/dashed path.
-> - Both lamps retain ordinary shadows and visibility; make visibility more extreme overall and more extreme again when the Keeper is close. Require exploration and light swaps to discover passages of the other type while being chased.
-> - Make the chase long, dangerous, and difficult. Give the Keeper powerful, readable abilities, including dashing at the player, pulling the player in, and briefly blinding them. The ghost should speak during the chase and provide useful guidance.
+> ### Grave Robber lantern escape — current direction
+> - Delete the Keeper fight, maze, attacks, and lamp-switch mechanic. The lantern still works normally in the chamber.
+> - Taking the lantern opens a side door. Going through it returns the player to the same cemetery room where they entered the vault.
+> - Spawn a large, persistent group of ordinary ghosts and zombies. They should pursue and intercept the player on the difficult return to the gate.
+>
+> ### Midnight Delivery investigation — current direction
+> - Replace the two-light causeway puzzle with a physical, ordinary-looking dark bridge on Rookhaven’s eastern edge. It is connected to the road network and appears only under black headlights.
+> - The bridge leads to Gloaming, a full new city with at least five ghost cars spread across its streets.
+> - Complete three deliveries in Gloaming to earn the sealed parcel. A player who wrecks must restart the deliveries, choosing either Hollow or the new-city entrance.
+> - A side impact against a ghost car destroys it and restores car condition. A ghost-car impact deals reduced damage and knockback, and the ghost car remains.
+> - Take the parcel to Hollow’s North Street Post Office. Last Ride investigation remains out of scope.
 
 # Midnight Arcade — Halloween 2026
 
-> Rendering revision: the live build uses one stylized, pixel-textured palette across the 3D menu, driving game, railway, chamber, and 2D cemetery sprites. Realistic generated images are no longer used. Last Ride is one endless runner with no run checkpoints. Rare GHOST letters persist as discoveries; collecting all five reaches the terminal encounter, after which letters no longer spawn. The lamp, seal, Keeper, roads and projector are integrated into their game worlds rather than separate prose scenes. The story outline below remains the narrative specification.
+> Rendering revision: the live build uses one stylized, pixel-textured palette across the 3D menu, driving game, railway, chamber, and 2D cemetery sprites. Realistic generated images are no longer used. Last Ride is one endless runner with no run checkpoints. Rare GHOST letters persist as discoveries; collecting all five reaches the terminal encounter, after which letters no longer spawn. The lamp, seal, roads and projector are integrated into their game worlds rather than separate prose scenes. The story outline below remains the narrative specification except where the latest feedback above overrides it.
 
 Current design and implementation handoff. Three games release at midnight Pacific on October 29, October 30, and October 31, 2026. The browser app and local preview exist alongside this file; production Firebase deployment is a separate remaining setup step.
 
@@ -63,15 +69,13 @@ You cannot fight entities:
 
 - **Mourner:** follows visible light; break sight and extinguish your lamp.
 - **Follower:** investigates digging sounds.
-- **Keeper:** a dormant demon, introduced during the secret black-lantern extraction.
-
-The secret escape uses warm and black light to traverse different passages. Its map-version-5 checkpoint stores the route state; Keeper deaths return the player to the chamber entrance without discarding the investigation.
+- **Lantern escape:** taking the black lantern opens a side door into the same cemetery room as the vault entrance. Ghosts and zombies pursue the player back to the gate; there is no Keeper fight or lamp-switch maze.
 
 ### Midnight Delivery
 
 Fast top-down driving: accelerate, swerve, corner, brake, crash, collect candy, and reach delivery stops. Crashes cost time/candy but usually allow recovery. Streaks and cleaner routes reward replay.
 
-Its investigation route reveals an unmapped road, then a larger two-light network. An abandoned depot contains one parcel. A magic return path leads back into the real city; the player finds its post office and delivers the parcel. A postal railway chute carries it into Last Ride's projection room.
+Its investigation route reveals a dark, physical bridge on Rookhaven’s east side. The bridge leads to Gloaming, a haunted city with roaming ghost cars and three delivery addresses. Hitting a ghost car on its side destroys it and restores car condition; a ghost-car collision is less damaging and leaves the ghost intact. Completing the three deliveries earns the sealed railway parcel, which must be taken to Hollow’s North Street Post Office. Last Ride investigation remains unchanged for now.
 
 ### Last Ride
 
@@ -125,7 +129,7 @@ The seal is visible in the header and on machinery. Recognizing it connects the 
 
 ### 3. The black lantern
 
-The hidden vault wall closes behind the player. The small chamber contains the black lantern and nearby clues. The first interaction with the lamp reads and saves its warning; a second interaction takes it and awakens the Keeper.
+The hidden vault wall closes behind the player. The small chamber contains the black lantern and nearby clues. The first interaction with the lamp reads and saves its warning; a second interaction takes it and opens the side door.
 
 > This coal-black flame gives dead things might;
 > What sleeps below will wake tonight.
@@ -141,23 +145,9 @@ A rubbing and torn ledger are found elsewhere in the chamber. They are optional 
 
 The ghost claims the lamp was taken from its game to keep it weak. Its reaction should acknowledge the warning without disproving it.
 
-### 4. Keeper awakening and escape
+### 4. Lantern escape through the cemetery
 
-Taking the lamp awakens the physical, armored Keeper. The Keeper is not a ghost. A short cutscene shows it clawing up through the floor; the ghost appears in the foreground and reveals the hidden route. The Keeper pursues only along passages it can physically reach and telegraphs its close attacks. If caught, the player explicitly chooses whether to retry; accepting restores health, lamp fuel, and two flares.
-
-The exit ladder fails. The ghost opens a side gate:
-
-> The stair is gone; the gate is wide.
-> Come through before it looks inside.
-
-The player carries both lamps but burns only one at a time:
-
-| Lamp | Passages | Keeper |
-| --- | --- | --- |
-| Warm | Ordinary floor and pale bridges; shadow doors are closed | Slower, searching by sound |
-| Black | Shadow doors/bridges appear; pale bridges disappear | Stronger and attracted to the flame |
-
-Solid stone islands exist in both states. Swap there. Teach a safe shadow doorway, a pale bridge, then a route combining both. Passages hidden by the current light are entirely invisible; encourage deliberate exploration and switching. Switching off a phase-dependent bridge is refused rather than causing an unexpected fall or softlock. Failure restarts the extraction and preserves evidence.
+The Keeper fight, attack system, maze, and lamp-switch mechanic are removed. The ordinary lamp remains functional inside the chamber. Taking the black lantern opens a visible side door; going through returns the player to the same cemetery room as the vault entrance. Ghosts and zombies pour into the cemetery and pursue or intercept the player as they run back to the gate. The pressure should feel dangerous, but the route remains physically navigable. Escaping at the gate secures the lantern and advances the investigation.
 
 After escape, the black lantern appears on the main menu and the first cabinet connection breaks. Its glass can reflect the ghost.
 
@@ -172,29 +162,24 @@ Turning on the menu lamp exposes a shadow road running into the Midnight Deliver
 
 The explicit destination is **Hollow Lane — dead end**. The ghost suggests the switch if the player stalls, then identifies the game more directly. Selecting the receipt starts an investigation drive without the ordinary shift timer.
 
-### 6. Two finite-switch road puzzles
+### 6. The bridge to Gloaming
 
-Black headlights reveal a hidden eastbound bridge from Briarwick. Driving across it enters two linked, drivable causeways. Each is an irregular branching network with dead ends and multiple solver-verified routes; each allows **eight light swaps**. Gold roads require warm light and violet roads require black light. The depot is highlighted as the clear destination, the map remains visible while driving, and a swaps-remaining counter stays on the HUD. Wide road surfaces and stone islands make steering and swaps forgiving. Restarting resets only the current causeway.
+Black headlights reveal a normal-looking, dark bridge connected to the road network on Rookhaven’s eastern edge. It leads directly into Gloaming, a complete new city with multiple streets, buildings, and at least five ghost cars roaming in different areas. The bridge stays visible once revealed. There is no road-color puzzle or limited light-swap budget.
 
-> Where pale roads fade, let black roads gleam;
-> On stone alone exchange the beam.
-> Eight changes only: choose your way;
-> The shortest road may lead astray.
+In Gloaming, complete three distinct delivery handoffs to earn the sealed railway parcel. Ghost-car side impacts disintegrate the struck car and restore some car condition. A ghost-car collision with the player deals less damage and knockback than an ordinary crash, and the ghost car remains in traffic.
 
-The player sees all roads before choosing a route. Some necessary segments travel backward on screen. Dead-end branches create planning decisions and several valid routes require thoughtful swaps. Each authored map is checked for multiple simple start-to-goal routes within budget. Both road modes reverse in the second puzzle.
-
-The routes are driven in the world rather than solved as a separate tactical grid. The minimap fits the entire causeway; restarting never silently returns the player to the previous puzzle. Meaningless revisits do not count as distinct solutions; the implementation rejects loops in a submitted route.
+Wrecking the car resets all three delivery objectives. Offer a choice to restart from Hollow or resume at Gloaming’s entrance; either choice restarts the delivery count.
 
 ### 7. One package and the real post office
 
-The depot contains one sealed parcel addressed to the city post office. Its smaller stamp shows a projector and railway platform. No multi-parcel sorting puzzle.
+After all three Gloaming deliveries, the player receives one sealed parcel addressed to Hollow’s North Street Post Office. Its stamp shows a projector and railway platform. No multi-parcel sorting puzzle.
 
 > Where Last Ride ends and scores grow still,
 > The booth awaits beside the sill.
 > Let city post receive this load;
 > Its hidden chute completes the road.
 
-Taking it opens a green return path to the normal city. Find the post office on North Street, northeast of the map. The ghost supplies a street or direction hint if needed. Stop and deliver. The post office sends the parcel through a railway chute to the projection booth.
+Drive back through the bridge network to North Street Post Office in Hollow. The ghost supplies a street or direction hint if needed. Stop and deliver. The post office sends the parcel through a railway chute to the projection booth.
 
 The ghost gains radio speech and some navigation control. A second cabinet connection breaks. The next destination is explicitly Last Ride; no guessing what accepts the reel.
 
@@ -264,7 +249,7 @@ Opening evidence pauses active danger. Local saves happen immediately; signed-in
 
 Build order: **home screen → Firebase/casebook → three games → ghost investigation → validation/polish**.
 
-Required story order: **Last Ride contact → shadow → seal → lantern → escape → menu lamp → causeways → parcel → post office → film → projector → fourth game → ending**.
+Required story order: **Last Ride contact → shadow → seal → lantern → cemetery escape → menu lamp → Gloaming bridge → three deliveries → parcel → post office → film → projector → fourth game → ending**.
 
 Use Firebase callable transactions for protected progression and server release time. A verified admin token may playtest early. A URL parameter, browser clock, guessed answer, or edited player-save document must not grant trusted story progress. The local preview service uses the same validators in a development-only loopback session.
 
