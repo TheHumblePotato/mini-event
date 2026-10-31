@@ -96,3 +96,8 @@ html.site-corruption body.reduced-motion:before{animation:none;opacity:.38}
 
 .home-lantern .home-lantern-art{display:block;width:64px;height:85px}.home-lantern-art svg{width:100%;height:100%;filter:drop-shadow(0 0 12px #9870bd55)}
 .ending-takeover.released{background:#030104}.ending-takeover.released h1{color:#cf1825;text-shadow:0 0 35px #bd001c55}
+
+/* Keep every line readable on the pale paper, including modal paragraph overrides. */
+.paper-page :is(span,p,time),.paper-enlarged :is(span,p,time){color:#241b15;opacity:1}
+#paper-order-form :is(legend,label){color:#f2e6d5}
+.paper-order-row select,.paper-order-row option{color:#f2e6d5;background:#16121c}

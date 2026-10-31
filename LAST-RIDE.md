@@ -18,7 +18,7 @@ At the platform, the cart rolls beyond the results board. A smaller, fully frame
 
 After the Gloaming parcel is delivered to Hollow's post office, the ghost directs the player back to Last Ride. During the investigation run, the ghost explains that five papers were sent into the game. They begin spawning after the opening stretch and become progressively rarer, while hazards are more tightly spaced. The pages persist across attempts and assemble into one stack on the main menu. Their text and coherent puzzle remain to be authored; collecting all five unlocks the Fourth Game without an answer field.
 
-Last Ride is temporarily shown as **UNDER CONSTRUCTION** until October 31, 2026 at 4 PM Pacific. Admin testing remains available through the test bench.
+Last Ride is available from its October 31 release. Admin testing remains available through the test bench.
 
 ## Powers
 

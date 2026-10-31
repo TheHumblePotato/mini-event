@@ -1,6 +1,6 @@
-export function canLaunchGame({now,unlockAt=0,constructionUntil=0,authorized=false,preview=false,testMode=false}){
+export function canLaunchGame({now,unlockAt=0,authorized=false,preview=false,testMode=false}){
  if(authorized&&(preview||testMode))return true;
- return now>=unlockAt&&(!constructionUntil||now>=constructionUntil);
+ return now>=unlockAt;
 }
 
 export function shouldStartGraveInvestigation(stage){

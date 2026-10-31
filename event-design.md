@@ -199,7 +199,7 @@ The mirror illuminates with **NEVER FREE HIM**. The player runs from the room; t
 
 Restart clears local progress, casebook entries, items, scores, endings, and the signed-in player's cloud progress and personal leaderboard records.
 
-Last Ride is temporarily marked **UNDER CONSTRUCTION** until October 31, 2026 at 4 PM Pacific. Verified admins can still use the admin test bench.
+Last Ride is available from its October 31 release. Verified admins can use the admin test bench.
 
 ## Ghost hints and automatic saves
 

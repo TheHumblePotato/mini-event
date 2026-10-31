@@ -1,5 +1,4 @@
 export const RELEASE=Date.parse('2026-10-31T00:00:00-07:00');
-export const RIDE_CONSTRUCTION_UNTIL=Date.parse('2026-10-31T16:00:00-07:00');
 export const UNLOCKS={grave:Date.parse('2026-10-29T00:00:00-07:00'),delivery:Date.parse('2026-10-30T00:00:00-07:00'),ride:RELEASE};
 export const ORDER=['contact','key','seal','lantern','escape','menuLamp','road','package','delivered','papers','entered'];
 export const initial=()=>({version:1,stage:0,rideLetters:[],ridePapers:[],paperStackFound:false,paperOrder:[],paperPuzzleSolved:false,escapeDeaths:0,evidence:{},items:[],scores:{grave:0,delivery:0,ride:0,rideEndless:0},endings:[],prefs:{sound:true,motion:true},updatedAt:0});
