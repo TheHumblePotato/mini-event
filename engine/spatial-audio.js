@@ -36,6 +36,8 @@ export function createSpatialAudio(hooks={},range=750){let ctx,noise,master,list
  else if(kind==='lantern'){tone(180,.65,.1,'noise',0,360);tone(720,.38,.04,'sine',.08,1200)}
  else if(kind==='keeper'){tone(42,1.8,.22,'sawtooth',0,28);tone(63,1.5,.12,'triangle',.1,34);tone(180,.9,.09,'noise',.18,62)}
  else if(kind==='wail'){tone(260,1.1,.12,'sawtooth',0,68);tone(510,.8,.045,'sine',.04,210)}
+ else if(kind==='seal-close'){tone(48,1.5,.17,'sine',0,28);tone(180,.7,.1,'noise',0,55);[220,330,440].forEach((f,i)=>tone(f,2,.045,'sine',.5+i*.18))}
+ else if(kind==='deathcry'){tone(760,1.8,.18,'sawtooth',0,115);tone(1040,1.55,.1,'square',.08,155);tone(310,1.65,.16,'noise',.02,62);tone(68,1.8,.18,'sine',0,30)}
  else if(kind==='delivery'){[440,554,660,880].forEach((f,i)=>tone(f,.28,.07,'triangle',i*.07,f*1.12))}
  else if(kind==='wind')tone(80,2,.025,'noise');
  }

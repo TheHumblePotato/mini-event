@@ -183,7 +183,7 @@ The dispatch completion message is **“Package successfully sent!”** The play
 
 During the Last Ride run, gather five rare paper pickups. They begin spawning only after the player has traveled a while, and the investigation run is faster and more dangerous than an ordinary run.
 
-When all five are collected, they become one persistent paper stack. The stack appears on the main menu and can be reopened there. The paper text and coherent puzzle remain **to be authored**; do not invent them. Collecting all five unlocks the Fourth Game directly; no answer is required.
+When all five are collected, they become one persistent paper stack that can be reopened from the arcade menu. The pages are five station records recovered out of sequence. The player must sort them by their dispatch times, then identify the one incorrect letter in a misprinted word on each page. Reading those letters in chronological order spells **ALIVE**. A correct answer unlocks the Fourth Game; collecting the pages alone does not.
 
 ## Fourth game and final room
 

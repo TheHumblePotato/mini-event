@@ -1,13 +1,13 @@
 // The black-lamp ending, outside the game canvas: the real website breaks down, goes dark,
-// says GOOD CHOICE, and is then destroyed by the ghost. Purely visual and temporary:
+// ends on GOOD CHOICE. Purely visual and temporary:
 // every page change is recorded and restored by release() / abort().
 // Reduced-motion players get a calm variant: no strobing flashes, shaking or white-out.
 import {faceCanvas} from './ride-cutscene.js';
 
 // Timeline (seconds from start). The 3D chamber scene runs its own flicker/beam show for the first ~20s.
-const T_A=9,T_BLACK=20,T_GOOD=21.8,T_C=25.5;      // breakdown / blackout / GOOD CHOICE / takeover
+const T_A=9,T_BLACK=20,T_GOOD=21.8,T_C=25.5;      // breakdown / blackout / GOOD CHOICE / ending
 const C_WHITE=11.7,C_END=13.4;                      // takeover-relative: white-out, completion
-const FLASHES=[{at:1.0,d:.08},{at:1.75,d:.14},{at:2.5,d:.3}];
+const FLASHES=[{at:1.65,d:.42}];
 const FALLS=[[3.3,'.brand'],[3.7,'#sound-button'],[4.0,'#settings-button'],[4.3,'#casebook-button'],[4.6,'#account-button'],[5.6,'.game-toolbar'],[7.4,'.canvas-wrap'],[8.8,'.game-help'],[9.2,'.touch-controls'],[9.6,'#app'],[10,'.night-scene','fade'],[10,'.site-header','fade']];
 const CRACKS=[3.6,4.5,5.2,5.9,6.5,7.0,7.5,7.9,8.3,8.7,9.1,9.5,9.9,10.3];
 const LINES=[[4.0,'YOU LET ME OUT'],[6.3,'THANK YOU'],[8.3,'I CAN SEE YOU'],[10.1,'NOW IT IS MINE']];
@@ -39,7 +39,7 @@ function injectStyle(){if(document.getElementById('mx-style'))return;const s=doc
 
 // ---------- harsh synthesized audio (own AudioContext, honours the site sound toggle) ----------
 function makeAudio(enabled){
- const none={setLevel(){},silence(){},unmute(){},thud(){},scream(){},crack(){},stop(){}};
+ const none={setLevel(){},silence(){},unmute(){},thud(){},jump(){},scream(){},crack(){},stop(){}};
  if(!enabled())return none;
  let ctx;try{ctx=new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume()}catch{return none}
  const curve=new Float32Array(512);for(let i=0;i<512;i++)curve[i]=Math.tanh((i/256-1)*6);
@@ -57,13 +57,14 @@ function makeAudio(enabled){
  let muted=false;
  const noiseBurst=(dur,vol,hp)=>{const s=ctx.createBufferSource();s.buffer=buf;const f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=hp;const g=ctx.createGain(),n=ctx.currentTime;g.gain.setValueAtTime(vol,n);g.gain.exponentialRampToValueAtTime(.001,n+dur);s.connect(f);f.connect(g);g.connect(fx);s.start(n);s.stop(n+dur+.05)};
  const thud=(v=1)=>{const o=ctx.createOscillator(),g=ctx.createGain(),n=ctx.currentTime;o.type='sine';o.frequency.setValueAtTime(95,n);o.frequency.exponentialRampToValueAtTime(28,n+.55);g.gain.setValueAtTime(.9*v,n);g.gain.exponentialRampToValueAtTime(.001,n+.6);o.connect(g);g.connect(fx);o.start(n);o.stop(n+.65);noiseBurst(.18,.35*v,60)};
+ const jump=()=>{const n=ctx.currentTime;thud(1.35);noiseBurst(.58,.95,1050);for(const [type,start,end,volume,cutoff]of [['sawtooth',1180,105,.62,2600],['square',420,72,.38,1200]]){const o=ctx.createOscillator(),filter=ctx.createBiquadFilter(),g=ctx.createGain();filter.type='bandpass';filter.frequency.value=cutoff;filter.Q.value=.8;o.type=type;o.frequency.setValueAtTime(start,n);o.frequency.exponentialRampToValueAtTime(end,n+.58);g.gain.setValueAtTime(volume,n);g.gain.exponentialRampToValueAtTime(.001,n+.64);o.connect(filter);filter.connect(g);g.connect(fxShaper);o.start(n);o.stop(n+.68)}};
  return {
-  setLevel(l){if(muted)return;const n=ctx.currentTime,s=Math.max(0,l-.35)*.07;master.gain.setTargetAtTime(.5*Math.min(1,l*1.15),n,.05);body.g.gain.setTargetAtTime(.3+.7*l,n,.06);hiss.g.gain.setTargetAtTime(l*.5,n,.06);subG.gain.setTargetAtTime(l*.55,n,.1);sc.gain.setTargetAtTime(s,n,.1);lfoG.gain.setTargetAtTime(s*.8,n,.1);body.f.frequency.setTargetAtTime(400+Math.random()*3800,n,.03)},
+  setLevel(l){if(muted)return;const n=ctx.currentTime,s=Math.max(0,l-.35)*.07;master.gain.setTargetAtTime(.34*Math.min(1,l*1.15),n,.12);body.g.gain.setTargetAtTime(.3+.7*l,n,.06);hiss.g.gain.setTargetAtTime(l*.5,n,.06);subG.gain.setTargetAtTime(l*.55,n,.1);sc.gain.setTargetAtTime(s,n,.1);lfoG.gain.setTargetAtTime(s*.8,n,.1);body.f.frequency.setTargetAtTime(280+l*l*2400+Math.random()*300,n,.16)},
   silence(){muted=true;const n=ctx.currentTime;master.gain.cancelScheduledValues(n);master.gain.setValueAtTime(0,n)},
   unmute(){muted=false},
   thud,
   crack(){noiseBurst(.28,.7,1400);thud(.5)},
-  scream(d=1){const n=ctx.currentTime;for(const [type,mult] of [['sawtooth',1],['square',1.5]]){const o=ctx.createOscillator(),g=ctx.createGain(),vib=ctx.createOscillator(),vg=ctx.createGain();o.type=type;o.frequency.setValueAtTime(260*mult,n);o.frequency.linearRampToValueAtTime(1500*mult,n+d);vib.frequency.value=7;vg.gain.value=70;vib.connect(vg);vg.connect(o.frequency);g.gain.setValueAtTime(.38,n);g.gain.exponentialRampToValueAtTime(.001,n+d);o.connect(g);g.connect(fxShaper);o.start(n);vib.start(n);o.stop(n+d+.05);vib.stop(n+d+.05)}noiseBurst(d,.5,2500)},
+  jump,scream(d=1){const n=ctx.currentTime;for(const [type,mult] of [['sawtooth',1],['square',1.5]]){const o=ctx.createOscillator(),g=ctx.createGain(),vib=ctx.createOscillator(),vg=ctx.createGain();o.type=type;o.frequency.setValueAtTime(260*mult,n);o.frequency.linearRampToValueAtTime(1500*mult,n+d);vib.frequency.value=7;vg.gain.value=70;vib.connect(vg);vg.connect(o.frequency);g.gain.setValueAtTime(.38,n);g.gain.exponentialRampToValueAtTime(.001,n+d);o.connect(g);g.connect(fxShaper);o.start(n);vib.start(n);o.stop(n+d+.05);vib.stop(n+d+.05)}noiseBurst(d,.5,2500)},
   stop(){const n=ctx.currentTime;master.gain.cancelScheduledValues(n);master.gain.setTargetAtTime(0,n,.1);fx.gain.setTargetAtTime(0,n,.1);setTimeout(()=>ctx.close().catch(()=>{}),900)}
  };
 }
@@ -142,7 +143,7 @@ export function startMeltdown({soundEnabled=()=>true,motion=true,onComplete=()=>
  function phaseC(c,dt){
   if(c<3){ // black room, three jump-scare flashes of the face
    const fl=calm?null:FLASHES.find(f=>c>=f.at&&c<f.at+f.d);
-   if(fl){if(!fired.has(fl)){fired.add(fl);audio.thud(1);audio.scream(fl.d+.35);vibrate([fl.d*1000])}black.style.opacity=0;canvas.style.opacity=1;cx.fillStyle='#000';cx.fillRect(0,0,W,H);drawFace(2.1,rand(-8,8),rand(-8,8),1);staticOver(.3)}
+    if(fl){if(!fired.has(fl)){fired.add(fl);audio.jump();vibrate([90,45,520])}black.style.opacity=0;canvas.style.opacity=1;cx.fillStyle='#000';cx.fillRect(0,0,W,H);drawFace(3.05,rand(-15,15),rand(-13,13),1);staticOver(.48)}
    else{black.style.opacity=1;canvas.style.opacity=0}
    return;
   }
@@ -171,12 +172,12 @@ export function startMeltdown({soundEnabled=()=>true,motion=true,onComplete=()=>
  function step(dt){
   titleClock-=dt;if(t>T_A&&t<T_C+C_END&&titleClock<=0){titleClock=.12;document.title=corrupt('MIDNIGHT ARCADE · DO NOT LOOK',.35)}
   if(t<T_BLACK){audioClock-=dt;if(audioClock<=0){audioClock=.07;audio.setLevel(t<.6?0:t<T_A?.12+.43*(t-.6)/(T_A-.6):.55+.45*(t-T_A)/(T_BLACK-T_A))}}
-  if(t>=T_A&&t<T_BLACK)breakdown(dt);
+  if(t>=T_A&&t<T_BLACK){breakdown(dt);const beat=Math.floor((t-T_A)/(t<15?1.4:.85));if(!fired.has('beat-'+beat)){fired.add('beat-'+beat);audio.thud(.12+.16*(t-T_A)/(T_BLACK-T_A))}for(const at of [13,16.5,18.8])if(t>=at&&!fired.has(at)){fired.add(at);audio.crack()}}
   if(t>=T_BLACK&&!black1){black1=true;black.style.opacity=1;dark.style.opacity=0;audio.silence();for(const el of targets){remember(el);el.style.color='#b0101a'}reverts.length=0}
-  if(t>=T_GOOD&&!good){good=true;setText('on','GOOD CHOICE');audio.thud(1);vibrate([300])}
+  if(t>=T_GOOD&&!good){good=true;setText('on','GOOD CHOICE');audio.thud(.65);vibrate([300])}
   if(good&&!goodOff&&t<T_C){jitClock-=dt;if(jitClock<=0){jitClock=.15;if(!calm){text.classList.toggle('jit',Math.random()<.25);text.style.opacity=Math.random()<.08?'.2':'1'}}}
-  if(t>=T_C&&!goodOff){goodOff=true;text.style.opacity='';setText('','')}
-  if(t>=T_C)phaseC(t-T_C,dt);
+  if(t>=T_C&&!completed){completed=true;completeAt=t;text.style.opacity='1';text.classList.remove('jit');audio.silence();try{onComplete()}catch(e){console.error(e)}}
+  if(completed&&t-completeAt>9)api.release();
  }
  function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min(.1,(now-last)/1000);last=now;t+=dt;step(dt)}
 

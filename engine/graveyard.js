@@ -124,7 +124,7 @@ export function createGraveyard(canvas,input,hooks,options={}){
   function chaseLight(){return lampPower(fuel,lit&&(p.blindTime||0)<=0)}
  function compassTarget(){if(options.investigation&&compassMode==='treasure'){if(quest<=2)return KEY_DIG_SITE;if(quest===3)return hasKey?SECRET_DOOR:KEY_DIG_SITE;return entry}return compassMode==='exit'?entry:nearestTreasure(caches,p)||entry}
  function interact(){if(ended||pending)return;if(layer==='chamber'&&quest>=4&&near(SIDE_EXIT,82)){returnFromChamber();return}const dot=pointerDot;if(sealOpen&&dot!==null){connectDot(dot);return}if(layer==='cemetery'){
-  if(quest===1&&near(KEY_DIG_SITE,105)){event('key',{found:true}).then(ok=>{if(ok){audio.cue('key',p);whisper('The ghost pulls the compass needle toward the key. Press E again to uncover the burial mark.',6)}});return}
+  if(quest===1&&near(KEY_DIG_SITE,105)){event('key',{found:true}).then(ok=>{if(ok){audio.cue('seal',p);sealOpen=true;trace.clear();lastDot=null;whisper('',0)}});return}
   if(quest===2&&near(KEY_DIG_SITE,105)){sealOpen=true;trace.clear();lastDot=null;audio.cue('seal',p);return}
   if(quest===3&&!hasKey&&near(KEY_DIG_SITE,105)){hasKey=true;audio.cue('key',p);whisper('The seal releases a cold iron key. The compass turns toward the vault.',5);persistRun();return}
   if(quest===3&&near(SECRET_DOOR,115)){if(!hasKey){whisper('The hidden wall has no keyhole you can reach.',4);return}layer='chamber';doorClosed=true;p.x=700;p.y=850;cam.x=p.x-W/2;cam.y=p.y-H/2;compassMode='treasure';clue('cradle-location','“The lamp is there. They took it from my game.”');audio.cue('door',p);persistRun();return}

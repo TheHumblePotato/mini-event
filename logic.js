@@ -17,6 +17,7 @@ export function transition(current,action,p={},options={}){
  if(action==='package'&&p.deliveries!==3)throw Error('Complete all three Gloaming deliveries before taking the railway parcel.');
  if(action==='delivered'&&p.postOffice!==true)throw Error('Find the post office in the city.');
  if(action==='papers'&&p.pages!==5)throw Error('Gather all five papers before assembling the stack.');
+ if(action==='entered'&&p.puzzleSolved!==true)throw Error('Solve the paper-stack puzzle before entering the Fourth Game.');
  next.stage++;return next;
 }
 export const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));

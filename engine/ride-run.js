@@ -140,7 +140,7 @@ export function stepRide(s,input,dt){
   if(p.distance<old-4||p.distance>s.distance+range)continue;
   if(s.powers.magnet>0&&p.type==='coin'||Math.abs(s.lanePosition-trackOffset(p.lane,trackCountAt(p.distance)))<1.7)collectRide(s,p);
  }
- if(s.letters.size===5&&!s.contactMet&&s.distance>180){s.wordComplete=true;s.arriving=true}
+ if(s.letters.size===5&&!s.contactMet&&s.distance>180){s.wordComplete=true}
  s.rows=s.rows.filter(r=>r.distance>s.distance-30);
  s.pickups=s.pickups.filter(p=>p.distance>s.distance-30);
  return s.events;

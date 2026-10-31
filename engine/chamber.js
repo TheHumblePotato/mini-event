@@ -58,7 +58,7 @@ export function createChamber(canvas,input,hooks){
  canvas.parentElement.append(hud);
  const whisper=hud.querySelector('.world-whisper'),choices=hud.querySelector('.final-choices'),staticLayer=hud.querySelector('.ending-corruption'),fadeEl=hud.querySelector('.chamber-fade');
  camera.position.set(0,2.05,3);camera.lookAt(0,2.1,-15);
- let ending=null,endingTime=0,pending=false,reported=false,audioClock=0,handedOff=false,meltdown=null;
+ let ending=null,endingTime=0,pending=false,reported=false,audioClock=0,handedOff=false,meltdown=null,shatterPlayed=false;
  let beamSource=glass,baseLights=[],flickerables=[],flick=1,flickClock=0,cued=false,lastLine='';
  const hiddenUntil=new Map(),vA=new THREE.Vector3(),vB=new THREE.Vector3(),vD=new THREE.Vector3(),UP=new THREE.Vector3(0,1,0);
  const setLine=s=>{if(s!==lastLine){whisper.textContent=s;lastLine=s}};
@@ -131,17 +131,18 @@ export function createChamber(canvas,input,hooks){
  // NORMAL LAMP: the warm flame hits the mirror and the ghost burns away inside it. Then back to the menu.
  function containUpdate(dt){
   const t=endingTime;
-  cameraLight.intensity=damp(cameraLight.intensity,t<5?30:10,2,dt);
+  cameraLight.intensity=damp(cameraLight.intensity,t<1.6?18:t<5?32+Math.sin(t*37)*10:10,3,dt);
   const fadeOut=clamp(1-(t-4.4)/1.2,0,1);
   if(fadeOut>0){placeBeam(clamp((t-.4)/1.6,0,1),.22);beamCore.material.opacity=.95*fadeOut;beamGlow.material.opacity=.35*fadeOut}else beam.visible=false;
-  mirrorLight.intensity=damp(mirrorLight.intensity,t<4.4?(t>1.6?28+Math.sin(t*25)*5:6):0,3,dt);
-  mirrorMat.emissiveIntensity=damp(mirrorMat.emissiveIntensity,t<4.4?(t>1.6?3.5+Math.sin(t*30)*1.2:.8):.06,3,dt);
-  if(t<2)captive.material.opacity=.86*clamp(t,0,1);
-  else if(t<4.5){const u=(t-2)/2.5;captive.material.opacity=.86*(1-u);captive.material.color.setHex(0xff9a7a);captive.position.x=Math.sin(t*60)*.24*u;captive.scale.set(1+u*.35,1-u*.25,1)}
-  else captive.visible=false;
+  mirrorLight.intensity=damp(mirrorLight.intensity,t<4.4?(t>1.6?28+Math.sin(t*31)*9:6):0,3,dt);
+  mirrorMat.emissiveIntensity=damp(mirrorMat.emissiveIntensity,t<4.4?(t>1.6?3.5+Math.sin(t*34)*1.8:.8):.06,3,dt);
+  if(t<1.6)captive.material.opacity=.86*clamp(t,0,1);
+  else if(t<4.5){const u=(t-1.6)/2.9;captive.material.opacity=.86*(1-u);captive.material.color.setHex(Math.sin(t*24)>0?0xff634f:0xffb38a);captive.position.set(Math.sin(t*57)*.32*u,2.75+Math.sin(t*19)*.12*u,-15.6+Math.sin(t*41)*.08*u);captive.rotation.z=Math.sin(t*39)*.16*u;captive.scale.set(1+u*.42+Math.sin(t*33)*.08*u,1-u*.28,1)}
+  if(t>=1.6&&!cued){cued=true;audio.cue('deathcry',{x:0,y:-16},{volume:1,distance:70})}
+  if(t>=2.35&&!shatterPlayed){shatterPlayed=true;audio.cue('shatter',{x:0,y:-16},{volume:1,distance:70})}
+  if(t>=4.5&&captive.visible){captive.visible=false;audio.cue('seal-close',{x:0,y:-16},{volume:.9,distance:70})}
   for(const b of bits){const u=t-b.start;if(u<0||u>b.life){b.m.visible=false;continue}const k=u/b.life;b.m.visible=true;b.m.position.set(b.x+b.vx*u,b.y+b.vy*u,b.z+b.vz*u);b.m.material.opacity=1-k;b.m.material.color.setHSL(.62-.55*k,.9,.72);b.m.scale.setScalar(1-.5*k)}
-  if(t>=2&&!cued){cued=true;audio.cue('wail',{x:0,y:-16},{volume:.9});audio.cue('shatter',{x:0,y:-16},{volume:.8})}
-  setLine(t<2?'The mirror shows what it holds.':t>4.8?'The glass is quiet.':'');
+  setLine(t<1.6?'The mirror shows what it holds.':t<4.8?'The ghost cries out as the light tears through it.':'The glass is quiet.');
   fadeEl.style.opacity=String(clamp((t-6.2)/1.4,0,1));
   if(t>8)finish();
  }
