@@ -4,7 +4,7 @@ One endless run. There is no separate story/endless mode, no fixed finish distan
 
 ## Controls and recovery
 
-Arrows or A/D change tracks; Space jumps; Down/S ducks and can quick-land an airborne cart; Shift/B spends braking charge. Ducking has no time limit and does not slow the cart, but locks the cart to its current track until the player stands. A jump lasts about 0.94 seconds and accepts a short input buffer before landing. Track changes remain available in the air. The mine switches directly between three and five tracks; even track counts are never used. Later sections climb onto raised rails. Obstacles resolve once: a hit breaks/clears the obstacle, costs a chance and briefly slows the cart, but never rewinds or pins it against a wagon. Brief invulnerability prevents one row from draining every chance.
+Arrows or A/D change tracks; Space jumps; Down/S ducks and can quick-land an airborne cart; Shift/B spends braking charge. Ducking has no time limit and does not slow the cart, but locks the cart to its current track until the player stands. A jump lasts about 0.94 seconds and accepts a short input buffer before landing. Track changes remain available in the air. The mine switches directly between three and five tracks; even track counts are never used, and the five-track section stays level with the three-track section. Obstacles resolve once: a hit breaks/clears the obstacle, costs a chance and briefly slows the cart, but never rewinds or pins it against a wagon. Brief invulnerability prevents one row from draining every chance.
 
 The early mine combines hazards across three tracks. Later rows use the extra routes and become tighter as the cart speeds up. Authored patterns always offer either a clear lane or a jump/duck solution. Run seeds vary the sequence. Gold trails suggest routes and reward risky clearances.
 
@@ -13,6 +13,12 @@ The early mine combines hazards across three tracks. Later rows use the extra ro
 Rare solid, extruded letter pickups spell GHOST. The word display tracks discoveries. Letter discoveries persist across attempts and sync with ordinary player progress; distance, health, score and power timers do not. The fifth letter diverts the cart to the results platform and the ghost-writing cutscene. If the player leaves that scene, completing a short fresh approach with the already found word lets them return.
 
 At the platform, the cart rolls beyond the results board. A smaller, fully framed 3D ghost appears as the message arrives all at once; no writing hand or dripping effect is used. A paper poem flutters toward the camera. Intense static and a low drone accompany the scene. The contact transition records the poem in the casebook and starts the Grave Robber investigation. After contact, letters stop spawning and Last Ride remains endless.
+
+## The dispatched papers
+
+After the Gloaming parcel is delivered to Hollow's post office, the ghost directs the player back to Last Ride. During the investigation run, the ghost explains that five papers were sent into the game. They begin spawning after the opening stretch and become progressively rarer, while hazards are more tightly spaced. The pages persist across attempts and assemble into one stack on the main menu. Their text and coherent puzzle remain to be authored; collecting all five unlocks the Fourth Game without an answer field.
+
+Last Ride is temporarily shown as **UNDER CONSTRUCTION** until October 31, 2026 at 4 PM Pacific. Admin testing remains available through the test bench.
 
 ## Powers
 
@@ -29,4 +35,4 @@ Rider, tombstones, bones, cart and ghost use the same code-authored 3D palette a
 
 Spatial effects include wheel clatter, impacts, pickup chimes, distinct letter/power sounds, shield break, cave wind and echo. The cutscene adds intense static, a low drone, paper movement, doors and a final wail; no drip sound plays in that scene. The top-bar sound control governs them. The message bar only reports actual outcomes.
 
-The verified-admin test bench can inspect the key, seal, lantern, Keeper escape, other investigation segments, powers and arrival cutscene without saving scores or quest progress. The ordinary menu always creates a fresh simulation. Automated tests exercise the actual runner logic: three-to-five-track layouts, buffered jumps, unlimited speed-neutral ducking with lane lock, one-hit recovery, powers, letter completion/suppression and fresh attempts.
+The verified-admin test bench can inspect the key, seal, lantern escape, other investigation segments, paper hunt, powers and arrival cutscene without saving scores or quest progress. The ordinary menu always creates a fresh simulation. Automated tests exercise the actual runner logic: three-to-five-track layouts, buffered jumps, unlimited speed-neutral ducking with lane lock, one-hit recovery, powers, letter completion/suppression, paper drop eligibility and fresh attempts.

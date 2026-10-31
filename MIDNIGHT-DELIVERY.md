@@ -1,6 +1,12 @@
 # Midnight Delivery
 
-Three towns share a connected road network: crooked old Hollow, Briarwick with its roundabout and market streets, and haunted harbor Rookhaven. Blackwater Highway joins the first two. A wide coast road with gentle bends connects Briarwick to Rookhaven. A marsh causeway connects Hollow directly to Rookhaven, and a northern bridge supplies a second Hollow–Briarwick crossing. Short alleys, offset junctions, bends and dead ends demand braking and route choices.
+Three ordinary towns share a connected road network: crooked old Hollow, Briarwick with its roundabout and market streets, and haunted harbor Rookhaven. Blackwater Highway joins the first two. A wide coast road with gentle bends connects Briarwick to Rookhaven. A marsh causeway connects Hollow directly to Rookhaven, and a northern bridge supplies a second Hollow–Briarwick crossing. Short alleys, offset junctions, bends and dead ends demand braking and route choices.
+
+## Gloaming investigation
+
+After the player reaches Rookhaven's eastern edge, black headlights reveal a full-width physical highway bridge matching the other city bridges. It leads to Gloaming, an island city with a connected 6×6 orthogonal street grid and its own houses, shops and delivery stops. Complete three deliveries there to receive the railway parcel, then return to North Street Post Office in Hollow.
+
+Gloaming has a pool of twelve hostile ghost cars, with up to five active and spread across the city. Their pursuit and group pressure are stronger than Rookhaven's. A side or rear ram destroys a ghost car and restores condition; a ghost-car impact deals reduced damage and knockback, and the ghost remains in play. Minor evasion and disintegration events do not produce repetitive notifications.
 
 ## Shift and jobs
 
@@ -31,7 +37,7 @@ Buildings, boundary walls and bridge guardrails are physical. Compound car-body 
 
 Every closure affects **three connected streets**, with a five-second warning. Amber/red map lines mark the full route, and navigation recalculates a detour. Each pattern leaves every address reachable. A car already beside a new barricade can clear it before that barrier becomes solid. Pumpkin spills warn before rolling across ordinary-town junctions.
 
-Two ghost models alternate encounters, with only one active chase at a time. They form 90–155 units behind the player's travel direction, with a two-second harmless appearance and an audio warning. Ghosts now refresh their route more often and turn more responsively to follow the player. A longer flank warning and recovery window, slower committed ram, reduced knockback and 16-point base condition damage before vehicle resistance make impacts less punishing; breaking sight or outrunning them still ends the chase.
+Two ghost models alternate encounters in Rookhaven, with only one active chase at a time. They form 90–155 units behind the player's travel direction, with a two-second harmless appearance and an audio warning. Ghosts now refresh their route more often and turn more responsively to follow the player. A longer flank warning and recovery window, slower committed ram, reduced knockback and 16-point base condition damage before vehicle resistance make impacts less punishing; breaking sight or outrunning them still ends the chase.
 
 Chasers approach from behind, steer with a limited turn rate and move alongside before signaling a side ram. Flashing lights and a horn warn for about one second. The ram follows its committed trajectory, so braking or turning can make it miss. Five seconds without sight, a lead of 215 units, or leaving the city/connecting roads ends the chase. Encounters also expire rather than following forever.
 
@@ -43,7 +49,7 @@ All scenery is code-authored with the existing stylized palette and pixel-filter
 
 Directional sound includes engine, tires, horns, collisions, bells, handoffs, wind and ghost encounters. The top-bar SOUND ON/OFF button is the only sound control; directional effects have no separate opt-in. New profiles default to sound on. Audio pauses with maps, dialogs and hidden tabs.
 
-The missing-road entry, lamp-road puzzles and fixed post-office parcel route remain. Investigation runs are untimed. The private tests/drive-playtest.html fixture exercises the real delivery engine with deterministic seeds/start points, a background-compatible clock and no score posting; the preview server keeps tests private. Remove any temporary engine copy after QA.
+Investigation runs are untimed. The private tests/drive-playtest.html fixture exercises the real delivery engine with deterministic seeds/start points, a background-compatible clock and no score posting; the preview server keeps tests private. Remove any temporary engine copy after QA.
 
 ## Fullscreen and controls
 

@@ -1,8 +1,9 @@
 import {PALETTE as P} from './pixel-art.js';
+import {playerLampActorAnchor} from './expedition-light.js';
 // Articulated pixel silhouettes: limbs animate independently of the body.
-export function drawActor(c,e,t,{player=false,dig=0,hurt=0}={}){
+export function drawActor(c,e,t,{player=false,dig=0,hurt=0,lampLit=true,blackLamp=false}={}){
  c.save();c.translate(Math.round(e.x),Math.round(e.y));c.scale(2,2);c.imageSmoothingEnabled=false;
- const phase=e.step||0,walk=Math.sin(phase),stride=Math.min(1,e.moving===false?0:1),ghost=e.type==='hunter'||e.type==='interceptor',attack=e.attack||0;
+ const phase=e.step||0,walk=Math.sin(phase),stride=Math.min(1,e.moving===false?0:1),ghost=e.type==='hunter'||e.type==='interceptor'||e.type==='snatcher',attack=e.attack||0;
  const rect=(x,y,w,h,color)=>{c.fillStyle=color;c.fillRect(Math.round(x),Math.round(y),w,h)};
  const limb=(x,y,angle,w,h,color)=>{c.save();c.translate(x,y);c.rotate(angle);rect(-w/2,0,w,h,color);c.restore()};
  c.fillStyle='#00000055';c.beginPath();c.ellipse(0,0,player?12:16,4,0,0,7);c.fill();
@@ -11,7 +12,7 @@ export function drawActor(c,e,t,{player=false,dig=0,hurt=0}={}){
  const lean=e.state==='charging'?.16:attack>0?Math.sin(attack*6)*.13:walk*.025*stride;
  c.rotate(lean);if(e.state==='winding'){c.scale(1.04,.92);c.rotate(Math.sin(t*20)*.015)}
  if(ghost){
-  c.translate(0,Math.sin(t*2+e.id)*2);const robe=e.type==='interceptor'?'#69627d':'#4b526b';
+  c.translate(0,Math.sin(t*2+e.id)*2);const robe=e.type==='snatcher'?'#674255':e.type==='interceptor'?'#69627d':'#4b526b';
   for(let i=-10;i<=10;i+=4){rect(i,-28+Math.abs(i)*.2,4,22+Math.sin(t*4+i)*3,robe);rect(i,-18,2,8,P.shadow)}
   limb(-11,-30,-.6+Math.sin(t*3)*.2,4,16,'#88869f');limb(11,-30,.6-Math.sin(t*3)*.2,4,16,'#88869f');
   rect(-9,-43,18,18,P.ink);rect(-6,-40,12,14,e.surge>0?'#ba858e':'#9293a1');rect(-5,-35,4,4,P.ink);rect(2,-35,4,4,P.ink);rect(-4,-34,2,2,P.violet);rect(3,-34,2,2,P.violet);rect(-2,-28,4,3,P.shadow);
@@ -30,11 +31,19 @@ export function drawActor(c,e,t,{player=false,dig=0,hurt=0}={}){
   rect(-7,-43,14,12,skin);const back=player&&Math.sin(e.face||0)<-.6,side=Math.cos(e.face||0)>0?1:-1;
   if(!back){rect(side>0?1:-5,-39,3,2,P.ink);rect(side>0?5:-8,-36,3,3,skin)}
   if(player){rect(-13,-45,26,4,P.ink);rect(-8,-55,16,11,P.shadow);rect(-7,-53,2,8,P.edge);rect(-9,-22,15,8,P.woodLight);rect(-6,-20,9,4,P.wood);
-   c.save();c.translate(15,-16+walk*2*stride);c.rotate(walk*.12);rect(-4,0,8,12,P.ink);rect(-2,3,4,6,P.gold);rect(-1,4,2,4,P.flame);c.restore();
    if(dig>0){c.save();c.translate(-12,-25);c.rotate(-1.8+Math.sin(dig/.22*Math.PI)*2.3);rect(-1,-22,2,30,P.woodLight);rect(-4,-27,8,9,P.edge);c.restore()}
+   const anchor=playerLampActorAnchor(e,lean);c.save();c.translate(anchor.x,anchor.y);c.scale(.5,.5);drawCarriedLamp(c,{x:0,y:0},{lit:e.lampLit??lampLit,black:e.blackLamp??blackLamp});c.restore();
   }else if(heavy){rect(-16,-34,9,10,P.stone);rect(7,-34,9,10,P.stone);rect(-10,-26,20,4,P.edge);rect(-6,-46,12,4,P.stone);rect(-6,-39,4,3,e.state==='winding'&&Math.sin(t*18)>0?'#ffe1a0':'#d16b58');rect(3,-39,4,3,e.state==='winding'&&Math.sin(t*18)>0?'#ffe1a0':'#d16b58');rect(-3,-33,6,3,P.ink)}
   else{rect(-5,-39,3,3,P.ink);rect(3,-39,3,3,P.ink);rect(-4,-33,8,2,'#464239');rect(-5,-28,10,3,'#727467')}
  }
+ c.restore();
+}
+export function drawCarriedLamp(c,position,{lit=true,black=false}={}){
+ c.save();c.translate(Math.round(position.x),Math.round(position.y));
+ c.fillStyle='#100e12';c.fillRect(-6,-10,12,18);c.fillRect(-3,-14,6,4);c.fillRect(-2,8,4,3);
+ c.strokeStyle=black?'#09090d':'#a58c64';c.lineWidth=2;c.strokeRect(-6,-10,12,18);
+ c.fillStyle=black?'#17151e':'#c6a066';c.fillRect(-3,-7,6,10);
+ if(lit){c.fillStyle=black?'#9d83d0':'#f3c878';c.fillRect(-1,-5,2,6);c.fillStyle=black?'#7960ba':'#ffd98a';c.fillRect(-1,-5,2,2)}
  c.restore();
 }
 export function drawAttackWarning(c,e){

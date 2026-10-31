@@ -1,23 +1,97 @@
 import {createSpatialAudio} from './spatial-audio.js';
-import {THREE,createStage,material,box,cylinder,lantern,spirit,planeText,textTexture} from './visuals.js';
+import {THREE,createStage,material,box,lantern,spirit,planeText} from './visuals.js';
 import {damp} from './physics.js';
-import {BINDING} from '../logic.js';
+
 export function createChamber(canvas,input,hooks){
- const stage=createStage(canvas,{fog:0x080811,near:20,far:65}),{scene,camera,renderer}=stage,audio=createSpatialAudio(hooks,55);let audioClock=0;
- const stone=material(0x8d7f8d,'stone'),iron=material(0x797080,null,{metalness:.65,roughness:.45});box(scene,0,-.4,-2,28,.8,26,stone);box(scene,0,6,-13,28,12,1,stone);for(const x of [-13,13])box(scene,x,6,-2,1,12,25,stone);for(const x of [-10,-5,5,10]){cylinder(scene,x,4,-11,.65,.8,8,stone,12);box(scene,x,8.5,-11,2,.5,2,stone)}
- const captive=spirit(scene,0,.2,-7,7);const chains=new THREE.Group();for(const side of [-1,1])for(let n=0;n<20;n++){const link=new THREE.Mesh(new THREE.TorusGeometry(.13,.035,5,10),iron);link.position.set(side*(1.4+n*.17),4+n*.23,-7-n*.2);link.rotation.y=n%2?Math.PI/2:0;chains.add(link)}scene.add(chains);
- const frame=material(0x866e4e,null,{metalness:.6});for(const x of [4,8])box(scene,x,4,-7,.3,8,.4,frame);box(scene,6,8,-7,4.4,.3,.5,frame);box(scene,6,.15,-7,4.4,.3,.5,frame);const mirrorMat=new THREE.MeshStandardMaterial({color:0x171323,metalness:.9,roughness:.13,emissive:0x9b78bc,emissiveIntensity:0});const mirror=new THREE.Mesh(new THREE.PlaneGeometry(3.8,7.5),mirrorMat);mirror.position.set(6,4,-6.75);scene.add(mirror);const image=textTexture('MIDNIGHT\nARCADE',{font:'bold 70px Georgia',bg:'#242638',color:'#d3b68a'});const reflection=new THREE.Mesh(new THREE.PlaneGeometry(3.7,7.4),new THREE.MeshBasicMaterial({map:image,transparent:true,opacity:0}));reflection.position.set(6,4,-6.72);scene.add(reflection);
- cylinder(scene,-3,1.1,0,.15,.5,2.2,iron);const mount=lantern(scene,-3,2.4,0,0xac80cd),light=new THREE.SpotLight(0xb08ad6,0,30,.3,.4,1.4),target=new THREE.Object3D();light.position.set(-3,2.4,0);light.castShadow=true;light.shadow.mapSize.set(1024,1024);light.target=target;scene.add(light,target);const panel=planeText(scene,'◉  ♨  ▯',-5,3.2,-12.3,5,2,{font:'bold 100px Georgia',bg:'#17121d',color:'#c7a987'});panel.visible=false;
- lantern(scene,-10,4,-5,0xaa7443);lantern(scene,10,4,-5,0x8b76ad);const ambience=new THREE.PointLight(0x836b9e,30,30);ambience.position.set(0,7,0);scene.add(ambience);
- let lit=false,aim='floor',pending=false,beamTime=0,ending=null,endingTime=0,entered=false,symbols=['open-eye','up-flame','open-door'];
- const hud=document.createElement('div');hud.className='world-hud chamber-hud';canvas.parentElement.append(hud);hud.innerHTML='<div class="hud-top"><span>THE FOURTH GAME</span><span>THE RETURN CHAMBER</span></div><div class="world-whisper">“Bring the lamp. Put it here.”</div><div class="chamber-controls"><button data-aim="figure">A · AIM AT FIGURE</button><button data-aim="mirror">D · AIM AT GLASS</button><button id="chamber-light">E · LIGHT</button></div><div class="binding-panel" hidden><button data-binding="0">OPEN EYE</button><button data-binding="1">UPWARD FLAME</button><button data-binding="2">OPEN DOORWAY</button><button id="chamber-latch">CLOSE LATCH</button></div><div class="cinema-bars"></div>';const text=hud.querySelector('.world-whisper'),controls=hud.querySelector('.chamber-controls'),bindings=hud.querySelector('.binding-panel');controls.style.pointerEvents=bindings.style.pointerEvents='auto';
- controls.querySelectorAll('[data-aim]').forEach(b=>b.onclick=()=>{aim=b.dataset.aim});hud.querySelector('#chamber-light').onclick=ignite;bindings.querySelectorAll('[data-binding]').forEach(b=>b.onclick=()=>{const n=Number(b.dataset.binding),sets=[['open-eye','closed-eye'],['up-flame','down-flame'],['open-door','barred-door']];symbols[n]=sets[n].find(s=>s!==symbols[n]);b.textContent=symbols[n].replaceAll('-',' ').toUpperCase()});hud.querySelector('#chamber-latch').onclick=close;
- async function ignite(){if(pending||ending)return;if(!entered){pending=true;try{await hooks.onStory('entered');entered=true}catch(e){hooks.toast(e.message);return}finally{pending=false}}lit=!lit;audio.cue('flare',{x:-3,y:0},{volume:.5});hud.querySelector('#chamber-light').textContent=lit?'E · EXTINGUISH':'E · LIGHT';if(lit)text.textContent='“Turn the flame toward the glass;\nLight the road and let me pass.”'}
- function close(){if(JSON.stringify(symbols)!==JSON.stringify(BINDING)){text.textContent='The mechanism catches. The service card has the old positions.';return}ending='contain';text.textContent='“That is not the door.”';controls.hidden=bindings.hidden=true}
- const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();camera.position.set(-1,6,13);camera.lookAt(0,3,-5);
- return {audio:true,unlockAudio:()=>audio.unlock(),title:'The Fourth Game',intro:'The restored cabinet opens onto the room from the recording. The figure waits between the black lamp and the glass. Your casebook is still with you.',help:'Click the lamp, figure or mirror · A / D aim · E light · Use the shadow panel if revealed',buttons:[['KeyA','AIM AT FIGURE'],['KeyD','AIM AT GLASS'],['KeyE','LIGHT']],
- pointer(type,x,y){if(type!=='down')return;mouse.set(x/1280*2-1,-y/720*2+1);ray.setFromCamera(mouse,camera);const hit=ray.intersectObjects([mirror,captive,...mount.children],true)[0];if(!hit)return;if(hit.object===mirror)aim='mirror';else if(hit.object===captive)aim='figure';else ignite()},
- update(dt,t){audio.unlock();audio.update({x:camera.position.x,y:camera.position.z,angle:0},dt);audioClock-=dt;if(audioClock<=0){audio.cue(ending?'ghost':'wind',{x:captive.position.x,y:captive.position.z},{volume:.55});audioClock=ending?2:8}if(ending){endingTime+=dt;hud.classList.add('cinematic');if(ending==='release'){captive.position.x=damp(captive.position.x,6,1.1,dt);captive.position.z=damp(captive.position.z,-6.5,1.1,dt);reflection.material.opacity=Math.min(1,endingTime/2);camera.position.z=damp(camera.position.z,-1,1,dt);camera.lookAt(6,3,-7)}else{captive.scale.setScalar(Math.max(.02,1-endingTime/5));light.intensity=Math.max(0,65-endingTime*13);mirrorMat.emissiveIntensity=0;chains.rotation.z=Math.sin(endingTime*9)*.008}if(endingTime>6){hooks.onEnd({won:true,score:0,ending,binding:symbols,message:'The chamber answers.'});endingTime=-999}return}if(input.tap('KeyA','ArrowLeft'))aim='figure';if(input.tap('KeyD','ArrowRight'))aim='mirror';if(input.tap('KeyE'))ignite();const targetPos=aim==='mirror'?new THREE.Vector3(6,4,-7):aim==='figure'?new THREE.Vector3(0,3,-7):new THREE.Vector3(-3,0,-3);target.position.lerp(targetPos,1-Math.exp(-dt*6));light.intensity=damp(light.intensity,lit?65:0,5,dt);captive.position.y=3.7+Math.sin(t*1.7)*.12;captive.lookAt(camera.position);if(lit&&aim==='figure'){panel.visible=true;bindings.hidden=false;text.textContent='“Not there. Turn it back.”';beamTime=0;captive.material.opacity=.95}else{bindings.hidden=true;panel.visible=false;if(lit&&aim==='mirror'){beamTime+=dt;reflection.material.opacity=Math.min(.85,beamTime/3);mirrorMat.emissiveIntensity=beamTime*.3;if(beamTime>4){ending='release';controls.hidden=true}}else{beamTime=0;reflection.material.opacity=damp(reflection.material.opacity,0,3,dt);mirrorMat.emissiveIntensity=0}}},
- draw(){renderer.render(scene,camera)},destroy(){audio.destroy();hud.remove();stage.dispose()}
+ const stage=createStage(canvas,{fog:0x07070d,near:18,far:58}),{scene,camera,renderer}=stage,audio=createSpatialAudio(hooks,50);
+ const stone=material(0x47434d,'stone'),iron=material(0x24212b,null,{metalness:.7,roughness:.36}),wood=material(0x30252a,'wood');
+ box(scene,0,-.35,-4,20,.7,34,stone);
+ box(scene,0,4,-20,20,8,.7,stone);
+ box(scene,-10,4,-4,.7,8,33,stone);box(scene,10,4,-4,.7,8,33,stone);
+ box(scene,0,8,-4,20,.6,34,stone);
+ for(let z=8;z>-19;z-=5){box(scene,-9.6,4,z,.15,8,.3,wood);box(scene,9.6,4,z,.15,8,.3,wood)}
+ for(const x of [-7,7])for(const z of [-17,-10,-3,4]){box(scene,x,3.8,z,.32,7.6,.4,iron);box(scene,x,7.7,z,.7,.25,.7,wood)}
+
+ const mirrorFrame=material(0x6e5544,null,{metalness:.55,roughness:.38});
+ for(const x of [-3.4,3.4])box(scene,x,3.2,-17.5,.3,6.6,.5,mirrorFrame);
+ for(const y of [.05,6.4])box(scene,0,y,-17.5,6.9,.3,.5,mirrorFrame);
+ const mirrorMat=new THREE.MeshStandardMaterial({color:0x101018,metalness:.86,roughness:.12,emissive:0x351b49,emissiveIntensity:.08});
+ const mirror=new THREE.Mesh(new THREE.PlaneGeometry(6.5,6.1),mirrorMat);mirror.position.set(0,3.25,-17.22);scene.add(mirror);
+ const warning=planeText(scene,'NEVER FREE HIM',0,3.2,-17.12,5.8,1.1,{font:'bold 76px Georgia',bg:'#180d14',color:'#e4cbb7'});warning.visible=false;
+ const captive=spirit(scene,0,.1,-15.8,5.1);captive.position.set(0,.1,-15.8);captive.material.transparent=true;captive.material.opacity=.86;
+ const chainGroup=new THREE.Group();scene.add(chainGroup);
+ for(const side of [-1,1])for(let n=0;n<13;n++){const link=box(chainGroup,side*(.8+n*.13),1+n*.29,-15.2-n*.08,.09,.38,.09,iron,false);link.rotation.z=(n%2?1:-1)*.35}
+ const ambience=new THREE.PointLight(0x342c49,9,38);ambience.position.set(0,6,-5);scene.add(ambience);
+ const mirrorLight=new THREE.PointLight(0x642e83,0,22);mirrorLight.position.set(0,3.2,-15);scene.add(mirrorLight);
+ const cameraLight=new THREE.SpotLight(0x9b70cb,0,24,.34,.45,1.3);cameraLight.position.set(.56,-.12,-1.15);camera.add(cameraLight);
+ const lightTarget=new THREE.Object3D();lightTarget.position.set(0,0,-16);camera.add(lightTarget);cameraLight.target=lightTarget;
+ const heldLamp=new THREE.Group();camera.add(heldLamp);heldLamp.position.set(.57,-.19,-1.25);
+ const handheld=lantern(heldLamp,0,0,0,0x171323);handheld.scale.setScalar(.83);
+ const glass=new THREE.Mesh(new THREE.BoxGeometry(.2,.3,.2),new THREE.MeshBasicMaterial({color:0x6c4a99}));
+ handheld.add(glass);glass.position.set(0,0,0);
+ const sleeve=material(0x211c28,'wood'),skin=material(0x9d8374);
+ box(heldLamp,.02,-.48,.13,.29,.45,.48,sleeve,false);box(heldLamp,.02,-.24,-.02,.22,.21,.23,skin,false);
+ const normalLamp=lantern(heldLamp,-.58,-.12,-1.23,0xa76539);normalLamp.scale.setScalar(.56);normalLamp.visible=false;
+
+ const sparks=Array.from({length:28},()=>{const mesh=new THREE.Mesh(new THREE.SphereGeometry(.055,6,6),new THREE.MeshBasicMaterial({color:0xb88bff,transparent:true,opacity:.85}));scene.add(mesh);mesh.visible=false;return mesh});
+ const hud=document.createElement('div');hud.className='world-hud chamber-hud final-chamber';
+ hud.innerHTML='<div class="hud-top"><span>THE FOURTH GAME</span><span>THE RETURN CHAMBER</span></div><p class="world-whisper">“You brought it back. The mirror is listening. Choose which flame you trust.”</p><div class="final-choices"><button id="light-black" class="final-choice">LIGHT THE BLACK LAMP</button><button id="light-normal" class="final-choice">LIGHT THE NORMAL LAMP</button></div><div class="ending-corruption" aria-hidden="true"></div>';
+ canvas.parentElement.append(hud);
+ const whisper=hud.querySelector('.world-whisper'),choices=hud.querySelector('.final-choices'),staticLayer=hud.querySelector('.ending-corruption');
+ camera.position.set(0,1.65,7.5);camera.lookAt(0,1.65,-15);
+ let ending=null,endingTime=0,pending=false,reported=false,audioClock=0;
+ async function choose(kind){
+  if(pending||ending)return;
+  pending=true;
+  try{await hooks.onStory('entered');}
+  catch(error){hooks.toast(error.message);pending=false;return}
+  ending=kind;endingTime=0;choices.hidden=true;hud.classList.add('cinematic');
+  cameraLight.color.setHex(kind==='release'?0x9b70cb:0xf2bd79);
+  cameraLight.intensity=kind==='release'?0:0;
+  normalLamp.visible=kind==='contain';
+  glass.material.color.setHex(kind==='release'?0x9d70e4:0xffc36c);
+  audio.cue(kind==='release'?'ghost':'lantern',{x:0,y:-15},{volume:.85});
+  if(kind==='release')audio.horrorBed(true,{intensity:.92});
+  if(kind==='contain'){
+   whisper.textContent='The mirror catches the warmer flame. The words appear.';
+   warning.visible=true;mirrorLight.color.setHex(0xd44b4e);mirrorLight.intensity=8;
+   mirrorMat.emissive.setHex(0xa63038);mirrorMat.emissiveIntensity=1.5;
+  }else{
+   whisper.textContent='The black flame pours into the mirror. Something is coming through.';
+   sparks.forEach(mesh=>mesh.visible=true);
+   mirrorLight.color.setHex(0x9c5bea);mirrorLight.intensity=0;
+   mirrorMat.emissive.setHex(0x8c4acb);mirrorMat.emissiveIntensity=.1;
+  }
+ }
+ hud.querySelector('#light-black').onclick=()=>choose('release');
+ hud.querySelector('#light-normal').onclick=()=>choose('contain');
+ function finish(){if(reported)return;reported=true;hooks.onEnd({won:true,score:0,ending})}
+ return {audio:true,unlockAudio:()=>audio.unlock(),title:'The Fourth Game',intro:'The five pages brought you back to the mirror. The ghost waits beside the black lamp. Choose which flame to light.',help:'Choose with the on-screen buttons · B: black lamp · N: normal lamp',buttons:[['KeyB','LIGHT BLACK LAMP'],['KeyN','LIGHT NORMAL LAMP']],
+  update(dt,t){
+   audio.unlock();audio.update({x:camera.position.x,y:camera.position.z,angle:0},dt);audioClock-=dt;
+   if(audioClock<=0){if(ending!=='release')audio.cue('wind',{x:0,y:-15},{volume:.4});audioClock=ending==='release'?5:6}
+   if(!ending){if(input.tap('KeyB'))choose('release');if(input.tap('KeyN'))choose('contain');return}
+   endingTime+=dt;
+   if(ending==='release'){
+    cameraLight.intensity=damp(cameraLight.intensity,55,2.1,dt);
+    mirrorLight.intensity=damp(mirrorLight.intensity,70,1.8,dt);
+    mirrorMat.emissiveIntensity=damp(mirrorMat.emissiveIntensity,3.5,1.5,dt);
+    chainGroup.rotation.x=Math.sin(endingTime*18)*Math.min(.5,endingTime*.05);
+    const from=new THREE.Vector3();camera.getWorldPosition(from);from.add(new THREE.Vector3(.57,-.2,-1.5).applyQuaternion(camera.quaternion));
+    const to=new THREE.Vector3(0,3.1,-17.05);
+    sparks.forEach((mesh,i)=>{const u=(endingTime*.42+i/sparks.length)%1;mesh.position.lerpVectors(from,to,u);mesh.scale.setScalar(.7+Math.sin(endingTime*13+i)*.3)});
+    if(endingTime>1.8){captive.visible=true;captive.position.x=damp(captive.position.x,0,1.1,dt);captive.position.z=damp(captive.position.z,3.1,1.1,dt);captive.scale.setScalar(1+Math.min(1.5,(endingTime-1.8)*.16));captive.material.opacity=Math.min(1,.7+(endingTime-1.8)*.12)}
+    if(endingTime>4){staticLayer.style.opacity=String(Math.min(1,(endingTime-4)/2.2));}
+    if(endingTime>7.5){staticLayer.classList.add('pure');whisper.textContent='';}
+    if(endingTime>9.2)finish();
+   }else{
+    cameraLight.intensity=damp(cameraLight.intensity,34,2,dt);mirrorLight.intensity=damp(mirrorLight.intensity,0,2.8,dt);
+    if(endingTime>1.3){camera.position.z=damp(camera.position.z,22,1.1,dt);camera.position.y=1.65+Math.sin(endingTime*8)*.07;camera.lookAt(0,1.65,-16)}
+    if(endingTime>3.2)whisper.textContent='“I can wait.”';
+    if(endingTime>6.1)finish();
+   }
+  },
+  draw(){renderer.render(scene,camera)},
+  destroy(){audio.destroy();hud.remove();stage.dispose()}
  };
 }

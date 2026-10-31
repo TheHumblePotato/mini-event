@@ -3,11 +3,12 @@ import {clamp,rng} from './physics.js';
 export const WORD='GHOST';
 export const JUMP_SECONDS=.94;
 export const LOOP=1800;
+export const PAPER_DROP_CHANCES=[.08,.065,.05,.04,.03];
+export const PAPER_DROP_MISSES=[8,10,12,16,20];
 
 export function trackCountAt(distance){
  return ((distance%LOOP)+LOOP)%LOOP<600?3:5;
 }
-
 export function trackHeight(lane,count){
  const heights=count===5?[0,0,0,0,0]:[0,0,0],low=Math.floor(lane),high=Math.ceil(lane);
  return (heights[low]||0)+((heights[high]||0)-(heights[low]||0))*(lane-low);
@@ -19,9 +20,10 @@ export function darkness(d){const p=d%1500;return p<900?0:p<1000?(p-900)/100:p<1
 const smoothstep=t=>{t=clamp(t,0,1);return t*t*(3-2*t)};
 export function fogIntensity(distance){const phase=((distance%1800)+1800)%1800;return smoothstep((phase-220)/460)*(1-smoothstep((phase-960)/420))}
 
-export function newRideRun({seed=1,letters=[],contactMet=false,startDistance=0}={}){
+export function newRideRun({seed=1,letters=[],contactMet=false,startDistance=0,paperHunt=false,papers=[]}={}){
  const trackCount=trackCountAt(startDistance),lane=clamp(Math.round((trackCount-1)/2),0,trackCount-1);
- return {random:rng(seed),distance:startDistance,speed:29,lane,lanePosition:trackOffset(lane,trackCount),trackCount,jump:0,jumpAge:-1,jumpBuffer:0,duck:0,duckTime:0,health:3,score:0,combo:1,invulnerable:0,stumble:0,brake:100,powers:{shield:0,magnet:0,double:0,turbo:0,phase:0},nextMilestone:Math.ceil((startDistance+1)/500)*500,isDark:darkness(startDistance)>.5,letters:new Set(letters.filter(l=>WORD.includes(l))),contactMet,rows:[],pickups:[],nextRow:startDistance+56,nextPower:startDistance+150,nextLetter:startDistance+600,sequence:0,patternOffset:Math.abs(seed)%97,letterMisses:0,wordComplete:false,arriving:false,events:[],dead:false};
+ const savedPapers=(Array.isArray(papers)?papers:[]).filter(page=>Number.isInteger(page)&&page>=0&&page<5);
+ return {random:rng(seed),distance:startDistance,speed:29,lane,lanePosition:trackOffset(lane,trackCount),trackCount,jump:0,jumpAge:-1,jumpBuffer:0,duck:0,duckTime:0,health:3,score:0,combo:1,invulnerable:0,stumble:0,brake:100,powers:{shield:0,magnet:0,double:0,turbo:0,phase:0},nextMilestone:Math.ceil((startDistance+1)/500)*500,isDark:darkness(startDistance)>.5,letters:new Set(letters.filter(l=>WORD.includes(l))),contactMet,paperHunt,papers:new Set(savedPapers),paperStackReady:savedPapers.length===5,paperIntroShown:false,rows:[],pickups:[],nextRow:startDistance+56,nextPower:startDistance+150,nextLetter:startDistance+600,nextPaper:startDistance+600,paperMisses:0,sequence:0,patternOffset:Math.abs(seed)%97,letterMisses:0,wordComplete:false,arriving:false,events:[],dead:false};
 }
 
 export function runPattern(sequence,distance){
@@ -50,6 +52,7 @@ export function collectRide(s,p){
  const mult=s.powers.double>0?2:1;
  if(p.type==='coin'){const value=Math.round(15*s.combo)*mult;s.score+=value;emit(s,'coin',{value,lane:p.lane})}
  else if(p.type==='letter'){s.letters.add(p.letter);emit(s,'letter',{letter:p.letter});if(s.letters.size===WORD.length&&!s.contactMet)s.wordComplete=true}
+ else if(p.type==='paper'){s.papers.add(p.page);emit(s,'paper',{page:p.page,count:s.papers.size});if(s.papers.size===5){s.paperStackReady=true;emit(s,'paper-stack',{pages:[...s.papers].sort((a,b)=>a-b)})}}
  else if(p.type==='heart'){s.health=Math.min(3,s.health+1);emit(s,'power',{power:'heart'})}
  else if(p.type==='battery'){s.brake=Math.min(100,s.brake+45);emit(s,'power',{power:'battery'})}
  else if(p.type==='jackpot'){for(let row=0;row<10;row++)for(let lane=0;lane<trackCountAt(s.distance);lane++)s.pickups.push({type:'coin',lane,distance:s.distance+26+row*5,taken:false});emit(s,'power',{power:'jackpot'})}
@@ -87,24 +90,30 @@ export function stepRide(s,input,dt){
  }
  if(input.duck)s.duckTime+=dt;else s.duckTime=0;
  s.duck+=( (input.duck?1:0)-s.duck)*(1-Math.exp(-dt*24));
- const baseTarget=s.stumble>0?23:s.powers.turbo>0?60:30+Math.min(23,s.distance/190);
+ const baseTarget=s.stumble>0?23:s.powers.turbo>0?60:30+Math.min(23,s.distance/190)+(s.paperHunt?6:0);
  const target=input.brake&&s.brake>0?Math.max(18,baseTarget*.55):baseTarget;
  if(input.brake&&s.brake>0)s.brake=Math.max(0,s.brake-dt*28);
  s.speed+=(target-s.speed)*(1-Math.exp(-dt*(s.powers.turbo>0?4:2.5)));
  const old=s.distance;
  s.distance+=s.speed*dt;
+ if(s.paperHunt&&!s.paperIntroShown&&s.distance>=160){s.paperIntroShown=true;emit(s,'paper-hint')}
  updateTrackCount(s);
  if(s.distance>=s.nextMilestone){s.score+=Math.round(s.nextMilestone/5);emit(s,'milestone',{meters:s.nextMilestone});s.nextMilestone+=500}
  const dk=darkness(s.distance)>.5;
  if(dk!==s.isDark){s.isDark=dk;emit(s,'dark',{on:dk})}
  while(s.nextRow<s.distance+145){
-  const pattern=runPattern(s.sequence+(s.patternOffset||0),s.nextRow),row={id:s.sequence,distance:s.nextRow,hazards:pattern.hazards.map(h=>({...h,resolved:false})),safe:pattern.safe,tracks:pattern.tracks};
+  const pattern=runPattern(s.sequence+(s.patternOffset||0),s.nextRow);if(s.paperHunt)pattern.spacing=Math.max(22,pattern.spacing-5);const row={id:s.sequence,distance:s.nextRow,hazards:pattern.hazards.map(h=>({...h,resolved:false})),safe:pattern.safe,tracks:pattern.tracks};
   s.rows.push(row);
   for(let i=0;i<4;i++)s.pickups.push({type:'coin',lane:pattern.safe,distance:s.nextRow+5+i*3,taken:false});
   if(!s.contactMet&&s.letters.size<5&&s.nextRow>=s.nextLetter){
    const available=[...WORD].filter(l=>!s.letters.has(l)&&!s.pickups.some(p=>p.type==='letter'&&p.letter===l&&!p.taken&&p.distance>s.distance));
    if(available.length&&(s.random()<.04||s.letterMisses>=16)){s.pickups.push({type:'letter',letter:available[Math.floor(s.random()*available.length)],lane:pattern.safe,distance:s.nextRow+13,taken:false});s.nextLetter=s.nextRow+900+s.random()*600;s.letterMisses=0}
    else s.letterMisses++;
+  }
+  if(s.paperHunt&&s.papers.size<5&&s.nextRow>=s.nextPaper){
+   const active=s.pickups.some(p=>p.type==='paper'&&!p.taken),page=[0,1,2,3,4].find(n=>!s.papers.has(n));
+   if(page!==undefined&&!active&&(s.random()<PAPER_DROP_CHANCES[page]||s.paperMisses>=PAPER_DROP_MISSES[page])){s.pickups.push({type:'paper',page,lane:pattern.safe,distance:s.nextRow+14,taken:false});s.nextPaper=s.nextRow+360+s.random()*300;s.paperMisses=0}
+   else s.paperMisses++;
   }
   if(s.nextRow>=s.nextPower){
    const types=['shield','magnet','double','turbo','phase','battery',...(s.health<3?['heart','heart']:[])];

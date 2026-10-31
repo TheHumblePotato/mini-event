@@ -37,11 +37,11 @@
 > - The bridge leads to Gloaming, a full new city with at least five ghost cars spread across its streets.
 > - Complete three deliveries in Gloaming to earn the sealed parcel. A player who wrecks must restart the deliveries, choosing either Hollow or the new-city entrance.
 > - A side impact against a ghost car destroys it and restores car condition. A ghost-car impact deals reduced damage and knockback, and the ghost car remains.
-> - Take the parcel to Hollow’s North Street Post Office. Last Ride investigation remains out of scope.
+> - Take the parcel to Hollow’s North Street Post Office. After delivery, return to the menu and gather five rare papers during Last Ride; the assembled puzzle and answer remain to be authored.
 
 # Midnight Arcade — Halloween 2026
 
-> Rendering revision: the live build uses one stylized, pixel-textured palette across the 3D menu, driving game, railway, chamber, and 2D cemetery sprites. Realistic generated images are no longer used. Last Ride is one endless runner with no run checkpoints. Rare GHOST letters persist as discoveries; collecting all five reaches the terminal encounter, after which letters no longer spawn. The lamp, seal, roads and projector are integrated into their game worlds rather than separate prose scenes. The story outline below remains the narrative specification except where the latest feedback above overrides it.
+> Rendering revision: the live build uses one stylized, pixel-textured palette across the 3D menu, driving game, railway, chamber, and 2D cemetery sprites. Realistic generated images are no longer used. Last Ride is one endless runner with no run checkpoints. Rare GHOST letters persist as discoveries; collecting all five reaches the terminal encounter, after which letters no longer spawn. The lamp, seal, roads, and paper hunt are integrated into their game worlds. The story outline below remains the narrative specification except where the latest feedback above overrides it.
 
 Current design and implementation handoff. Three games release at midnight Pacific on October 29, October 30, and October 31, 2026. The browser app and local preview exist alongside this file; production Firebase deployment is a separate remaining setup step.
 
@@ -70,12 +70,13 @@ You cannot fight entities:
 - **Mourner:** follows visible light; break sight and extinguish your lamp.
 - **Follower:** investigates digging sounds.
 - **Lantern escape:** taking the black lantern opens a side door into the same cemetery room as the vault entrance. Ghosts and zombies pursue the player back to the gate; there is no Keeper fight or lamp-switch maze.
+- Investigation fuel drain is intentionally lower than a standard run. The black lantern restores the ordinary lamp to full and removes further fuel drain for the escape. Flares work in the chamber; enemy attacks remain dangerous but do not stun the player. A death after taking the lantern offers a full-health, full-light, two-flare respawn inside the chamber.
 
 ### Midnight Delivery
 
 Fast top-down driving: accelerate, swerve, corner, brake, crash, collect candy, and reach delivery stops. Crashes cost time/candy but usually allow recovery. Streaks and cleaner routes reward replay.
 
-Its investigation route reveals a dark, physical bridge on Rookhaven’s east side. The bridge leads to Gloaming, a haunted city with roaming ghost cars and three delivery addresses. Hitting a ghost car on its side destroys it and restores car condition; a ghost-car collision is less damaging and leaves the ghost intact. Completing the three deliveries earns the sealed railway parcel, which must be taken to Hollow’s North Street Post Office. Last Ride investigation remains unchanged for now.
+Its investigation route reveals a dark, ordinary-looking highway bridge on Rookhaven’s east side. The bridge leads to Gloaming, a larger island city with a connected street grid and hostile ghost cars. The ghost drivers use the same flank-and-ram pursuit behavior as Rookhaven’s, attacking in groups. A deliberate side or rear ram destroys a ghost car and restores condition; a ghost-initiated impact deals reduced damage and knockback, and the ghost remains active. Completing the three deliveries earns the sealed railway parcel, which must be taken to Hollow’s North Street Post Office. Last Ride investigation remains unchanged for now.
 
 ### Last Ride
 
@@ -172,63 +173,31 @@ Wrecking the car resets all three delivery objectives. Offer a choice to restart
 
 ### 7. One package and the real post office
 
-After all three Gloaming deliveries, the player receives one sealed parcel addressed to Hollow’s North Street Post Office. Its stamp shows a projector and railway platform. No multi-parcel sorting puzzle.
+After all three Gloaming deliveries, the player receives one sealed parcel addressed to Hollow’s North Street Post Office. Drive back through the bridge network and deliver it.
 
-> Where Last Ride ends and scores grow still,
-> The booth awaits beside the sill.
-> Let city post receive this load;
-> Its hidden chute completes the road.
+The dispatch completion message is **“Package successfully sent!”** The player returns to the arcade menu. The ghost directs them to Last Ride; during the run, the ghost says the parcel was sent into that game.
 
-Drive back through the bridge network to North Street Post Office in Hollow. The ghost supplies a street or direction hint if needed. Stop and deliver. The post office sends the parcel through a railway chute to the projection booth.
+### 8. Gather the scattered papers
 
-The ghost gains radio speech and some navigation control. A second cabinet connection breaks. The next destination is explicitly Last Ride; no guessing what accepts the reel.
+During the Last Ride run, gather five rare paper pickups. They begin spawning only after the player has traveled a while, and the investigation run is faster and more dangerous than an ordinary run.
 
-### 8. Restore a short recording
+When all five are collected, they become one persistent paper stack. The stack appears on the main menu and can be reopened there. The paper text and coherent puzzle remain **to be authored**; do not invent them. Collecting all five unlocks the Fourth Game directly; no answer is required.
 
-Use a direct shortcut to Last Ride's projection booth. The postal chute has deposited the parcel there; inside is a reel broken into four short pieces.
+## Fourth game and final room
 
-Arrange **arrival → signal → shadow → return** using clear frame numbers and captions. The film shows a character entering a game, a lamp starting, a shadow forming, and a keeper closing a shutter. It is ambiguous whether the keeper is protecting, imprisoning, or simply operating the cabinet. No early recording labels the ghost a monster.
+The Fourth Game opens from its unlocked cabinet. It is a 3D first-person room: the player holds the black lantern and faces a mirror. The ghost asks the player to choose between lighting the black lantern and lighting the ordinary lantern.
 
-A separate maintenance record explains the Halloween-week soul fragment and why it waited at the terminal. The ghost comments on the restored footage and repeats its character-restoration story.
+### Black-lantern ending
 
-This replaces the complex layered strip/timecode reconstruction puzzle.
+Power flows from the black lantern into the mirror. The ghost breaks free, approaches the player, and the site corrupts into intense static. End on a page that offers **RESET EVERYTHING**.
 
-### 9. Prepare the projector
+### Ordinary-lantern ending
 
-A short practical repair: **seat lens → thread film → close shutter**. The service card states these operations clearly. Completing them restores the final control connection.
+The mirror illuminates with **NEVER FREE HIM**. The player runs from the room and hears the ghost's last line: **I can wait.** Return to the arcade with the Fourth Game cabinet boarded shut. It cannot be reopened; its only action is **RESTART**.
 
-A resulting maintenance sheet records the old shutdown settings: **closed eye → downward flame → barred doorway**. Save it as evidence. Its purpose becomes fully clear in the final room, rather than immediately announcing a betrayal.
+Restart clears local progress, casebook entries, items, scores, endings, and the signed-in player's cloud progress and personal leaderboard records.
 
-No projected half-symbol cipher or precision alignment remains. The cabinet is now accessible, but its final mirror passage is still closed.
-
-## The final room
-
-A figure, unlit black lamp mount, dark mirror, and a panel concealed in shadow. The mirror reflects the familiar arcade. Placing the lantern is safe.
-
-The ghost's final request:
-
-> Turn the flame toward the glass;
-> Light the road and let me pass.
-
-The player chooses lamp direction and ignition through physical controls, not a trust/distrust dialogue box. The warning predicted exactly this request: bring the lamp to the captive and light its route out.
-
-### Release ending
-
-Light the mirror and hold the beam. It becomes a passage to the arcade. The ghost crosses and appears to take over the website: games become windows, labels change, the ghost moves through the interface, and the cursor becomes the remaining lantern light.
-
-**THANK YOU FOR PLAYING YOUR PART.**
-
-Final line: **YOU SHOWED ME WHICH SIDE YOU WERE ON.**
-
-The effect remains inside the site. Preserve an exit and resolve into an ending screen with replay.
-
-### Containment ending
-
-Keep the mirror dark and illuminate the ghost instead. It grows stronger, as warned, but its shadow reveals the panel. Use the saved shutdown settings: **closed eye → downward flame → barred doorway**. Close the revealed latch. The ghost objects, the flame dies, and the mirror darkens.
-
-The menu returns with the fourth cabinet sealed and marked **DO NOT RESTORE.** A last message appears: **I can wait.**
-
-Both endings are replayable from the final room. Neither erases the casebook.
+Last Ride is temporarily marked **UNDER CONSTRUCTION** until October 31, 2026 at 4 PM Pacific. Verified admins can still use the admin test bench.
 
 ## Ghost hints and automatic saves
 
@@ -239,7 +208,7 @@ Offer a nudge after roughly 60–90 active seconds without progress. Players can
 The **Casebook** saves automatically:
 
 - Every acquired clue, illustration, warning, notice, receipt, and dialogue line.
-- Original and reconstructed documents, film order, repair instructions, and shutdown settings.
+- The assembled Last Ride paper stack, once recovered.
 - Items, route maps, solved traces, checkpoints, and ending history.
 - Meaningful puzzle edits so refreshes do not discard work.
 
@@ -249,7 +218,7 @@ Opening evidence pauses active danger. Local saves happen immediately; signed-in
 
 Build order: **home screen → Firebase/casebook → three games → ghost investigation → validation/polish**.
 
-Required story order: **Last Ride contact → shadow → seal → lantern → cemetery escape → menu lamp → Gloaming bridge → three deliveries → parcel → post office → film → projector → fourth game → ending**.
+Required story order: **Last Ride contact → shadow → seal → lantern → cemetery escape → menu lamp → Gloaming bridge → three deliveries → parcel → post office → Last Ride papers → Fourth Game → ending**.
 
 Use Firebase callable transactions for protected progression and server release time. A verified admin token may playtest early. A URL parameter, browser clock, guessed answer, or edited player-save document must not grant trusted story progress. The local preview service uses the same validators in a development-only loopback session.
 

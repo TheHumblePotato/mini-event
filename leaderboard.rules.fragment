@@ -9,4 +9,5 @@ match /halloween2026Boards/{game}/scores/{uid} {
     && request.resource.data.name is string && request.resource.data.name.size() <= 16
     && request.resource.data.score is int && request.resource.data.score >= 0 && request.resource.data.score < 10000000
     && (resource == null || request.resource.data.score > resource.data.score);
+  allow delete: if request.auth != null && request.auth.uid == uid;
 }

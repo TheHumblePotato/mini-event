@@ -1,4 +1,4 @@
-import {state,save,merge} from './state.js';
+import {state,save,merge,initial} from './state.js';
 // Same public web-app configuration as Halloween 2024. No admin credentials here.
 export const firebaseConfig={apiKey:'AIzaSyARY96nrH2Aio8rOiLkewSXtTS40TZLrAw',authDomain:'nerd-mini-events.firebaseapp.com',projectId:'nerd-mini-events',storageBucket:'nerd-mini-events.firebasestorage.app',messagingSenderId:'974357416633',appId:'1:974357416633:web:e190de60553a685d03e968'};
 let sdk,auth,db,user=null,timer,saving=false,dirty=false,loading=false;
@@ -36,4 +36,19 @@ export async function fetchScores(game,count=10){
 export function queueSync(){if(!user||!sdk||loading)return;dirty=true;clearTimeout(timer);timer=setTimeout(sync,700)}
 async function sync(){if(saving||!dirty||!user)return;saving=true;dirty=false;const uid=user.uid;const snapshot=structuredClone(state);status('Saving to Firebase…');try{await sdk.setDoc(sdk.doc(db,'halloween2026Players',uid),{displayName:user.displayName||'Player',progress:snapshot,updatedAt:sdk.serverTimestamp()},{merge:true});status(dirty?'Saving to Firebase…':'Saved to Firebase')}catch{dirty=true;status('Cloud save pending · saved locally')}finally{saving=false;if(dirty) {clearTimeout(timer);timer=setTimeout(sync,15000)}}}
 export async function advanceRemote(action,payload){if(!user)throw Error('Sign in to save and unlock the investigation.');if(!sdk)throw Error('Firebase is unavailable.');const call=sdk.httpsCallable(sdk.functions,'halloween2026Advance');try{return (await call({action,payload})).data}catch(err){throw Error(err.code==='functions/not-found'?'The story service has not been deployed yet. Ordinary games and local saves still work.':err.message)}}
+export async function resetRemote(){
+ if(!user||!sdk)throw Error('Sign in before resetting cloud progress.');
+ clearTimeout(timer);dirty=false;loading=true;
+ try{
+  const deadline=Date.now()+10000;
+  while(saving){if(Date.now()>=deadline)throw Error('Cloud save is still in progress. Try the reset again shortly.');await new Promise(resolve=>setTimeout(resolve,25))}
+  const call=sdk.httpsCallable(sdk.functions,'halloween2026Advance');
+  await call({action:'reset'});
+  const ref=sdk.doc(db,'halloween2026Players',user.uid);
+  await sdk.setDoc(ref,{displayName:user.displayName||'Player',progress:initial(),updatedAt:sdk.serverTimestamp()});
+  await Promise.all(BOARDS.map(game=>sdk.deleteDoc(sdk.doc(db,'halloween2026Boards',game,'scores',user.uid))));
+  status('Saved to Firebase');
+ }catch(error){throw Error(error.code==='functions/not-found'?'The reset service has not been deployed yet. Cloud progress was not reset.':`Could not reset cloud progress: ${error.message}`)}
+ finally{loading=false}
+}
 window.addEventListener('online',queueSync);
