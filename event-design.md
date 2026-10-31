@@ -189,11 +189,11 @@ The Fourth Game opens from its unlocked cabinet. It is a 3D first-person room: t
 
 ### Black-lantern ending
 
-Power flows from the black lantern into the mirror. The ghost breaks free, approaches the player, and the site corrupts into intense static. End on a page that offers **RESET EVERYTHING**.
+The ghost is not visible before the choice. Power flows from the black lantern into the mirror. The ghost breaks free, approaches the player, and the whole site flashes, shakes, and corrupts into intense static. End on a page that offers **RESET EVERYTHING**.
 
 ### Ordinary-lantern ending
 
-The mirror illuminates with **NEVER FREE HIM**. The player runs from the room and hears the ghost's last line: **I can wait.** Return to the arcade with the Fourth Game cabinet boarded shut. It cannot be reopened; its only action is **RESTART**.
+The mirror illuminates with **NEVER FREE HIM**. The player runs from the room; the door slams and is boarded shut. Then the ghost says **I can wait.** Return to the arcade with the Fourth Game cabinet boarded shut. It cannot be reopened; its only action is **RESTART**.
 
 Restart clears local progress, casebook entries, items, scores, endings, and the signed-in player's cloud progress and personal leaderboard records.
 

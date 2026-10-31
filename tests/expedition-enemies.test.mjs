@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import {createExpedition,TILE} from '../engine/expedition-world.js';
 import {createThreats} from '../engine/expedition-ai.js';
 import {lampPower,threatPressure,drainFuel,drainInvestigationFuel} from '../engine/expedition-balance.js';
-import {castLightRay,lightBoundary,playerLampPosition,playerLampActorAnchor} from '../engine/expedition-light.js';
+import {castLightRay,lightBoundary,playerLampPosition,playerLampActorAnchor,visiblePlayerLightPosition} from '../engine/expedition-light.js';
 function setup(type,dx=200){const w=createExpedition(55),t=createThreats(w,2),p={x:40*TILE+32,y:40*TILE+32,face:0},e=t.spawn(p,type);t.enemies.splice(0,t.enemies.length,e);Object.assign(e,{x:p.x+dx,y:p.y,age:3,target:{x:p.x+dx,y:p.y},patrolTimer:10});return {w,t,p,e}}
 test('ray lighting stops at the first wall and has finite cardinal endpoints',()=>{const w=createExpedition(55),r=w.rooms[1],p={x:r.x+80,y:r.y+140};const ray=castLightRay(w,p,Math.PI,500);assert.ok(Math.abs(ray.x-(r.x-5))<.01);for(const a of [0,Math.PI/2,Math.PI,Math.PI*1.5]){const v=castLightRay(w,p,a,400);assert.ok(Number.isFinite(v.x)&&Number.isFinite(v.y))}assert.equal(lightBoundary(w,p,400).length,360)});
+test('a carried lamp source stays on the player side of a blocked wall',()=>{const w=createExpedition(55),room=w.rooms[1],p={x:room.x+5,y:room.y+2,face:0},lamp=playerLampPosition(p);assert.equal(w.clear(p,lamp),false);assert.deepEqual(visiblePlayerLightPosition(w,p),{x:p.x,y:p.y})});
 test('lamp off reveals only feet and weak fuel sharply reduces reach',()=>{const off=lampPower(100,false),low=lampPower(5),full=lampPower(100);assert.ok(off.radius<20&&off.strength<.06);assert.ok(low.radius<40&&low.beamRange<50&&low.strength<.31);assert.ok(full.beamRange>=440)});
 test('time alone activates and escalates danger with staged special enemies',()=>{assert.equal(threatPressure(0,100,0).active,false);assert.equal(threatPressure(0,100,40).active,true);assert.equal(threatPressure(0,100,80).crawlers,undefined);assert.equal(threatPressure(0,100,150).gravebound,1);assert.ok(threatPressure(0,100,300).zombies>2)});
 test('removed crawlers cannot spawn',()=>{const w=createExpedition(55),t=createThreats(w,2);assert.equal(t.spawn({x:2500,y:2500},'crawler'),null)});

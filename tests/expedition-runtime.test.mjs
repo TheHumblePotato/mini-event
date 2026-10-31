@@ -2,6 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGraveyard} from '../engine/graveyard.js';
 import {createExpedition} from '../engine/expedition-world.js';
+import {createLighting} from '../engine/expedition-light.js';
+test('chamber lighting omits the player source but retains fixed ambient sources',()=>{
+ const previousDocument=globalThis.document,gradients=[],gradient={addColorStop(){}},ctx=new Proxy({},{
+  get:(target,key)=>target[key]||(key==='createRadialGradient'?(...args)=>{gradients.push(args);return gradient}:()=>{}),
+  set:(target,key,value)=>(target[key]=value,true)
+ });
+ globalThis.document={createElement:()=>({getContext:()=>ctx})};
+ try{
+  const lighting=createLighting(1280,720),cam={x:0,y:0};
+  lighting.draw(ctx,null,cam,{x:700,y:410,face:0},{radius:80,beamRange:400,strength:.8},[{x:205,y:275,r:210,intensity:.55}],{playerLight:false});
+  assert.equal(gradients.length,1);
+  assert.deepEqual(gradients[0],[205,220,0,205,220,210]);
+ }finally{globalThis.document=previousDocument}
+});
 test('running out of fuel keeps the run alive, and a fuel cache can relight the lamp',()=>{
  const previousDocument=globalThis.document;const gradient={addColorStop(){}},ctx=new Proxy({}, {get:(target,k)=>target[k]||(k==='createPattern'?()=>({}):k.includes('Gradient')?()=>gradient:()=>{}),set:(target,k,v)=>(target[k]=v,true)});
  const make=tag=>{const nodes=new Map();return {width:1280,height:720,style:{},hidden:false,classList:{add(){},remove(){},toggle(){}},append(){},remove(){},focus(){},addEventListener(){},removeEventListener(){},getContext:()=>ctx,querySelector:s=>{if(!nodes.has(s))nodes.set(s,make(s));return nodes.get(s)}}};

@@ -4,7 +4,7 @@ import {createDeliveryCity,DISTRICTS,GHOST_CITY,ROAD_NODES,ROAD_SEGMENTS,nearest
 import {buildDeliveryScenery} from './delivery-scenery.js';
 import {createGhostChase} from './ghost-chase.js';
 import {createSpatialAudio} from './spatial-audio.js';
-export const GLOAMING_GHOSTS={count:9,maxConcurrent:3,dashCooldown:10};
+export const GLOAMING_GHOSTS={count:9,maxConcurrent:3,dashCooldown:10,respawnDelay:18,impactQuiet:6,evasionQuiet:6};
 import {DELIVERY_CARS,deliveryCar} from './delivery-balance.js';
 
 const BRIDGE_TARGET={...ROAD_NODES.find(node=>node.id==='rookhaven-10'),name:'Rookhaven’s Eastern Corner',district:'rookhaven',districtName:'Rookhaven',address:'Eastern Rookhaven'};
@@ -35,12 +35,12 @@ export function createDeliveryInvestigation(canvas,input,hooks,options={}){
  for(const side of [-1,1]){const head=new THREE.SpotLight(0xffdfb1,135,65,.37,.6,1.5),target=new THREE.Object3D();scene.add(head,target);head.target=target;headlights.push({head,target,side})}
  const hostileRoadNodes=[...new Map(ROAD_SEGMENTS.filter(edge=>edge.district===GHOST_CITY.id).flatMap(edge=>[edge.a,edge.b]).map(node=>[node.id,node])).values()];
  const ghostTraffic=createGhostChase(scene,world,audio,()=>{},random,ghost=>ghostImpact(ghost),{
-  ...GLOAMING_GHOSTS,spawnDelay:.15,respawnDelay:1.5,speedScale:1.45,chaseDistance:650,lostSight:24,maxAge:150,impactQuiet:.2,evasionQuiet:.1,ramForce:26,persistentImpact:true,zone:position=>districtFor(position)?.id===GHOST_CITY.id,
+  ...GLOAMING_GHOSTS,spawnDelay:.15,speedScale:1.45,chaseDistance:650,lostSight:24,maxAge:150,ramForce:26,persistentImpact:true,zone:position=>districtFor(position)?.id===GHOST_CITY.id,
   spawn:(player,cars,pick)=>{const active=cars.filter(car=>car.chasing),spots=hostileRoadNodes.filter(node=>dist(node,player)>260&&dist(node,player)<610&&active.every(car=>dist(node,car)>175));const node=spots[Math.floor(pick()*spots.length)];return node?{x:node.x,y:node.y,angle:Math.atan2(player.x-node.x,-(player.y-node.y))}:null},
-  sideImpact:(player,ghost,playerBefore,ghostBefore)=>isGhostSideImpact(player,ghost,playerBefore,ghostBefore),onSideImpact:ghost=>ghostSideHit(ghost)
+  sideImpact:(player,ghost,playerBefore,ghostBefore)=>isGhostSideImpact(player,ghost,playerBefore,ghostBefore),onSideImpact:ghost=>ghostSideHit(ghost),onWallCrash:ghostWallCrash
  });
  const cityStops=CITY_DELIVERIES(world.stops);
- const hud=document.createElement('div');hud.className='world-hud delivery-hud';canvas.parentElement.append(hud);
+ const hud=document.createElement('div');hud.className='world-hud delivery-hud';canvas.parentElement.append(hud);let ghostRecoveryTimer=0;
  hud.innerHTML='<div class="hud-top"><span class="delivery-goal"></span><span class="delivery-stats"></span></div><div class="dispatch-note"><small class="delivery-clue"></small><p class="delivery-reason"></p></div><div class="minimap-wrap"></div><div class="world-prompt"></div><div class="world-whisper"></div>';
  const minimap=document.createElement('canvas');minimap.width=minimap.height=224;hud.querySelector('.minimap-wrap').append(minimap);
  const mapPanel=document.createElement('canvas');mapPanel.width=1024;mapPanel.height=720;mapPanel.className='delivery-map';mapPanel.hidden=true;canvas.parentElement.append(mapPanel);
@@ -86,6 +86,7 @@ export function createDeliveryInvestigation(canvas,input,hooks,options={}){
  }
  function ghostSideHit(){integrity=Math.min(100,integrity+24);score+=40;audio.cue('pickup',p,{volume:.65})}
  function ghostImpact(ghost){const damage=Math.min(integrity,8/vehicle.resistance);integrity-=damage;const d=dist(p,ghost)||1;p.vx+=(p.x-ghost.x)/d*20;p.vy+=(p.y-ghost.y)/d*20;hit=.8;shake=.45;audio.cue('crash',ghost,{volume:.55})}
+ function ghostWallCrash(ghost,visible){if(!visible||integrity>=100)return;integrity=Math.min(100,integrity+8);hud.classList.add('ghost-recovery');clearTimeout(ghostRecoveryTimer);ghostRecoveryTimer=setTimeout(()=>hud.classList.remove('ghost-recovery'),850);audio.cue('pickup',ghost,{volume:.25});refresh()}
  function restart(atCity){
   failed=false;failure.hidden=true;integrity=100;score=0;deliveryIndex=0;carriedParcel=false;blackHeadlights=atCity;bridgeRevealed=atCity;bridgeHinted=false;handoff=0;hit=0;shake=0;
   p.x=atCity?CITY_ENTRY.x:2;p.y=atCity?CITY_ENTRY.y:225;p.vx=0;p.vy=0;p.angle=atCity?Math.PI/2:0;
@@ -135,7 +136,7 @@ export function createDeliveryInvestigation(canvas,input,hooks,options={}){
    if(input.tap('KeyM')){mapToggle();return}if(input.tap('Escape')&&mapOpen){mapToggle();return}if(mapOpen)return;
    if(!failed&&stageNumber===6&&input.tap('KeyL')){blackHeadlights=!blackHeadlights;if(blackHeadlights)bridgeRevealed=true;setBridgeVisible(bridgeRevealed);audio.cue('lantern',p);say(blackHeadlights?'BLACK HEADLIGHTS · A full bridge appears east of Rookhaven.':'WARM HEADLIGHTS · The revealed bridge remains visible.',4)}
    if(failed)return;
-   const throttle=(input.held('KeyW','ArrowUp')?1:0)-(input.held('KeyS','ArrowDown')?1:0),steer=(input.held('KeyD','ArrowRight')?1:0)-(input.held('KeyA','ArrowLeft')?1:0),road=nearestRoad(p),highway=['highway','shadow-bridge','coast','marsh'].includes(road.edge.type),offroad=road.distance>road.edge.width/2+.8,before={x:p.x,y:p.y},impact=updateCar(p,{throttle,steer,handbrake:input.held('Space'),highway,roadAngle:Math.atan2(road.edge.b.x-road.edge.a.x,-(road.edge.b.y-road.edge.a.y)),speedLimit:highway?112:road.edge.type==='alley'?27:48,speedScale:vehicle.speed,accelerationScale:vehicle.acceleration,handlingScale:vehicle.handling,gripScale:vehicle.grip,offroad},dt,world.solids);
+   const throttle=(input.held('KeyW','ArrowUp')?1:0)-(input.held('KeyS','ArrowDown')?1:0),steer=(input.held('KeyD','ArrowRight')?1:0)-(input.held('KeyA','ArrowLeft')?1:0),road=nearestRoad(p),highway=['highway','shadow-bridge','coast','marsh'].includes(road.edge.type),inGloaming=districtFor(p)?.id===GHOST_CITY.id,offroad=road.distance>road.edge.width/2+.8,before={x:p.x,y:p.y},impact=updateCar(p,{throttle,steer,handbrake:input.held('Space'),highway,roadAngle:Math.atan2(road.edge.b.x-road.edge.a.x,-(road.edge.b.y-road.edge.a.y)),speedLimit:inGloaming?(highway?125:72):highway?112:road.edge.type==='alley'?27:48,reverseSpeedLimit:inGloaming?14*vehicle.speed:6,speedScale:vehicle.speed,accelerationScale:inGloaming?vehicle.acceleration*1.4:vehicle.acceleration,reverseAccelerationScale:inGloaming?1.5:undefined,handlingScale:vehicle.handling,gripScale:vehicle.grip,offroad},dt,world.solids);
    if(stageNumber===6&&!bridgeRevealed&&nearestRoad(p).edge.type==='shadow-bridge'){p.x=before.x;p.y=before.y;p.vx=0;p.vy=0;say('The hidden bridge will not hold the car without black headlights.',4)}
    crash(impact);ghostTraffic.update(dt,shiftAge,p,before);
    if(stageNumber===6&&!bridgeHinted&&dist(p,BRIDGE_TARGET)<95){bridgeHinted=true;say('The ghost: “The bridge is here. Press L to switch headlamps.”',10)}
@@ -148,6 +149,6 @@ export function createDeliveryInvestigation(canvas,input,hooks,options={}){
    drawMap(minimap.getContext('2d'));refresh(speed);hud.querySelector('.world-prompt').textContent=getPrompt();hud.querySelector('.world-whisper').textContent=shiftAge<messageUntil?message:'';
   },
   draw(){renderer.render(scene,camera)},
-  destroy(){audio.destroy();ghostTraffic.destroy();for(const mesh of marker.children){mesh.geometry.dispose();mesh.material.dispose()}hud.remove();mapPanel.remove();failure.remove();stage.dispose()}
+  destroy(){clearTimeout(ghostRecoveryTimer);audio.destroy();ghostTraffic.destroy();for(const mesh of marker.children){mesh.geometry.dispose();mesh.material.dispose()}hud.remove();mapPanel.remove();failure.remove();stage.dispose()}
  };
 }

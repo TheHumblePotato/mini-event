@@ -1,7 +1,7 @@
 import {PALETTE as P} from './pixel-art.js';
 import {playerLampActorAnchor} from './expedition-light.js';
 // Articulated pixel silhouettes: limbs animate independently of the body.
-export function drawActor(c,e,t,{player=false,dig=0,hurt=0,lampLit=true,blackLamp=false}={}){
+export function drawActor(c,e,t,{player=false,dig=0,hurt=0,lampLit=true,blackLamp=false,lampVisible=true}={}){
  c.save();c.translate(Math.round(e.x),Math.round(e.y));c.scale(2,2);c.imageSmoothingEnabled=false;
  const phase=e.step||0,walk=Math.sin(phase),stride=Math.min(1,e.moving===false?0:1),ghost=e.type==='hunter'||e.type==='interceptor'||e.type==='snatcher',attack=e.attack||0;
  const rect=(x,y,w,h,color)=>{c.fillStyle=color;c.fillRect(Math.round(x),Math.round(y),w,h)};
@@ -32,7 +32,7 @@ export function drawActor(c,e,t,{player=false,dig=0,hurt=0,lampLit=true,blackLam
   if(!back){rect(side>0?1:-5,-39,3,2,P.ink);rect(side>0?5:-8,-36,3,3,skin)}
   if(player){rect(-13,-45,26,4,P.ink);rect(-8,-55,16,11,P.shadow);rect(-7,-53,2,8,P.edge);rect(-9,-22,15,8,P.woodLight);rect(-6,-20,9,4,P.wood);
    if(dig>0){c.save();c.translate(-12,-25);c.rotate(-1.8+Math.sin(dig/.22*Math.PI)*2.3);rect(-1,-22,2,30,P.woodLight);rect(-4,-27,8,9,P.edge);c.restore()}
-   const anchor=playerLampActorAnchor(e,lean);c.save();c.translate(anchor.x,anchor.y);c.scale(.5,.5);drawCarriedLamp(c,{x:0,y:0},{lit:e.lampLit??lampLit,black:e.blackLamp??blackLamp});c.restore();
+   if(lampVisible){const anchor=playerLampActorAnchor(e,lean);c.save();c.translate(anchor.x,anchor.y);c.scale(.5,.5);drawCarriedLamp(c,{x:0,y:0},{lit:e.lampLit??lampLit,black:e.blackLamp??blackLamp});c.restore()}
   }else if(heavy){rect(-16,-34,9,10,P.stone);rect(7,-34,9,10,P.stone);rect(-10,-26,20,4,P.edge);rect(-6,-46,12,4,P.stone);rect(-6,-39,4,3,e.state==='winding'&&Math.sin(t*18)>0?'#ffe1a0':'#d16b58');rect(3,-39,4,3,e.state==='winding'&&Math.sin(t*18)>0?'#ffe1a0':'#d16b58');rect(-3,-33,6,3,P.ink)}
   else{rect(-5,-39,3,3,P.ink);rect(3,-39,3,3,P.ink);rect(-4,-33,8,2,'#464239');rect(-5,-28,10,3,'#727467')}
  }

@@ -3,6 +3,7 @@ export function playerLampPosition(player){
  const face=player.face||0;
  return {x:player.x-Math.sin(face)*11,y:player.y+Math.cos(face)*8-60};
 }
+export function visiblePlayerLightPosition(world,player){const lamp=playerLampPosition(player);return world&&!world.clear(player,lamp)?{x:player.x,y:player.y}:lamp}
 export function playerLampActorAnchor(player,lean=0){
  const {x,y}=playerLampPosition(player),dx=x-player.x,dy=y-player.y;
  return {x:(dx*Math.cos(lean)+dy*Math.sin(lean))/2,y:(-dx*Math.sin(lean)+dy*Math.cos(lean))/2};
@@ -26,7 +27,7 @@ export function createLighting(W,H){
  if(cone&&power.beamRange>0){gc.translate(x,y);gc.rotate(face);const g=gc.createRadialGradient(0,0,0,0,0,power.beamRange);g.addColorStop(0,`rgba(255,255,255,${power.strength})`);g.addColorStop(.65,`rgba(255,255,255,${power.strength*.55})`);g.addColorStop(1,'#ffffff00');gc.fillStyle=g;gc.beginPath();gc.moveTo(0,0);gc.arc(0,0,power.beamRange,-.52,.52);gc.closePath();gc.fill()}
  gc.restore();
  }
- return {draw(c,world,cam,p,power,sources=[]){gc.clearRect(0,0,W,H);source(world,cam,playerLampPosition(p),power,p.face);
- for(const torch of sources){if(torch.x<cam.x-180||torch.x>cam.x+W+180||torch.y<cam.y-180||torch.y>cam.y+H+180)continue;if(world&&!world.clear(p,torch))continue;source(world,cam,{x:torch.x,y:torch.y-(torch.r?55:0)},{radius:torch.r||62,beamRange:0,strength:torch.r?.95:.48},0,false)}
- mc.globalCompositeOperation='source-over';mc.fillStyle='#010208';mc.fillRect(0,0,W,H);mc.globalCompositeOperation='destination-out';mc.filter='blur(2px)';mc.drawImage(glow,0,0);mc.filter='none';mc.globalCompositeOperation='source-over';c.drawImage(mask,0,0)} };
+ return {draw(c,world,cam,p,power,sources=[],{playerLight=true,ambient=playerLight?0:.4}={}){gc.clearRect(0,0,W,H);if(playerLight)source(world,cam,visiblePlayerLightPosition(world,p),power,p.face);
+ for(const torch of sources){if(torch.x<cam.x-180||torch.x>cam.x+W+180||torch.y<cam.y-180||torch.y>cam.y+H+180)continue;if(world&&!world.clear(p,torch))continue;source(world,cam,{x:torch.x,y:torch.y-(torch.r?55:0)},{radius:torch.r||62,beamRange:0,strength:torch.intensity??(torch.r?.95:.48)},0,false)}
+ mc.globalCompositeOperation='source-over';mc.fillStyle=`rgba(1,2,8,${1-Math.max(0,Math.min(1,ambient))})`;mc.fillRect(0,0,W,H);mc.globalCompositeOperation='destination-out';mc.filter='blur(2px)';mc.drawImage(glow,0,0);mc.filter='none';mc.globalCompositeOperation='source-over';c.drawImage(mask,0,0)} };
 }
