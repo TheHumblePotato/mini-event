@@ -1,3 +1,5 @@
+> **Ending rework (latest).** Black lamp: the room's other lights flicker and die, a beam links the lamp to the mirror, the room starts to fail, harsh static plays, then the real website visibly breaks down (darkening, red flickering/corrupted text), goes black, shows "GOOD CHOICE", and the ghost takes over the screen and destroys the page (temporary and visual only; reduced-motion players get a calm variant). It ends on the RESET EVERYTHING page. Normal lamp: the ghost disintegrates in the mirror and the scene ends at the main menu, where the fourth cabinet is boarded up and a voice says "I can wait." After either ending the fourth cabinet carries a RESTART button. The lantern escape now spawns fewer enemies and quietly eases (fewer enemies, slower trickle-spawn, slightly less damage) after each death. Admins/local dev get Settings → Edit progress.
+
 > **Latest player feedback — priority implementation TODOs (October 29, 2026).** This section supersedes conflicting descriptions below, especially the Keeper maze and causeway puzzle.
 >
 > ### Last Ride / game 3
