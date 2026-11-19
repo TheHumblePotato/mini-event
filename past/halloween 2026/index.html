@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#141612">
+  <meta name="description" content="Three games. One strange night. A Halloween arcade by Nerd Mini Events.">
+  <title>Midnight Arcade · Halloween 2026</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E🎃%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="haunted.css">
+  <link rel="stylesheet" href="puzzles.css">
+  <link rel="stylesheet" href="cinematic.css">
+  <link rel="stylesheet" href="room.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="night-scene" aria-hidden="true"><div class="moon"></div><div class="forest forest-left"></div><div class="forest forest-right"></div><div class="mist mist-one"></div><div class="mist mist-two"></div><div class="bat bat-one">⌁</div><div class="bat bat-two">⌁</div></div>
+  <header class="site-header"><a href="#" id="home-link" class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 100 100" class="seal-mini"><path d="M50 10L90 50L50 90L10 50Z M50 10V90" fill="none" stroke="currentColor" stroke-width="3"/></svg></span> NERD MINI EVENTS<span class="brand-year"> / 2026</span></a><nav aria-label="Main navigation"><button id="sound-button" aria-label="Toggle sound" title="Sound">SOUND ON</button><button id="settings-button">SETTINGS</button><button id="casebook-button" hidden>CASEBOOK <span id="unread-count"></span></button><button id="account-button" class="account">SIGN IN <span>↗</span></button></nav></header>
+  <main id="app"></main>
+  <span id="sync-status" hidden>Saved on this device</span>
+  <dialog id="modal"><button class="modal-close" aria-label="Close dialog">×</button><div id="modal-content"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

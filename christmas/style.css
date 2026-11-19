@@ -1,0 +1,10 @@
+:root { color-scheme: light; font-family: "Segoe UI", sans-serif; color: #193e33; background: #faf6e9; }
+body { max-width: 62rem; margin: auto; padding: 2rem clamp(1.25rem, 6vw, 5rem); }
+header { font-weight: 700; padding-bottom: 1rem; border-bottom: 2px solid currentColor; }
+section { padding: clamp(3rem, 10vw, 8rem) 0; }
+.season { color: #913630; letter-spacing: .14em; text-transform: uppercase; font-size: .8rem; }
+h1, h2 { font-family: Georgia, serif; font-weight: normal; }
+h1 { font-size: clamp(3rem, 11vw, 8rem); margin: .15em 0; line-height: 1; }
+h1 span { font-size: .4em; vertical-align: top; color: #913630; }
+nav { border-top: 1px solid #a6ada0; }
+nav a { display: block; width: fit-content; padding: .45rem 0; color: inherit; text-underline-offset: .2em; }

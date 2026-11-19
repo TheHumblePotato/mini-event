@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test \"past/halloween 2026/tests/*.test.mjs\""
   },
   "dependencies": {
     "three": "0.180.0"

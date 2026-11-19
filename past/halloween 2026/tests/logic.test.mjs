@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {transition,ORDER,SYMBOL_EDGES,validSeal,ridePattern} from '../logic.js';
-import {transition as sharedTransition,ORDER as sharedOrder} from '../functions/shared-logic.js';
+import {transition as sharedTransition,ORDER as sharedOrder} from '../../../functions/shared-logic.js';
 test('seal accepts any edge order, but rejects missing or extra strokes',()=>{assert.ok(validSeal([...SYMBOL_EDGES].reverse()));assert.ok(!validSeal(SYMBOL_EDGES.slice(1)));assert.ok(!validSeal([...SYMBOL_EDGES,'0-24']));});
 test('story refuses skipping prerequisites and unreleased access',()=>{assert.throws(()=>transition({stage:0},'lantern',{}, {released:true}));assert.throws(()=>transition({stage:0},'contact',{finished:true},{released:false}));assert.throws(()=>transition({stage:0},'contact',{finished:false},{released:true}));});
 test('browser and Firebase validators agree on the key and warning stages',()=>{assert.deepEqual(sharedOrder,ORDER);for(const validate of [transition,sharedTransition]){assert.throws(()=>validate({stage:1},'key',{found:false},{released:true}));assert.throws(()=>validate({stage:3},'lantern',{warningRead:false},{released:true}));}});
