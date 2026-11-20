@@ -1,0 +1,10 @@
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js';
+import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js';
+import {getFunctions,httpsCallable} from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-functions.js';
+const app=initializeApp({apiKey:'AIzaSyARY96nrH2Aio8rOiLkewSXtTS40TZLrAw',authDomain:'nerd-mini-events.firebaseapp.com',projectId:'nerd-mini-events',appId:'1:974357416633:web:e190de60553a685d03e968'});
+const auth=getAuth(app), provider=new GoogleAuthProvider();
+provider.setCustomParameters({hd:'lakesideschool.org',prompt:'select_account'});
+export const watch=fn=>onAuthStateChanged(auth,fn);
+export const toggle=()=>auth.currentUser ? signOut(auth) : signInWithPopup(auth,provider);
+const remote=httpsCallable(getFunctions(app),'christmas2026');
+export const call=async(action,input)=>(await remote({action,...input})).data;

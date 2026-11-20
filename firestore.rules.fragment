@@ -14,3 +14,6 @@ match /halloween2026Ledger/{uid} {
   allow read: if request.auth != null && request.auth.uid == uid;
   allow write: if false; // Only the Admin SDK in the callable function advances stages.
 }
+// Christmas cards and member records are served exclusively by the callable.
+match /christmas2026Trees/{document=**} { allow read, write: if false; }
+match /christmas2026Members/{document=**} { allow read, write: if false; }

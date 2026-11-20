@@ -1,3 +1,4 @@
 import {copyFile} from 'node:fs/promises';
 await copyFile(new URL('./past/halloween 2026/logic.js',import.meta.url),new URL('./functions/shared-logic.js',import.meta.url));
 console.log('Shared progression and puzzle validators copied into Functions source.');
+await copyFile(new URL('./christmas/model.js',import.meta.url),new URL('./functions/christmas-model.js',import.meta.url));

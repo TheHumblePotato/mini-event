@@ -1,0 +1,44 @@
+CHRISTMAS 2026 MINI EVENT
+Project brief · November 19, 2026
+
+A student or teacher grows a tree, sends its link to friends, and comes back on Christmas to open the ornaments they left. Each ornament doubles as a signed holiday card. Build a new experience and new artwork. Use Winter 2025 as a reference for the tradition and keep the archived event playable.
+
+1. Home page
+Set the scene in a snow-covered school courtyard. In daylight, use pale winter sky, deep evergreen needles and warm red accents. After dark, let light spill from the windows onto the snow. A persistent light/dark toggle starts from the visitor’s system preference. Snowfall is decorative weather and respects reduced-motion settings. Keep buttons readable in either scene.
+
+“Deco My Tree” is the primary button. A second button reads “Howard's Strategy Jam” and opens the external game when its URL is supplied. Until then, show it as coming soon. Leave room for more games when they have names and destinations. Keep sign in/out visible. A visitor can see the home page before signing in.
+
+Two optional discoveries: ring the courtyard bell three times to wake a snowy owl in the eaves; on Christmas the dark-mode windows reveal a tiny train passing through the school. Both work without sound. Neither gates any content.
+
+2. Entering Deco My Tree
+Require a verified @lakesideschool.org account for every tree, gallery, ornament and image request. A visitor following a share link returns to that tree after sign-in. From Home, a first-time visitor gets a tree-creation prompt with a live preview. A returning owner goes straight to their own tree. Visiting a friend never requires creating a tree first.
+
+Create one tree per account. Offer a balsam fir, blue spruce and white pine with distinct silhouettes, needles and branch spacing. Choose clear skies, drifting snow or flurries; a courtyard, woodland clearing or frosted window backdrop; and a paper, brass or stained-glass star. Start with an attractive complete scene. Owners can revisit these choices without losing ornaments.
+
+3. Finding and sharing trees
+Explain visibility when the owner chooses it. A public tree appears in the school’s public-tree gallery. A private tree is unlisted and accessible to signed-in school members with its share link. Both have a Copy tree link action. Generate opaque, unguessable links with no email in the URL. Owners can change visibility and replace a private share link to invalidate the old one. Remove a tree from the gallery when it becomes private.
+
+The gallery shows a thumbnail and the owner’s signed display name. Include a way back to My Tree, a clear empty state, and a friendly message for an expired link.
+
+4. Leaving an ornament
+Choose an illustrated ornament, colorway and available branch. Preview its size against the tree. Offer blown-glass baubles, embroidered mittens, folded paper birds, iced gingerbread, carved wooden animals, tiny lanterns and enamel bells. Give each a recognizable silhouette, hanging loop and material-specific detail. Preserve placements across screen sizes; provide keyboard-accessible branch selection and a list view for crowded trees.
+
+Write a note, choose Public or Private, preview it with its automatic signature, then hang it. Start the composer with bold, italic, line breaks and an optional image with alt text. Store structured rich text and render only supported formatting. If image uploads ship, accept validated raster images, strip metadata, limit file size, and serve them with the same permissions and reveal time as the note.
+
+Bind authorship to the verified account on the server. Derive the signature from the school email convention for students and staff. Student alexs27 signs as Alex S. and teacher alex.smith signs as Alex Smith. An ambiguous address must never produce a guessed identity. Keep email addresses out of public views and the signature field out of the editor.
+
+5. Christmas reveal and editing
+Proposed reveal: midnight on December 25, 2026 in America/Los_Angeles, shared by everyone. Before then the decoration is visible, but opening it shows a sealed card and the reveal time. The server withholds message text, images and previews. Device clock or URL changes cannot open a card early.
+
+On Christmas the tree owner can read every card on their tree. Other authorized tree visitors can open only public cards. On a private tree even a public card requires access to that tree. Authors can reopen their own submission in a separate editor before or after Christmas. Editing a private submission never grants access to someone else’s private card. The author can change the design, message and visibility; the signature remains bound to their account.
+
+Proposed anti-spam default: one ornament per sender per tree. Returning to the same tree offers Edit my ornament. Enforce uniqueness across tabs and retries and rate-limit writes server-side. Show a retry time when a rate limit is reached. Owners can remove unwanted ornaments.
+
+6. Art and delivery
+Use simple, stylized cut-paper artwork for trees, ornaments and backgrounds. Every tree starts bare. Only visiting people hang ornaments. Use individual branch tips, highlights on glass, thread on fabric and soft contact shadows to make objects feel hung in the scene. Review artwork at actual phone size, in both lighting modes, and on a fully decorated tree. Keep the illustrated ornament recognizable before its card opens.
+
+First playable milestone: home → school sign-in → create tree → copy link → second account hangs a sealed ornament. Next add the gallery, customization, editing and reveal. Finish with the illustrated asset set, weather and discoveries. Verify with an owner, sender, unrelated school member and outside account; test private links, duplicate submissions, sign-out, and the minutes on either side of Christmas midnight.
+
+
+Remake notes from the archives
+Winter 2025 used a dedicated ornament picker, animated decoration styles and a separate card-opening view. Preserve that visiting ritual with an interactive tree, preview the ornament as it is made, and give the note its own reading space. Midnight Arcade used scene-based navigation and timed reveals. Apply that pacing to the Christmas countdown and sealed cards. Keep every decoration tied to a real visitor submission.
