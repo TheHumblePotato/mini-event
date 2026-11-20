@@ -4,10 +4,14 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test \"past/halloween 2026/tests/*.test.mjs\" christmas/tests/*.test.mjs"
+    "test": "node --test \"past/halloween 2026/tests/*.test.mjs\" christmas/tests/*.test.mjs",
+    "test:christmas:rules": "node christmas/tests/firestore-emulator.mjs"
   },
   "dependencies": {
     "three": "0.180.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "firebase": "^12.4.0"
   }
 }
-

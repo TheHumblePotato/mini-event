@@ -15,4 +15,3 @@ export const halloween2026Advance=onCall({region:'us-central1',maxInstances:5},a
  const released=Date.now()>=Date.parse('2026-10-31T00:00:00-07:00')||admin;
  return db.runTransaction(async tx=>{const snap=await tx.get(ref);const current=snap.exists()?snap.data():{stage:0,endings:[]};let next;try{next=transition(current,action,payload,{released})}catch(e){throw new HttpsError('failed-precondition',e.message)}tx.set(ref,{...next,updatedAt:FieldValue.serverTimestamp()},{merge:true});return next});
 });
-export {christmas2026} from './christmas.js';
