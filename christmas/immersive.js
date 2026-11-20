@@ -76,27 +76,6 @@ body.addEventListener('pointermove',event=>{
   if(!pointerFrame)pointerFrame=requestAnimationFrame(move);
 },{passive:true});
 document.documentElement.addEventListener('pointerleave',()=>{cancelAnimationFrame(pointerFrame);pointerFrame=0;pendingCharm=null;previous=null;pan(0,0);});
-// Local discoveries do not change the shared tree or its ornaments.
-function explore(event){
-  const target=event.target.closest('#scene [data-discovery]');
-  if(!target)return;
-  if(event.type==='keydown'){
-    if(event.repeat||!['Enter',' '].includes(event.key))return;
-    event.preventDefault();
-  }
-  const kind=target.dataset.discovery;
-  if(kind==='window'||kind==='beacon'){
-    target.setAttribute('aria-pressed',String(target.classList.toggle('switched')));return;
-  }
-  const prop=target.querySelector(kind==='mill'?'.sails':'.ridge-birds');
-  if(!prop||prop.getAnimations().length)return;
-  if(motion.matches){prop.animate([{opacity:1},{opacity:.5},{opacity:1}],{duration:250});return;}
-  const frames=kind==='mill'?[{transform:'rotate(0deg)'},{transform:'rotate(360deg)'}]:
-    [{transform:'translate(0,0)',opacity:1},{transform:'translate(27px,-19px)',opacity:.85,offset:.5},{transform:'translate(61px,-28px)',opacity:0,offset:.85},{opacity:0},{opacity:1}];
-  prop.animate(frames,{duration:kind==='mill'?2200:1800,easing:'ease-in-out'});
-}
-body.addEventListener('click',explore);
-body.addEventListener('keydown',explore);
 // Fit the full tree vertically while cropping the surrounding landscape on phones.
 function fit(){
   const active=document.querySelector('#scene>svg');

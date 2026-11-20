@@ -14,6 +14,6 @@ match /halloween2026Ledger/{uid} {
   allow read: if request.auth != null && request.auth.uid == uid;
   allow write: if false; // Only the Admin SDK in the callable function advances stages.
 }
-// Retired callable collections. The Pages client uses the separate rules in christmas/firestore.rules.fragment.
+// Retired callable collections. Publish the complete root firestore.rules file for the active Christmas event.
 match /christmas2026Trees/{document=**} { allow read, write: if false; }
 match /christmas2026Members/{document=**} { allow read, write: if false; }

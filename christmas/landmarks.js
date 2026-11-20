@@ -1,8 +1,8 @@
 export function harbor(){
   return `<path fill="#789eaa" d="M-1200 172q600 9 1200 1t1200 0v66h-2400z"/>
     <path fill="none" stroke="#cfddd6" stroke-width=".9" d="m-54 192 49 1m15 7 42-2m-6-13 26 1m214 8 51-1m18 6 46-1"/>
-    <g transform="translate(65 190)" class="beacon" data-discovery="beacon" role="button" tabindex="0" aria-label="Light the harbor beacon">
-    <path fill="transparent" d="M-19-66h38V2h-38z"/><path class="beam" fill="#ffe3a3" opacity=".52" d="m2-54 86-17v32z"/>
+    <g transform="translate(65 190)" class="beacon">
+    <path class="beam" fill="#ffe3a3" opacity=".52" d="m2-54 86-17v32z"/>
     <path fill="#e4deca" d="M-9 0-5-49H6L11 0z"/><path fill="#a95645" d="m-7-25 15-6 1 9-17 7z"/>
     <path fill="#445954" d="M-8-57H8v9H-8zm-1-1 9-7 9 7z"/><path fill="#fed78c" d="M-5-55h4v5h-4zm6 0h4v5H1z"/>
     <path fill="#66594c" d="M-2 0v-10q3-3 5 0V0z"/><path stroke="#6e5b4b" d="M-12-47H12m-21-3v5m18-5v5"/>
@@ -13,7 +13,7 @@ export function mill(){
   const sails=Array.from({length:4},(_,i)=>`<g transform="rotate(${i*90})"><path fill="#e7d4ac" stroke="#866e50" stroke-width=".8" d="M2-3v-32h7v26z"/><path stroke="#aa9370" stroke-width=".7" d="M3-28h6m-6 5h6m-6 5h6m-6 5h6"/></g>`).join('');
   return `<path fill="#abbdac" d="M-800 195q450-47 950-10t650-8v45H-800z"/>
     <g stroke="#85755d" stroke-width="1.4"><path d="m-60 202 183-13m153 8 182-13"/><path d="M-10 203v-9m29 7v-9m32 7v-9m34 6v-9m230 8v-9m38 7v-10m34 8v-10"/></g>
-    <g transform="translate(311 197)" data-discovery="mill" tabindex="0" role="button" aria-label="Turn the mill sails">
+    <g transform="translate(311 197)">
     <path fill="#b59c79" d="m-15 1 6-48H8l9 48z"/><path fill="#776650" d="M-13-47q13-22 26 0z"/>
     <path fill="#51493f" d="M-3 0v-9q3-5 7 0v9z"/><path fill="#fada98" d="M-2-27h5v6h-5z"/>
     <g transform="translate(0 -44)"><g class="sails">${sails}</g><circle r="2.5" fill="#574b3f"/></g></g>`;

@@ -4,11 +4,11 @@ import {harbor,mill,mistBank} from './landmarks.js';
 import {distantForest,woodland,rightBoughs,aurora} from './forest.js';
 // Small cut-paper buildings and hillside pines, mirrored across the courtyard.
 function cottage(x,y,scale) {
-  if(x===73)return `<g data-discovery="window" role="button" tabindex="0" aria-label="Switch the cottage lights" transform="translate(${x} ${y}) scale(${scale})"><path fill="#9b684c" d="M0 9 22-26 44 9v24H0z"/><path fill="#fbefdb" d="M-4 10 22-31 48 10h-5L22-21 1 10z"/><path class="window-light" fill="#ffd48e" d="M15 5 22-8l7 13z"/><path fill="#573f38" d="M17 16h10v17H17z"/></g>`;
+  if(x===73)return `<g transform="translate(${x} ${y}) scale(${scale})"><path fill="#9b684c" d="M0 9 22-26 44 9v24H0z"/><path fill="#fbefdb" d="M-4 10 22-31 48 10h-5L22-21 1 10z"/><path class="window-light" fill="#ffd48e" d="M15 5 22-8l7 13z"/><path fill="#573f38" d="M17 16h10v17H17z"/></g>`;
   const wide=x===12 || x===376;
   const walls=wide?'#9a7158':'#86675d';
   const annex=wide?'<path fill="#856d5f" d="M42 9h22v23H42z"/><path fill="#fff2dc" d="m39 10 12-13 17 13z"/><path class="window-light" fill="#ffd993" d="M51 15h7v8h-7z"/>':'';
-  return `<g data-discovery="window" role="button" tabindex="0" aria-label="Switch the cottage lights" transform="translate(${x} ${y}) scale(${scale})">
+  return `<g transform="translate(${x} ${y}) scale(${scale})">
     ${annex}<path fill="${walls}" d="M0 0h47v32H0z"/><path fill="#603e36" d="M32-16h6v19h-6z"/>
     <path fill="#754f41" d="M-2 3 12-18h26L50 3v4H-2z"/>
     <path fill="#af7660" d="M-3 2 12-17 26 2z"/>
@@ -31,7 +31,7 @@ export function panorama(setting,weather){
   return `<rect class="sky" x="-2000" y="-2000" width="4400" height="2500"/><rect fill="#e7eadd" x="-2000" y="240" width="4400" height="2000"/><g transform="translate(333 46)">${weather==="Ice halo"?'<g fill="none"><circle r="39" stroke="#df9e88" stroke-opacity=".24" stroke-width="2.4"/><circle r="41" stroke="#ffeac1" stroke-opacity=".37" stroke-width="2.5"/><circle r="43" stroke="#b5dce1" stroke-opacity=".3" stroke-width="2.5"/></g>':""}<g class="sun"><circle r="24" fill="#f9dca0" opacity=".22"/><circle r="17" fill="#ffdf8d"/><circle r="13" fill="#ffeab1"/></g><g class="night-disc"><circle class="moon" r="16"/><g fill="#c9af7d" opacity=".38"><ellipse cx="-5" cy="-6" rx="3" ry="2"/><circle cx="6" cy="4" r="3.2"/><circle cx="2" cy="9" r="1.5"/><circle cx="-9" cy="3" r="1.2"/></g></g></g>${setting==="Northern lights"?landmarks[setting]:""}
     <path fill="#93acaf" d="M-2100 165 -110 155 -55 110-17 130 64 71 141 138 235 84 290 131 357 92 419 143 509 94 2400 180V250H-2100z"/>
     <path fill="#d5dfd9" d="m39 92 25-21 27 23-20-10-7 4-6-4zm176 6 20-14 24 22-18-10-7 2-6-4z"/>
-    <g data-discovery="flock" role="button" aria-label="Startle the mountain birds" tabindex="0"><path fill="transparent" d="M23 119 66 71l55 55z"/><g class="ridge-birds" fill="none" stroke="#43595c" stroke-width=".9"><path d="m64 94q3-2 5 1 2-3 5-2m3 5q2-2 4 0 1-2 4-1m-20 4q2-1 4 1 1-2 4-2"/></g></g><path pointer-events="none" fill="#77929b" opacity=".65" d="m64 71 77 67-41-22-18-24 2 11zm171 13 55 47-19-10-22-25 4 15zm122 8 62 51-40-20-13-20z"/>
+    <g class="ridge-birds" fill="none" stroke="#43595c" stroke-width=".9"><path d="m64 94q3-2 5 1 2-3 5-2m3 5q2-2 4 0 1-2 4-1m-20 4q2-1 4 1 1-2 4-2"/></g><path pointer-events="none" fill="#77929b" opacity=".65" d="m64 71 77 67-41-22-18-24 2 11zm171 13 55 47-19-10-22-25 4 15zm122 8 62 51-40-20-13-20z"/>
     <path fill="#759591" d="M-2100 180 -110 178q98-84 189-26t194-9q107-57 237 6L2400 185v105H-2100z"/>
     <g class="village"><g fill="#426e69">${pines}</g><path fill="#c3d5cc" d="M-2100 188 -110 185q130-27 265 5t356-13L2400 185v150H-2100z"/>${houses}${setting==="Northern lights"?"":landmarks[setting]||villageScenes[setting]?.()||""}${weather==="Lake mist"?mistBank():""}</g>
     <g class="near-ground"><path class="powder" fill="#e7eadd" d="M-2100 239 -110 231q121-45 253-10t367-13L2400 219v110H-2100z"/>

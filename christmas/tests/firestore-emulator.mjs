@@ -4,13 +4,13 @@ import {initializeTestEnvironment,assertFails} from '@firebase/rules-unit-testin
 import * as sdk from 'firebase/firestore';
 import {createTreeStore} from '../tree-store.js';
 
-const fragment=await readFile(new URL('../firestore.rules.fragment',import.meta.url),'utf8');
+const source=await readFile(new URL('../../firestore.rules',import.meta.url),'utf8');
 // Use a demo project on loopback exclusively. Exercise both sides of the reveal.
 const port=Number(process.env.CHRISTMAS_EMULATOR_PORT||8492);
 for(const released of [false,true]){
-  const rules=fragment.replace('timestamp.date(2026,12,25)',released?'timestamp.date(2000,12,25)':'timestamp.date(2099,12,25)');
+  const rules=source.replace('timestamp.date(2026,12,25)',released?'timestamp.date(2000,12,25)':'timestamp.date(2099,12,25)');
   const env=await initializeTestEnvironment({
-    projectId:'demo-winter-tests',firestore:{host:'127.0.0.1',port,rules:"rules_version = '2'; service cloud.firestore { match /databases/{database}/documents {"+rules+"}}"}
+    projectId:'demo-winter-tests',firestore:{host:'127.0.0.1',port,rules}
   });
   try{
     await env.clearFirestore();

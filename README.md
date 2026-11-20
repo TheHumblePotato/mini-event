@@ -20,10 +20,9 @@ Run `npm start` and choose **Play with local preview accounts**. Plant a tree as
 
 Christmas uses Firebase Authentication and the default Cloud Firestore database in **nerd-mini-events**. GitHub Pages serves all application code. The only Firebase setup specific to this event is its Firestore rules.
 
-1. In the Firebase console, open **Firestore Database → Rules**. Insert the contents of [the Christmas rules fragment](christmas/firestore.rules.fragment) inside the existing `match /databases/{database}/documents { … }` block. Keep the rules for other events.
-2. Check existing wildcard rules before publishing. Firestore grants access if **any** matching rule allows it. An overlapping rule granting general access to signed-in users must exclude the Christmas subtree. Publish the merged rules.
-3. Push the site changes to the branch GitHub Pages serves. Google sign-in must be enabled for the Pages hostname under **Authentication → Settings → Authorized domains**. If real-account sign-in already succeeds, that part is configured.
-4. Open the site without the local demo flag. A new school account should see **Plant your tree**. Test a private link with a second school account.
+1. In **nerd-mini-events → Firestore Database → Rules**, paste the complete [firestore.rules](firestore.rules) file and click **Publish**. It includes the Halloween player, ledger and leaderboard rules, the retired collection restrictions, and the active Christmas rules. If you have added other production rules since this file was prepared, merge those before publishing.
+2. Push the site changes to the branch GitHub Pages serves. Google sign-in must be enabled for the Pages hostname under **Authentication → Settings → Authorized domains**. If real-account sign-in already succeeds, that part is configured.
+3. Open the site without the local demo flag. A new school account should see **Plant your tree**. Test a private link with a second school account.
 
 Event records live under `/winterEvents/christmas2026`. Tree decorations and letter text are separate documents. Firestore checks signatures, the sender cooldown, and the reveal time at midnight Pacific. Compare new catalog values with the allowlists in the rules when adding options.
 
