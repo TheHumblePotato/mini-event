@@ -18,12 +18,14 @@ Create one tree per account. Offer a balsam fir, blue spruce and white pine with
 3. Finding and sharing trees
 Explain visibility when the owner chooses it. A public tree appears in the school’s public-tree gallery. A private tree is unlisted and accessible to signed-in school members with its share link. Both have a Copy tree link action. Generate opaque, unguessable links with no email in the URL. Owners can change visibility and replace a private share link to invalidate the old one. Remove a tree from the gallery when it becomes private.
 
-The gallery shows a thumbnail and the owner’s signed display name. Include a way back to My Tree, a clear empty state, and a friendly message for an expired link.
+New trees start public. The gallery shows a thumbnail, the owner’s signed display name and the ornament count. Visitors can search for a friend by name or sort by name or ornament count.
+
+Owners can preview a coordinated style such as Harbor pilot or Polar night while planting or restyling their tree. A preset changes its species, landscape, weather and topper together. Each choice can then be adjusted individually. From the tree menu, visitors can save a PNG postcard showing that page of branches in the current light, with the owner’s name and a winter postmark.
 
 4. Leaving an ornament
 Choose an illustrated ornament, colorway and available branch. Preview its size against the tree. Offer blown-glass baubles, embroidered mittens, folded paper birds, iced gingerbread, carved wooden animals, tiny lanterns and enamel bells. Give each a recognizable silhouette, hanging loop and material-specific detail. Preserve placements across screen sizes; provide keyboard-accessible branch selection and a list view for crowded trees.
 
-Write a note, choose Public or Private, preview it with its automatic signature, then hang it. Start the composer with bold, italic, line breaks and an optional image with alt text. Store structured rich text and render only supported formatting. If image uploads ship, accept validated raster images, strip metadata, limit file size, and serve them with the same permissions and reveal time as the note.
+Write a note, choose Public or Private, preview it with its automatic signature, then hang it. New notes start public. Edits open with the author’s saved visibility. Start the composer with bold, italic, line breaks and an optional image with alt text. Store structured rich text and render only supported formatting. If image uploads ship, accept validated raster images, strip metadata, limit file size, and serve them with the same permissions and reveal time as the note.
 
 Bind authorship to the verified account on the server. Derive the signature from the school email convention for students and staff. Student alexs27 signs as Alex S. and teacher alex.smith signs as Alex Smith. An ambiguous address must never produce a guessed identity. Keep email addresses out of public views and the signature field out of the editor.
 

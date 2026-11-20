@@ -176,3 +176,17 @@ svg[data-setting="Glasshouse garden"]{--day-sky:#aecbc1;--night-sky:#243c40}svg[
 @media(forced-colors:active){.immersive .letter-book textarea.letter-text:focus-visible{outline:1px dashed Highlight}}
 .keepsake-search{width:100%;margin:.9rem 0 0;padding:.5rem .8rem;font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--edge);border-radius:.5rem}
 .workshop label[hidden]{display:none}.letter-book .stationery{color-scheme:light}
+
+.tree-style-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.3rem .65rem}
+.tree-style-fields label:first-child,.tree-style-fields label:last-child{grid-column:1/-1}
+.tree-style-fields select{min-width:0}
+.gallery-tools{display:flex;flex-wrap:wrap;gap:.7rem 1rem;align-items:end;max-width:40rem}
+.gallery-tools label{flex:1 1 10rem;margin:0;font-size:.9rem;font-weight:600}
+.gallery-tools label:first-child{flex-grow:2}
+.gallery-tools input,.gallery-tools select{display:block;width:100%;min-height:2.8rem;margin-top:.25rem;padding:.55rem .75rem;font:inherit;font-weight:400;color:var(--ink);background:var(--panel);border:1px solid var(--edge);border-radius:.45rem}
+.gallery-tools[hidden],.gallery-empty:empty{display:none}
+#winter-menu nav #postcard{margin:.2rem .6rem .45rem;padding:.6rem .8rem;text-align:left;font:inherit;color:var(--ink);border:1px dashed var(--edge);background:transparent}
+#winter-menu nav #postcard:hover{background:var(--panel)}
+#postcard[hidden]{display:none}
+dialog:has(.postcard){width:min(94vw,46rem)}
+.postcard img{display:block;width:100%;height:auto;margin:1rem 0;box-shadow:0 3px 12px #142d292b}

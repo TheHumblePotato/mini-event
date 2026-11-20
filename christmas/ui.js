@@ -1,7 +1,10 @@
 import {letter} from './letter.js';
 import {workshop} from './workshop.js';
-import {scene,ornamentIcon} from './art.js';
-import {options,schoolName} from './model.js';
+import {scene} from './art.js';
+import {schoolName} from './model.js';
+import {treeStyleFields} from './tree-styles.js';
+import {showGallery} from './gallery.js';
+import {showPostcard} from './postcard.js';
 const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 const local=['localhost','127.0.0.1'].includes(location.hostname);
@@ -29,9 +32,6 @@ if(local && !demo){
   const a=document.createElement('a');a.href=treeUrl({demo:'1'});a.textContent='Play with local preview accounts';$('preview').append(a);
 }
 const status=text=>{$('status').textContent=text;};
-function field(key,label){
-  return '<label>'+label+'<select name="'+key+'">'+options[key].map(value=>'<option>'+value+'</option>').join('')+'</select></label>';
-}
 function submit(form,fn){
   form.onsubmit=async event=>{
     event.preventDefault();const button=form.querySelector('button');button.disabled=true;
@@ -47,23 +47,14 @@ async function render(){
   if(params.has('gallery')){
     const trees=await call('gallery');
     document.body.classList.add('in-gallery');
-    content.innerHTML='<section class="directory"><a id="back-tree">← My tree</a><h1>Public trees</h1><div class="tree-grid"></div></section>';
-    $('back-tree').href=treeUrl();
-    const grid=content.querySelector('.tree-grid');
-    for(const tree of trees){
-      const a=document.createElement('a');a.href=treeUrl({id:tree.id});
-      a.innerHTML='<div class="thumbnail" inert aria-hidden="true">'+scene({...defaults,...tree,weather:'Clear'},true)+'</div><h2></h2><p></p>';
-      a.querySelector('h2').textContent=tree.name+'’s tree';a.querySelector('p').textContent=tree.count+' ornament'+(tree.count===1?'':'s');grid.append(a);
-    }
-    if(!trees.length)grid.textContent='The gallery is quiet. Plant a public tree to join it.';
+    showGallery(content,trees,treeUrl);
     status('');return;
   }
   const id=params.has('id')?params.get('id'):await call('mine');
   if(!id){
-    content.innerHTML='<div class="layout"><div class="art" id="scene"></div><form><h2>Plant your tree</h2>'+field('species','Tree')+field('setting','Backdrop')+field('weather','Weather')+field('star','Topper')+field('visibility','Tree visibility')+'<p>Private trees are open to school members with the link. Public trees also appear in the gallery.</p><button>Plant tree</button></form></div>';
+    content.innerHTML='<div class="layout"><div class="art" id="scene"></div><form><h2>Plant your tree</h2><div class="tree-style-fields"></div><p>Public trees appear in the school gallery. Choose Private to share yours by link.</p><button>Plant tree</button></form></div>';
     const form=content.querySelector('form');
-    const draw=()=>{$('scene').innerHTML=scene(Object.fromEntries(new FormData(form)),true);};
-    form.onchange=draw;draw();status('');
+    treeStyleFields(form,defaults,$('scene'));status('');
     submit(form,async values=>location.assign(treeUrl({id:await call('create',values)})));return;
   }
   const tree=await call('view',{id,page:currentPage});
@@ -77,6 +68,13 @@ async function render(){
   const dialog=$('letter'), sheet=$('sheet');
   dialog.querySelector('.close').onclick=()=>dialog.close();
   dialog.onclick=e=>{if(e.target===dialog)dialog.close();};
+  const postcard=$('postcard');
+  postcard.hidden=false;
+  postcard.onclick=()=>{
+    if($('panelToggle').getAttribute('aria-expanded')==='true')$('panelToggle').click();
+    $('panelToggle').focus();
+    showPostcard(dialog,$('scene').querySelector('svg'),tree);
+  };
   $('copy').onclick=async()=>{const url=treeUrl({id});try{await navigator.clipboard.writeText(url);status('Tree link copied.');}catch{status(url);}};
   if(tree.pages>1){
     const nav=$('tree-pages');nav.hidden=false;
@@ -104,10 +102,9 @@ async function render(){
     edit.textContent='Style tree';
     $('actions').append(edit);
     edit.onclick=()=>{
-      sheet.innerHTML='<form><h2>Style your tree</h2>'+field('species','Evergreen')+field('setting','Landscape')+field('weather','Weather')+field('star','Topper')+field('visibility','Tree visibility')+'<p role="status"></p><button>Save</button></form>';
+      sheet.innerHTML='<form><h2>Style your tree</h2><div class="tree-style-fields"></div><p role="status"></p><button>Save</button></form>';
       const form=sheet.querySelector('form');
-      for(const key of ['species','setting','weather','star','visibility'])form.elements[key].value=tree[key];
-      form.onchange=()=>{$('scene').innerHTML=scene({...tree,...Object.fromEntries(new FormData(form))},true);};
+      treeStyleFields(form,tree,$('scene'));
       const originalScene=$('scene');
       const discardPreview=()=>{originalScene.innerHTML=scene(tree,true);};
       dialog.addEventListener('close',discardPreview,{once:true});

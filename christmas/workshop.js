@@ -4,7 +4,7 @@ import {ornamentIcon,palette} from './art.js';
 
 export function workshop(dialog,card,name,onSave){
   const sheet=dialog.querySelector('#sheet');
-  const draft={kind:'Bell',color:'Gold',paper:'Parchment',visibility:'Private',message:'',...card,name};
+  const draft={kind:'Bell',color:'Gold',paper:'Parchment',visibility:options.visibility[0],message:'',...card,name};
   const titles=['Pick a keepsake','Write your Christmas note','Hang your ornament'];
   let step=0;
   function draw(){
