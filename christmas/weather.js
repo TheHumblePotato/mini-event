@@ -18,7 +18,8 @@ function crystal(ctx){
   ctx.stroke();
 }
 const weatherProfiles={
-  'Ice halo':[0,0,0], 'Spindrift':[135,0,144], 'Sleet':[290,205,45], 'Feather snow':[120,24,5], 'Clear':[0,0,0], 'Lake mist':[0,0,0], 'Diamond dust':[160,13,4],
+  'Graupel':[185,173,26], 'Light pillars':[0,0,0],
+  'Ice halo':[0,0,0], 'Spindrift':[205,0,178], 'Sleet':[290,205,45], 'Feather snow':[120,24,5], 'Clear':[0,0,0], 'Lake mist':[0,0,0], 'Diamond dust':[160,13,4],
   'Snowfall':[240,54,10], 'Flurries':[340,76,43], 'Snowstorm':[720,132,118]
 };
 export function winterAir(){
@@ -36,27 +37,44 @@ export function winterAir(){
     c.beginPath();c.moveTo(20,1);c.lineTo(22,17);c.lineTo(35,20);c.lineTo(22,22);
     c.lineTo(20,39);c.lineTo(18,22);c.lineTo(4,20);c.lineTo(18,18);c.fill();
   });
+  const streamer=texture(80,20,c=>{
+    c.fillStyle='rgba(106,146,160,.66)';c.beginPath();c.moveTo(1,16);
+    c.bezierCurveTo(22,17,45,2,75,9);c.bezierCurveTo(49,7,37,22,1,16);c.fill();
+    c.fillStyle='#fffaf0';c.beginPath();c.moveTo(5,14);c.bezierCurveTo(31,13,47,0,77,7);
+    c.bezierCurveTo(50,5,37,18,5,14);c.fill();
+    for(const [x,y,r] of [[66,4,1.4],[74,2,1],[78,5,.8],[54,5,1]]){c.beginPath();c.arc(x,y,r,0,2*Math.PI);c.fill();}
+  });
+  const pellet=texture(18,18,c=>{
+    c.fillStyle='#819aa5';c.beginPath();c.ellipse(9,10,6,5.5,-.4,0,2*Math.PI);c.fill();
+    c.fillStyle='#f1f3e8';c.beginPath();c.ellipse(8,8,5.6,4.6,-.5,0,2*Math.PI);c.fill();
+    c.fillStyle='#fffdf1';c.fillRect(6,5,3,2);
+  });
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const powder=[],flakes=[];
-  let width=0,height=0,mode='Clear',frame=0,last=0;
+  let width=0,height=0,mode='Clear',frame=0,last=0,cameraX=0,cameraY=0;
+  const margin=80;
+  const wrap=(value,span)=>((value+margin)%span+span)%span-margin;
   function size(){
     width=canvas.width=innerWidth;height=canvas.height=innerHeight;
     flakes.length=0;
     const density=weatherProfiles[mode][0];
     const count=Math.min(1100,Math.round(density*Math.max(.55,width*height/950000)));
-    for(let i=0;i<count;i++)flakes.push({x:Math.random()*width,y:Math.random()*height,z:.18+Math.random()*.82,phase:Math.random()*6.28,sprite:i%6===0?flake:soft});
+    for(let i=0;i<count;i++)flakes.push({x:Math.random()*width,y:Math.random()*height,z:.18+Math.random()*.82,phase:Math.random()*6.28,bounce:0,sprite:i%6===0?flake:soft});
   }
   function draw(now){
     frame=0;
-    const dt=Math.min(.05,(now-last)/1000);last=now;
+    const dt=reduced.matches?0:Math.min(.05,(now-last)/1000);last=now;
     ctx.clearRect(0,0,width,height);
-    if(document.hidden||reduced.matches)return;
+    if(document.hidden)return;
     const wind=weatherProfiles[mode][2]*(1+.38*Math.sin(now/4600)+.16*Math.sin(now/1300));
     for(const f of flakes){
       f.x+=dt*(wind+Math.sin(now/2100+f.phase)*11)*f.z;
       f.y+=dt*(weatherProfiles[mode][1]*(.35+f.z));
-      if(f.y>height+10){f.y=-10;f.x=Math.random()*width;}
-      if(f.x>width+10)f.x=-10;if(f.x< -10)f.x=width+10;
+      // World positions survive a pan. Wrap only the projected position at
+      // the screen edge, so a flake never jumps inside the visible area.
+      const depth=.12+1.35*f.z*f.z;
+      const x=wrap(f.x+cameraX*depth,width+2*margin);
+      let y=wrap(f.y+cameraY*depth,height+2*margin);
       let sprite=f.sprite,s=2.3+f.z*f.z*(mode==='Snowstorm'?13:10);
       ctx.globalAlpha=.46+f.z*.52;
       if(mode==='Diamond dust'){
@@ -66,11 +84,21 @@ export function winterAir(){
       if(mode==='Feather snow'){sprite=flake;s*=1.65;}
       const w=mode==='Sleet'?s*.34:s,h=mode==='Sleet'?s*1.75:s;
       if(mode==='Spindrift'){
-        const band=height*(.78+.21*f.z);
-        const lift=Math.sin(now/780+f.phase)*Math.min(10,height*.019);
-        ctx.globalAlpha=.19+.42*f.z;
-        ctx.drawImage(soft,f.x,band+lift,s*2.6,s*.64);
-      }else ctx.drawImage(sprite,f.x-w/2,f.y-h/2,w,h);
+        const gust=(1+Math.sin(f.x/135+now/1300+f.phase))*.5;
+        const band=height*(.72+.26*f.z)-gust*gust*(5+22*f.z)+cameraY*depth;
+        ctx.globalAlpha=.42+.47*f.z;
+        if(f.phase<2.2)ctx.drawImage(streamer,x,band,26+s*3.3,6+s*1.15);
+        else ctx.drawImage(clump,x,band+Math.sin(f.phase*4)*6,2.5+s*.76,2+s*.4);
+      }else if(mode==='Graupel'){
+        const ground=height*(.73+.26*f.z);
+        if(f.y>=ground){
+          f.bounce+=dt*(3.1+f.z);
+          y=ground-4*f.bounce*(1-f.bounce)*(5+12*f.z)+cameraY*depth;
+          if(f.bounce>=1){f.y=-margin;f.bounce=0;f.x=Math.random()*width;}
+        }
+        const size=2+5*f.z;
+        ctx.drawImage(pellet,x,y,size,size);
+      }else ctx.drawImage(sprite,x-w/2,y-h/2,w,h);
     }
     for(let i=powder.length-1;i>=0;i--){
       const p=powder[i];p.age+=dt;
@@ -79,21 +107,22 @@ export function winterAir(){
       p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.gravity*dt;
       ctx.globalAlpha=(1-t*t)*p.opacity;
       const s=p.size*(1+t*p.growth);
-      ctx.drawImage(p.sprite,p.x-s/2,p.y-s/2,s,s);
+      ctx.drawImage(p.sprite,p.x+cameraX-s/2,p.y+cameraY-s/2,s,s);
     }
     ctx.globalAlpha=1;
-    if(flakes.length||powder.length)frame=requestAnimationFrame(draw);
+    if(!reduced.matches&&(flakes.length||powder.length))frame=requestAnimationFrame(draw);
   }
-  function wake(){if(!frame&&!document.hidden&&!reduced.matches){last=performance.now();frame=requestAnimationFrame(draw);}}
-  addEventListener('resize',size);document.addEventListener('visibilitychange',wake);
-  reduced.addEventListener('change',()=>{ctx.clearRect(0,0,width,height);wake();});
+  function wake(){if(!frame&&!document.hidden){last=performance.now();frame=requestAnimationFrame(draw);}}
+  addEventListener('resize',()=>{size();wake();});document.addEventListener('visibilitychange',wake);
+  reduced.addEventListener('change',()=>{powder.length=0;wake();});
   return {
+    camera(x,y){cameraX=x;cameraY=y;},
     set(value){if(mode===value&&width)return;mode=value in weatherProfiles?value:'Clear';size();wake();},
     brush(x,y,dx,dy){
       const force=Math.min(1,Math.hypot(dx,dy)/22);
       for(let i=0;i<5+force*9&&powder.length<180;i++){
         const puff=i%4===0,t=Math.random();
-        powder.push({sprite:puff?soft:clump,x:x-dx*t+(Math.random()-.5)*8,y:y-dy*t,
+        powder.push({sprite:puff?soft:clump,x:x-cameraX-dx*t+(Math.random()-.5)*8,y:y-cameraY-dy*t,
           vx:Math.max(-130,Math.min(130,dx*2.4))+(Math.random()-.5)*56,
           vy:-22-Math.random()*(35+force*90),gravity:puff?58:250,age:0,
           duration:.4+Math.random()*.42,size:puff?12+force*12:3+Math.random()*7,

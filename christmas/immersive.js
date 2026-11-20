@@ -42,15 +42,34 @@ function advance(now){
     s.speed+=(-54*s.angle-4.8*s.speed)*dt;
     s.angle+=s.speed*dt;
     if(!element.isConnected || Math.abs(s.angle)+Math.abs(s.speed)<.035){
-      element.style.removeProperty(s.property);springs.delete(element);
-    }else element.style.setProperty(s.property,s.angle.toFixed(3)+'deg');
+      if(s.property==='bend')element.removeAttribute('transform');
+      else element.style.removeProperty(s.property);
+      springs.delete(element);
+    }else if(s.property==='bend')element.setAttribute('transform',`rotate(${s.angle.toFixed(3)} 200 278)`);
+    else element.style.setProperty(s.property,s.angle.toFixed(3)+'deg');
   }
   frame=springs.size?requestAnimationFrame(advance):0;
 }
 const air=winterAir();
 let layers=[],pending=null,pointerFrame=0;
+let cameraX=0,cameraY=0,targetX=0,targetY=0,cameraFrame=0,cameraTime=0,sceneScale=1;
+function project(){
+  for(const [node,depth] of layers)node.style.translate=(cameraX*depth).toFixed(3)+'px '+(cameraY*depth).toFixed(3)+'px';
+  air.camera(cameraX*sceneScale,cameraY*sceneScale);
+}
+function advanceCamera(now){
+  const ease=1-Math.exp(-Math.min(64,now-cameraTime)/80);
+  cameraTime=now;
+  cameraX+=(targetX-cameraX)*ease;
+  cameraY+=(targetY-cameraY)*ease;
+  if(Math.abs(targetX-cameraX)+Math.abs(targetY-cameraY)<.012){
+    cameraX=targetX;cameraY=targetY;cameraFrame=0;
+  }else cameraFrame=requestAnimationFrame(advanceCamera);
+  project();
+}
 function pan(x,y){
-  for(const [node,h,v] of layers)node.style.translate=(x*h).toFixed(2)+'px '+(y*v).toFixed(2)+'px';
+  targetX=-21*x;targetY=-6*y;
+  if(!cameraFrame){cameraTime=performance.now();cameraFrame=requestAnimationFrame(advanceCamera);}
 }
 function move(){
   pointerFrame=0;
@@ -63,7 +82,7 @@ function move(){
   if(!from||now-from.now>180)return;
   const dx=x-from.x,dy=y-from.y;
   const crown=event.target.closest('.crown');
-  if(crown)nudge(crown,-dx*.06,1.1,'--bend');
+  if(crown)nudge(crown,dx*.06,1.1,'bend');
   const hanging=event.target.closest('.hanging')||pendingCharm;
   if(hanging)nudge(hanging.querySelector('.charm'),-dx*2,24,'--angle');
   pendingCharm=null;
@@ -80,11 +99,13 @@ document.documentElement.addEventListener('pointerleave',()=>{cancelAnimationFra
 function fit(){
   const active=document.querySelector('#scene>svg');
   document.querySelector('#ambient').hidden=!!active || location.search.includes('gallery');
-  layers=active?['.horizon','.village','.near-ground','.crown'].map((selector,i)=>[active.querySelector(selector),[-3,-6,-21,-14][i],[-1,-2,-6,-5][i]]):[];
+  layers=active?['.horizon','.village','.ground-plane'].map((selector,i)=>[active.querySelector(selector),[.15,.43,1][i]]):[];
   air.set(active?.dataset.weather||'Clear');
   const ratio=innerWidth/innerHeight;
   const width=Math.max(212,310*ratio);
   const height=width/ratio;
+  sceneScale=innerWidth/width;
+  project();
   for(const svg of document.querySelectorAll('#scene>svg,#ambient>svg')){
     svg.setAttribute('viewBox',[200-width/2,(310-height)/2,width,height].join(' '));
     svg.setAttribute('preserveAspectRatio','xMidYMid meet');
@@ -92,6 +113,11 @@ function fit(){
 }
 new MutationObserver(records=>{if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1 && (n.matches('#scene,svg') || n.querySelector('#scene,svg')))))fit();}).observe(document.querySelector('#content'),{childList:true,subtree:true});
 window.addEventListener('resize',fit);fit();
+motion.addEventListener('change',()=>{
+  if(!motion.matches)return;
+  cancelAnimationFrame(cameraFrame);cameraFrame=0;cameraX=0;cameraY=0;targetX=0;targetY=0;
+  previous=null;project();
+});
 
 
 

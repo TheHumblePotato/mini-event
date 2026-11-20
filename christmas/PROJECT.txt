@@ -13,7 +13,7 @@ Two optional discoveries: ring the courtyard bell three times to wake a snowy ow
 2. Entering Deco My Tree
 Require a verified @lakesideschool.org account for every tree, gallery, ornament and image request. A visitor following a share link returns to that tree after sign-in. From Home, a first-time visitor gets a tree-creation prompt with a live preview. A returning owner goes straight to their own tree. Visiting a friend never requires creating a tree first.
 
-Create one tree per account. Offer a balsam fir, blue spruce and white pine with distinct silhouettes, needles and branch spacing. Choose clear skies, drifting snow or flurries; a courtyard, woodland clearing or frosted window backdrop; and a paper, brass or stained-glass star. Start with an attractive complete scene. Owners can revisit these choices without losing ornaments.
+Create one tree per account. Each species has its own silhouette and branch spacing, from the winter twigs of a paper birch to the upturned limbs of a monkey puzzle. Landscapes include a tidal rock arch, an ice grotto and a summit observatory. Weather can add bouncing graupel, blowing spindrift or columns of light behind the skyline. The camera keeps the tree rooted in the snow and shifts falling particles according to depth. Owners can revisit these choices without losing ornaments.
 
 3. Finding and sharing trees
 Explain visibility when the owner chooses it. A public tree appears in the school’s public-tree gallery. A private tree is unlisted and accessible to signed-in school members with its share link. Both have a Copy tree link action. Generate opaque, unguessable links with no email in the URL. Owners can change visibility and replace a private share link to invalidate the old one. Remove a tree from the gallery when it becomes private.
@@ -23,7 +23,7 @@ New trees start public. The gallery shows a thumbnail, the owner’s signed disp
 Owners can preview a coordinated style such as Harbor pilot or Polar night while planting or restyling their tree. A preset changes its species, landscape, weather and topper together. Each choice can then be adjusted individually. From the tree menu, visitors can save a PNG postcard showing that page of branches in the current light, with the owner’s name and a winter postmark.
 
 4. Leaving an ornament
-Choose an illustrated ornament, colorway and available branch. Preview its size against the tree. Offer blown-glass baubles, embroidered mittens, folded paper birds, iced gingerbread, carved wooden animals, tiny lanterns and enamel bells. Give each a recognizable silhouette, hanging loop and material-specific detail. Preserve placements across screen sizes; provide keyboard-accessible branch selection and a list view for crowded trees.
+Visitors choose an illustrated ornament and finish. The tree assigns its hanging point and opens another page of branches when full. Keep ornaments keyboard accessible and their positions consistent across screen sizes. The rocking horse rocks on its runners, the snowy owl blinks, and the cocoa mug gives off a curl of steam.
 
 Write a note, choose Public or Private, preview it with its automatic signature, then hang it. New notes start public. Edits open with the author’s saved visibility. Start the composer with bold, italic, line breaks and an optional image with alt text. Store structured rich text and render only supported formatting. If image uploads ship, accept validated raster images, strip metadata, limit file size, and serve them with the same permissions and reveal time as the note.
 

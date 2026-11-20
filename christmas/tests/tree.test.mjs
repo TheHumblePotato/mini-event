@@ -36,6 +36,25 @@ test('Christmas reveal respects visibility and the exact Pacific boundary',()=>{
   assert.deepEqual(messages('visitor',midnight),[null,'Hello']);
 });
 
+test('only the designated student address gets the alternate signature',()=>{
+  assert.equal(schoolName('CarolynJ30@lakesideschool.org'),'Seek J');
+  assert.equal(schoolName('carolynj31@lakesideschool.org'),'Carolyn J.');
+  assert.equal(schoolName('carolynj30@lakesideschool.com'),null);
+});
+
+test('published rules and console fragment accept the exact playable catalogs',async()=>{
+  const {options}=await import('../model.js');
+  const {readFile}=await import('node:fs/promises');
+  for(const file of ['../../firestore.rules','../firestore.rules.fragment']){
+    const rules=await readFile(new URL(file,import.meta.url),'utf8');
+    for(const [key,values] of Object.entries(options)){
+      const list=rules.match(new RegExp('d\\.'+key+' in \\[([^\\]]+)\\]'));
+      assert.ok(list,key+' missing from '+file);
+      assert.deepEqual([...list[1].matchAll(/'([^']+)'/g)].map(m=>m[1]).sort(),[...values].sort());
+    }
+  }
+});
+
 test('long letters preserve text, manual page breaks and stationery through the reveal',async()=>{
   const {makeCard}=await import('../model.js');
   const {letterPages}=await import('../letter.js');

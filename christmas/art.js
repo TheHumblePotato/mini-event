@@ -1,10 +1,12 @@
 import {heirlooms} from './heirlooms.js';
+import {winterKeepsakes} from './winter-keepsakes.js';
+import {winterHangers} from './winter-trees.js';
 import {treeTopper} from './landmarks.js';
 import {keepsakes} from './keepsakes.js';
 import {panorama,foliage} from './woodcut.js';
 // Cut-paper scene with one painted ornament for each visitor submission.
 const loop='<ellipse cy="-8" rx="1.6" ry="2" fill="none" stroke="#d4b783" stroke-width=".8"/>';
-const shapes={...keepsakes,...heirlooms,
+const shapes={...keepsakes,...heirlooms,...winterKeepsakes,
   Skate:'<path d="M-6-7h7l1 6 6 3q2 3-2 4H-7z"/><path fill="none" stroke="#f9eac9" d="M-3-4h4m-4 2h4m-6 8v2m7-2v2m-12 0H7q2 0 2-2"/>',
   Cardinal:'<path d="m-9 5 4-6q1-5 6-4l1-4 3 4q4 1 3 5L5 3Q1 8-5 5l-5 4z"/><path fill="#e9b564" d="m7-3 4 2-4 1z"/><circle cx="5" cy="-3" r="1" fill="#342c29"/><path fill="none" stroke="#fff4d7" d="M-5 2q4 2 7-2"/>',
   Pinecone:'<path d="M0-9Q9-6 7 1 6 7 0 10-9 5-7-2q0-5 7-7z"/><path fill="none" stroke="#fbdda6" d="m-4-4 3 2 3-2m-8 4 3 2 3-2 3 2 3-2m-9 5 3 2 3-2"/>',
@@ -19,9 +21,9 @@ const shapes={...keepsakes,...heirlooms,
   Snowflake:'<path d="M0-8V8m-7-12 14 8m0-8L-7 4M-3-6l3 2 3-2m-6 12 3-2 3 2" fill="none" stroke="currentColor" stroke-width="2"/><path class="glint" fill="#fff8d7" d="m4-8 .6 2.3 2.4.7-2.4.7L4-2l-.6-2.3L1-5l2.4-.7z"/>'
 };
 export const palette={
-  Cranberry:'#db6c65',Gold:'#ecc166',Plum:'#b88dbf',Copper:'#de945f',Mint:'#a5e1c1','Ice blue':'#91cfdc',
-  Sapphire:'#739adc',Evergreen:'#78a785',Ivory:'#f2e8c9',Mulberry:'#ab6986',Tangerine:'#eb9557',
-  'Rose quartz':'#e4a9b5',Pewter:'#aebbc3',Peacock:'#54a9aa'
+  Cranberry:'#c4474f',Gold:'#f1c351',Plum:'#986cbe',Copper:'#a36643',Mint:'#abe7bc','Ice blue':'#b0dcec',
+  Sapphire:'#497bc9',Evergreen:'#43784c',Ivory:'#fff0d2',Mulberry:'#853766',Tangerine:'#fa8841',
+  'Rose quartz':'#eea6ba',Pewter:'#90949b',Peacock:'#258e91'
 };
 export function ornamentIcon(kind,color){
   return '<svg viewBox="-12 -15 24 27" aria-hidden="true" style="color:'+palette[color]+'" fill="currentColor"><path d="M0-13v8" stroke="#aa8956"/>'+loop+shapes[kind]+'</svg>';
@@ -30,7 +32,7 @@ export function scene(tree, animatedWeather=false) {
   const narrow=tree.species==='Cypress';
   const spruce=tree.species==='Spruce';
 
-  const flakes=animatedWeather||tree.weather==='Clear'?'':Array.from({length:tree.weather==='Flurries'?115:65},()=>{
+  const flakes=animatedWeather||['Clear','Ice halo','Lake mist','Light pillars'].includes(tree.weather)?'':Array.from({length:tree.weather==='Flurries'?115:65},()=>{
     const r=Math.random(),x=Math.random()*1100-350;
     const duration=(tree.weather==='Flurries'?8:14)+(1-r)*10;
     return '<ellipse cx="'+x+'" cy="-20" rx="'+(.22+r*.68)+'" ry="'+(.33+r*.74)+'" style="--fall:'+duration+'s;--phase:-'+Math.random()*duration+'s;--drift:'+(tree.weather==='Flurries'?45+r*45:4+r*14)+'px;opacity:'+(.32+r*.53)+'" fill="#fffaf0"/>';
@@ -38,12 +40,18 @@ export function scene(tree, animatedWeather=false) {
   const ornaments=(tree.cards||[]).map((card,i)=>{
     const slots=[[0,96],[-19,130],[19,130],[-32,164],[0,159],[32,164],[-49,199],[-14,197],[24,195],[53,234],[6,234],[-40,234]];
     const [offset,level]=slots[i%slots.length];
-    const x=200+offset*(narrow?.62:spruce?.82:1);
-    const y=tree.species==='Scots pine'?level*.89+9:level;
+    const hanger=winterHangers(tree.species)?.[i%slots.length];
+    const x=200+(hanger ? hanger[0] : offset*(narrow?.62:spruce?.82:1));
+    const y=hanger ? hanger[1]+12 : tree.species==='Scots pine'?level*.89+9:level;
     return '<g class="hanging" role="button" tabindex="0" aria-label="Open '+card.kind+' ornament" data-card="'+i+'" transform="translate('+x+' '+y+')" color="'+palette[card.color]+'" fill="currentColor"><circle r="12" fill="transparent"/><g class="charm"><path d="M0-12v7" stroke="#fff0c2"/>'+loop+shapes[card.kind]+'</g></g>';
   }).join('');
   const star=treeTopper(tree.star);
-  return '<svg data-setting="'+tree.setting+'" data-weather="'+tree.weather+'" role="'+(animatedWeather?'group':'img')+'" aria-label="Decorated winter tree" viewBox="-90 0 580 310">'+'<g class="horizon '+(tree.setting==='Alpine dusk'?'dusk':tree.setting==='Northern lights'?'polar':'')+'">'+panorama(tree.setting,tree.weather)+'</g><g class="crown">'+'<ellipse cx="200" cy="278" rx="76" ry="5" fill="#b6cabe"/>'+foliage(tree.species)+star+ornaments+'</g>'+ '<g class="snow" pointer-events="none">'+flakes+'</g></svg>';
+  const {distance,middle,ground}=panorama(tree.setting,tree.weather);
+  return `<svg data-setting="${tree.setting}" data-weather="${tree.weather}" role="${animatedWeather?'group':'img'}" aria-label="Decorated winter tree" viewBox="-90 0 580 310">
+    <g class="horizon">${distance}</g><g class="village">${middle}</g>
+    <g class="ground-plane"><g class="near-ground">${ground}<ellipse cx="200" cy="278" rx="76" ry="5" fill="#b6cabe"/></g>
+      <g class="crown">${foliage(tree.species)}${star}${ornaments}</g></g>
+    <g class="snow" pointer-events="none">${flakes}</g></svg>`;
 }
 
 

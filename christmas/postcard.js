@@ -19,7 +19,7 @@ function framedScene(live) {
     // Center the tree in the print regardless of pointer position. Keep the
     // boats, cable cars, aurora and hanging charms in their current poses.
     copy.style.removeProperty('translate');
-    if (node.matches('.horizon, .village, .near-ground, .crown')) return;
+    if (node.matches('.horizon, .village, .ground-plane, .near-ground, .crown')) return;
     if (style.transform !== 'none' || node.matches('.gondola')) {
       const parent = node.parentElement.getCTM?.(), current = node.getCTM();
       if (parent && current) {

@@ -1,12 +1,13 @@
 export const options = {
-  species: ['Fir', 'Spruce', 'Blue cedar', 'Scots pine', 'Cypress', 'Western hemlock', 'Atlas cedar', 'Giant sequoia'], setting: ['Courtyard', 'Woodland', 'Alpine dusk', 'Frozen lake', 'Northern lights', 'Harbor lights', 'Solstice mill', 'Snowbound railway', 'Glasshouse garden', 'Skating pond', 'Clocktower market'],
-  weather: ['Snowfall', 'Clear', 'Flurries', 'Snowstorm', 'Diamond dust', 'Lake mist', 'Sleet', 'Feather snow', 'Spindrift', 'Ice halo'], star: ['None', 'Brass', 'Silver', 'Rose gold', 'Glass spire', 'Paper angel', 'Ribbon bow', 'Crescent moon', 'Solstice sun', 'Compass rose', 'Holly spray'],
-  visibility: ['Public', 'Private'], kind: ['Bell', 'Gift', 'Ribbon', 'Snowflake', 'Lantern', 'Mitten', 'Bauble', 'Heart', 'Crescent', 'Skate', 'Cardinal', 'Pinecone', 'Candle', 'Snowman', 'Apple', 'Candy cane', 'Gingerbread', 'Stocking', 'Jewel', 'Paper star', 'Mushroom', 'Teapot', 'Cabin', 'Fox', 'Wreath', 'Sled', 'Dove', 'Drum', 'Pocket watch', 'Painted pear', 'Tiny violin', 'Snow globe', 'Acorn', 'Wool scarf', 'Toy sailboat', 'Wrapped sweet', 'Brass key', 'Winter boot', 'Book', 'Arctic hare'],
+  species: ['Fir', 'Spruce', 'Blue cedar', 'Scots pine', 'Cypress', 'Western hemlock', 'Atlas cedar', 'Giant sequoia', 'Paper birch', 'Monkey puzzle'], setting: ['Courtyard', 'Woodland', 'Alpine dusk', 'Frozen lake', 'Northern lights', 'Harbor lights', 'Solstice mill', 'Snowbound railway', 'Glasshouse garden', 'Skating pond', 'Clocktower market', 'Tidepool cove', 'Glacier grotto', 'Summit observatory'],
+  weather: ['Snowfall', 'Clear', 'Flurries', 'Snowstorm', 'Diamond dust', 'Lake mist', 'Sleet', 'Feather snow', 'Spindrift', 'Ice halo', 'Graupel', 'Light pillars'], star: ['None', 'Brass', 'Silver', 'Rose gold', 'Glass spire', 'Paper angel', 'Ribbon bow', 'Crescent moon', 'Solstice sun', 'Compass rose', 'Holly spray', 'Armillary sphere', 'Swallowtail pennant', 'Stained glass rosette'],
+  visibility: ['Public', 'Private'], kind: ['Bell', 'Gift', 'Ribbon', 'Snowflake', 'Lantern', 'Mitten', 'Bauble', 'Heart', 'Crescent', 'Skate', 'Cardinal', 'Pinecone', 'Candle', 'Snowman', 'Apple', 'Candy cane', 'Gingerbread', 'Stocking', 'Jewel', 'Paper star', 'Mushroom', 'Teapot', 'Cabin', 'Fox', 'Wreath', 'Sled', 'Dove', 'Drum', 'Pocket watch', 'Painted pear', 'Tiny violin', 'Snow globe', 'Acorn', 'Wool scarf', 'Toy sailboat', 'Wrapped sweet', 'Brass key', 'Winter boot', 'Book', 'Arctic hare', 'Rocking horse', 'Snowy owl', 'Cocoa mug', 'Music box', 'Koi kite', 'Hourglass'],
   paper: ['Parchment', 'Botanical', 'Polar blue', 'Cranberry border', 'Linen weave', 'Music manuscript', 'Marbled jade'],
   color: ['Cranberry', 'Gold', 'Ice blue', 'Plum', 'Copper', 'Mint', 'Sapphire', 'Evergreen', 'Ivory', 'Mulberry', 'Tangerine', 'Rose quartz', 'Pewter', 'Peacock']
 };
 export function schoolName(email) {
   const address = String(email).toLowerCase();
+  if (address === 'carolynj30@lakesideschool.org') return 'Seek J';
   const title = s => s[0].toUpperCase() + s.slice(1);
   const staff = /^([a-z]+)\.([a-z]+)@lakesideschool\.org$/.exec(address);
   if (staff) return title(staff[1]) + ' ' + title(staff[2]);

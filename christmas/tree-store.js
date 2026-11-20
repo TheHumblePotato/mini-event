@@ -80,7 +80,7 @@ export function createTreeStore(db,sdk){
     if(typeof input.id!=='string'||!/^[a-f0-9-]{36}$/.test(input.id))throw Error('Invalid tree link.');
     const tree=doc(trees,input.id);
     if(action==='view')return visit(tree,uid,input.page);
-    if(action==='customize'){await updateDoc(tree,treeSettings(input));return true;}
+    if(action==='customize'){await updateDoc(tree,{...treeSettings(input),name});return true;}
     if(action!=='hang')throw Error('Unknown tree action.');
     const {message,...appearance}=makeCard(input,name);
     const ornament=doc(tree,'ornaments',uid),letter=doc(tree,'letters',uid),clock=doc(event,'postmarks',uid);

@@ -31,16 +31,16 @@ dialog[open]{animation:unfold .18s ease-out}@keyframes drift{0%{transform:transl
 .immersive #status:not(:empty){position:fixed;bottom:4.6rem;left:50%;transform:translateX(-50%);border-radius:1rem;padding:.4rem .85rem;background:var(--panel);z-index:3;font-size:.85rem}
 .immersive #content>.layout form{top:auto;bottom:1rem;max-height:47dvh}.immersive form label{margin:.3rem 0}
 .cedar{filter:hue-rotate(23deg) saturate(.75)}.dusk .sky{fill:#cfaaa6}.dusk .moon{fill:#fff0ce}
-@media(prefers-reduced-motion:no-preference){.immersive .crown{transform-origin:200px 278px;transform:rotate(var(--wind,0deg));transition:transform .6s}.immersive .horizon{transform:translateX(var(--shift,0px));transition:transform .8s}.snow circle{transition:translate .35s}}
+@media(prefers-reduced-motion:no-preference){.snow circle{transition:translate .35s}}
 @media(max-width:500px){.immersive .grove-head{left:.5rem;top:1rem}.immersive .grove-head button{font-size:.8rem}.scene-tools{right:.5rem}}
 
 /* Depth is expressed in scene coordinates so all four planes scale together. */
 @media(prefers-reduced-motion:no-preference){
-.immersive .horizon{transform:translate(calc(var(--cx,0)*-4px),calc(var(--cy,0)*-2px));transition:transform .65s ease-out}
-.immersive .village{transform:translate(calc(var(--cx,0)*-8px),calc(var(--cy,0)*-3px));transition:transform .5s ease-out}
-.immersive .near-ground{transform:translate(calc(var(--cx,0)*-27px),calc(var(--cy,0)*-8px));transition:transform .38s ease-out}
-.immersive .crown{transform:translate(calc(var(--cx,0)*-18px),calc(var(--cy,0)*-6px)) rotate(calc(var(--cx,0)*.95deg));transition:transform .46s ease-out}
-.immersive .snow{transform:translate(calc(var(--cx,0)*-35px),calc(var(--cy,0)*-10px));transition:transform .35s ease-out}
+
+
+
+
+
 .charm{rotate:var(--swing,0deg);transition:rotate .4s}.hanging:hover .charm{animation:swing .55s ease-in-out infinite alternate;rotate:9deg}
 .clapper{transform-origin:0 4px;animation:clink 1.9s ease-in-out alternate infinite}.hanging:hover .clapper{animation-duration:.24s}
 .glint{transform-box:fill-box;transform-origin:center;animation:sparkle 3.2s ease-in-out infinite}
@@ -59,7 +59,7 @@ dialog:has(.workshop){width:min(33rem,95vw);border-radius:18px;padding:1.4rem 1.
 /* A hanging keepsake rotates only about its thread; its spring survives pointer exit. */
 .immersive .hanging .charm,.immersive .hanging:hover .charm{animation:none;rotate:none;transition:none;transform-origin:0 -12px;transform:rotate(var(--angle,0deg))}
 @media(prefers-reduced-motion:no-preference){
-.immersive .crown{transform:translate(calc(var(--cx,0)*-18px),calc(var(--cy,0)*-6px)) rotate(var(--bend,0deg));transition:translate .4s,transform .12s ease-out}
+
 .snow ellipse{animation:fall-through var(--fall) linear var(--phase) infinite}
 @keyframes fall-through{from{transform:translate(0,0)}to{transform:translate(var(--drift),360px)}}
 }
@@ -84,8 +84,8 @@ dialog:has(.workshop){width:min(33rem,95vw);border-radius:18px;padding:1.4rem 1.
 
 .winter-air{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
 .in-gallery .winter-air,.night-disc,[data-theme=dark] .sun{display:none}[data-theme=dark] .night-disc{display:inline}
-.immersive .horizon,.immersive .village,.immersive .near-ground{transform:none;transition:translate .38s ease-out}
-.immersive .crown{transform:rotate(var(--bend,0deg));transition:translate .35s ease-out;transform-origin:200px 278px}
+
+
 @media(prefers-reduced-motion:no-preference){.aurora{transform-origin:200px 42px;animation:aurora-drift 15s ease-in-out infinite alternate}.aurora path+path{animation:aurora-shimmer 9s ease-in-out infinite alternate}@keyframes aurora-drift{to{transform:translate(8px,-3px) skewX(-4deg) scaleY(1.13)}}@keyframes aurora-shimmer{to{opacity:.18;transform:translateY(3px)}}}
 .stationery{position:relative;background:#fff7e2;color:#38493b;border:1px solid #d4bc87;border-radius:3px;padding:1.2rem 1.35rem;box-shadow:inset 0 0 0 5px #faf1d8,inset 0 0 0 6px #dbcb9f;margin:1rem 0}
 .stationery header,.stationery footer{display:flex;justify-content:space-between;border:0;padding:.3rem 0;font:600 .73rem/1.5 Georgia,serif;letter-spacing:.08em;text-transform:uppercase}
@@ -190,3 +190,41 @@ svg[data-setting="Glasshouse garden"]{--day-sky:#aecbc1;--night-sky:#243c40}svg[
 #postcard[hidden]{display:none}
 dialog:has(.postcard){width:min(94vw,46rem)}
 .postcard img{display:block;width:100%;height:auto;margin:1rem 0;box-shadow:0 3px 12px #142d292b}
+
+svg[data-setting="Tidepool cove"]{--day-sky:#b3d6db;--night-sky:#283d54}
+svg[data-setting="Glacier grotto"]{--day-sky:#bedce2;--night-sky:#213849}
+svg[data-setting="Summit observatory"]{--day-sky:#dfc3bc;--night-sky:#30324e}
+@media(prefers-reduced-motion:no-preference){
+  #scene .cove-swell{animation:cove-tide 7s ease-in-out infinite alternate}
+  #scene .ice-drip{animation:cavern-drop 4.8s ease-in infinite}
+  #scene .drip-ring{animation:cavern-ring 4.8s ease-out infinite}
+  #scene .radio-dish{transform-origin:0 -18px;animation:dish-track 18s ease-in-out infinite alternate}
+  #scene .light-column{animation:pillar-glow 8s var(--phase) ease-in-out infinite alternate}
+  #scene .birch-spray{animation:birch-tremble 5s var(--phase) ease-in-out infinite alternate}
+  #scene .puzzle-tip{animation:puzzle-lift 7s var(--phase) ease-in-out infinite alternate}
+  .toy-rocker{transform-origin:0 7px;animation:toy-rock 3.3s ease-in-out infinite alternate}
+  .owl-eyes{transform-origin:0 -4px;animation:owl-blink 6.8s infinite}
+  .cocoa-steam{animation:mug-steam 3s ease-out infinite}
+  .music-bird{animation:music-turn 4.5s ease-in-out infinite}
+  .koi-tail{transform-origin:2px 5px;animation:koi-wave 2.4s ease-in-out infinite alternate}
+  .sand-thread{stroke-dasharray:1.3 1;animation:sand-fall .8s linear infinite}
+  .armillary-ring{animation:armillary-orbit 10s linear infinite}
+  .summit-pennant{transform-origin:-2px -8px;animation:pennant-ripple 3.8s ease-in-out infinite alternate}
+  .rosette-glass{animation:glass-glow 5.2s ease-in-out infinite}
+  @keyframes cove-tide{from{transform:translate(-3px,0);opacity:.55}to{transform:translate(7px,2px);opacity:1}}
+  @keyframes cavern-drop{0%,54%{transform:scaleY(.5);opacity:0}64%{transform:scaleY(1);opacity:1}82%{transform:translateY(61px) scaleY(1.3);opacity:1}83%,100%{opacity:0}}
+  @keyframes cavern-ring{0%,81%{transform:scale(.15);opacity:0}83%{transform:scale(.2);opacity:1}100%{transform:scale(1.45,.85);opacity:0}}
+  @keyframes dish-track{0%,15%{transform:rotate(-9deg)}85%,100%{transform:rotate(12deg)}}
+  @keyframes pillar-glow{from{opacity:.48}to{opacity:1}}
+  @keyframes birch-tremble{from{transform:rotate(-2deg)}to{transform:rotate(3deg)}}
+  @keyframes puzzle-lift{from{transform:rotate(-1deg)}to{transform:rotate(3.5deg)}}
+  @keyframes toy-rock{from{transform:rotate(-6deg)}to{transform:rotate(6deg)}}
+  @keyframes owl-blink{0%,58%,62%,100%{transform:scaleY(1)}60%{transform:scaleY(.08)}}
+  @keyframes mug-steam{0%{transform:translateY(1px);opacity:0}35%{opacity:.95}100%{transform:translate(1px,-3px);opacity:0}}
+  @keyframes music-turn{0%,100%{transform:scaleX(1)}50%{transform:scaleX(-1)}}
+  @keyframes koi-wave{from{transform:rotate(-7deg)}to{transform:rotate(10deg)}}
+  @keyframes sand-fall{to{stroke-dashoffset:-2.3}}
+  @keyframes armillary-orbit{0%,100%{transform:scaleX(1)}25%,75%{transform:scaleX(.18)}50%{transform:scaleX(-1)}}
+  @keyframes pennant-ripple{to{transform:skewY(6deg) scaleX(.91)}}
+  @keyframes glass-glow{0%,65%,100%{opacity:.12}75%{opacity:.95}}
+}

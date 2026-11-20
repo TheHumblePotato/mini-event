@@ -20,7 +20,7 @@ export function demoCall(email,action,input={}) {
   if(!tree) throw Error('Tree not found in this preview.');
   if(action==='customize'){
     if(tree.scene.owner!==email) throw Error('Only the owner can change this tree.');
-    Object.assign(tree.scene,treeSettings(input));
+    Object.assign(tree.scene,treeSettings(input),{name});
     localStorage.setItem(key,JSON.stringify(trees));
     return true;
   }

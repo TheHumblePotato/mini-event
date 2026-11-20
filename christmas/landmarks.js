@@ -1,3 +1,5 @@
+import {winterToppers} from './winter-keepsakes.js';
+
 export function harbor(){
   return `<path fill="#789eaa" d="M-1200 172q600 9 1200 1t1200 0v66h-2400z"/>
     <path fill="none" stroke="#cfddd6" stroke-width=".9" d="m-54 192 49 1m15 7 42-2m-6-13 26 1m214 8 51-1m18 6 46-1"/>
@@ -25,7 +27,7 @@ export function mistBank(){
 }
 export function treeTopper(type){
   if(type==='None')return '';
-  const forms={
+  const forms={...winterToppers,
     'Crescent moon':'<path fill="#efcf84" d="M4-13A13 13 0 1 0 12 6Q-4 8 4-13z"/><path fill="#fff1c4" d="m6-6 1-3 1 3 3 1-3 1-1 3-1-3-3-1z"/>',
     'Solstice sun':'<g stroke="#ddad54" stroke-width="2"><path d="M0-16v5m0 22v4m-16-15h5m22 0h5m-26-11 4 4m12 13 4 4m0-21-4 4m-13 13-4 4"/></g><circle r="8.8" fill="#f4d58e"/><circle r="5.8" fill="none" stroke="#ce9752"/>',
     'Compass rose':'<path fill="#e9cd8d" d="m0-15 3 11 10-3-8 8 8 6-11-2-2 10-3-10-10 2 8-7-8-7 10 3z"/><path fill="#749a98" d="M0-15v15L3-4zm0 15 13 7-8-6zM0 15V0l-3 5zM0 0-13-7l8 7z"/>',

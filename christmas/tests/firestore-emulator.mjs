@@ -67,6 +67,18 @@ for(const released of [false,true]){
       assert.equal((await guest.call('view',{id,page:2})).cards[0].name,'Guest 12');
       assert.equal((await guest.call('view',{id,page:4})).cards[0].name,'Alex Smith');
     }
+    const seek=account('exception','carolynj30@lakesideschool.org');
+    const winterStyle={...choices,species:'Paper birch',setting:'Glacier grotto',weather:'Light pillars',star:'Armillary sphere'};
+    const seekId=await seek.call('create',winterStyle);
+    const seekTree='winterEvents/christmas2026/trees/'+seekId;
+    assert.equal((await direct(seek,seekTree)).data().name,'Seek J');
+    await assertFails(sdk.updateDoc(sdk.doc(seek.db,seekTree),{name:'Carolyn J.'}));
+    await assertFails(sdk.updateDoc(sdk.doc(owner.db,treePath),{name:'Seek J'}));
+    await env.withSecurityRulesDisabled(ctx=>sdk.updateDoc(sdk.doc(ctx.firestore(),seekTree),{name:'Carolyn J.'}));
+    await seek.call('customize',{...winterStyle,id:seekId,species:'Monkey puzzle',setting:'Summit observatory',weather:'Graupel',star:'Swallowtail pennant'});
+    assert.equal((await direct(seek,seekTree)).data().name,'Seek J');
+    await seek.call('hang',{...card,kind:'Koi kite',name:'Requested alias'});
+    assert.equal((await direct(owner,treePath+'/ornaments/exception')).data().name,'Seek J');
     console.log('Passed Firestore school-account flow '+(released?'after':'before')+' the reveal.');
   }finally{await env.cleanup();}
 }

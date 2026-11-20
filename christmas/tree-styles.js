@@ -10,7 +10,7 @@ const styles = {
   'Market day': {species:'Atlas cedar', setting:'Clocktower market', weather:'Snowfall', star:'Ribbon bow'}
 };
 
-const fields = {species:'Evergreen', setting:'Landscape', weather:'Weather', star:'Topper', visibility:'Tree visibility'};
+const fields = {species:'Tree species', setting:'Landscape', weather:'Weather', star:'Topper', visibility:'Tree visibility'};
 
 export function treeStyleFields(form, original, stage) {
   const controls = form.querySelector('.tree-style-fields');

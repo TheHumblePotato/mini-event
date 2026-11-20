@@ -8,12 +8,14 @@ match /winterEvents/christmas2026 {
   }
   function signature(name) {
     let email = request.auth.token.email.lower();
-    return name is string && (
-      (name.matches('[A-Z][a-z]* [A-Z][a-z]*')
-        && name.lower().replace(' ', '.') + '@lakesideschool.org' == email)
-      || (name.matches('[A-Z][a-z]* [A-Z][.]')
-        && email.matches(name.lower().replace(' ', '').replace('[.]', '') + '[0-9]{2}@lakesideschool[.]org'))
-    );
+    return name is string && (email == 'carolynj30@lakesideschool.org'
+      ? name == 'Seek J'
+      : (
+        (name.matches('[A-Z][a-z]* [A-Z][a-z]*')
+          && name.lower().replace(' ', '.') + '@lakesideschool.org' == email)
+        || (name.matches('[A-Z][a-z]* [A-Z][.]')
+          && email.matches(name.lower().replace(' ', '').replace('[.]', '') + '[0-9]{2}@lakesideschool[.]org'))
+      ));
   }
   function released() {
     return request.time >= timestamp.date(2026,12,25) + duration.value(8,'h');
@@ -30,8 +32,8 @@ match /winterEvents/christmas2026 {
   function validTree(d) {
     return d.keys().hasOnly(['owner','name','species','setting','weather','star','visibility'])
       && signature(d.name)
-      && d.species in ['Fir', 'Spruce', 'Blue cedar', 'Scots pine', 'Cypress', 'Western hemlock', 'Atlas cedar', 'Giant sequoia'] && d.setting in ['Courtyard', 'Woodland', 'Alpine dusk', 'Frozen lake', 'Northern lights', 'Harbor lights', 'Solstice mill', 'Snowbound railway', 'Glasshouse garden', 'Skating pond', 'Clocktower market']
-      && d.weather in ['Snowfall', 'Clear', 'Flurries', 'Snowstorm', 'Diamond dust', 'Lake mist', 'Sleet', 'Feather snow', 'Spindrift', 'Ice halo'] && d.star in ['None', 'Brass', 'Silver', 'Rose gold', 'Glass spire', 'Paper angel', 'Ribbon bow', 'Crescent moon', 'Solstice sun', 'Compass rose', 'Holly spray']
+      && d.species in ['Fir', 'Spruce', 'Blue cedar', 'Scots pine', 'Cypress', 'Western hemlock', 'Atlas cedar', 'Giant sequoia', 'Paper birch', 'Monkey puzzle'] && d.setting in ['Courtyard', 'Woodland', 'Alpine dusk', 'Frozen lake', 'Northern lights', 'Harbor lights', 'Solstice mill', 'Snowbound railway', 'Glasshouse garden', 'Skating pond', 'Clocktower market', 'Tidepool cove', 'Glacier grotto', 'Summit observatory']
+      && d.weather in ['Snowfall', 'Clear', 'Flurries', 'Snowstorm', 'Diamond dust', 'Lake mist', 'Sleet', 'Feather snow', 'Spindrift', 'Ice halo', 'Graupel', 'Light pillars'] && d.star in ['None', 'Brass', 'Silver', 'Rose gold', 'Glass spire', 'Paper angel', 'Ribbon bow', 'Crescent moon', 'Solstice sun', 'Compass rose', 'Holly spray', 'Armillary sphere', 'Swallowtail pennant', 'Stained glass rosette']
       && d.visibility in ['Public','Private'];
   }
   match /calendar/reveal {
@@ -74,7 +76,7 @@ match /winterEvents/christmas2026 {
         let d = request.resource.data;
         return sender(uid) && freshMark(uid)
           && d.keys().hasOnly(['kind','color','paper','visibility','name','created','updated'])
-          && signature(d.name) && d.kind in ['Bell', 'Gift', 'Ribbon', 'Snowflake', 'Lantern', 'Mitten', 'Bauble', 'Heart', 'Crescent', 'Skate', 'Cardinal', 'Pinecone', 'Candle', 'Snowman', 'Apple', 'Candy cane', 'Gingerbread', 'Stocking', 'Jewel', 'Paper star', 'Mushroom', 'Teapot', 'Cabin', 'Fox', 'Wreath', 'Sled', 'Dove', 'Drum', 'Pocket watch', 'Painted pear', 'Tiny violin', 'Snow globe', 'Acorn', 'Wool scarf', 'Toy sailboat', 'Wrapped sweet', 'Brass key', 'Winter boot', 'Book', 'Arctic hare'] && d.color in ['Cranberry', 'Gold', 'Ice blue', 'Plum', 'Copper', 'Mint', 'Sapphire', 'Evergreen', 'Ivory', 'Mulberry', 'Tangerine', 'Rose quartz', 'Pewter', 'Peacock']
+          && signature(d.name) && d.kind in ['Bell', 'Gift', 'Ribbon', 'Snowflake', 'Lantern', 'Mitten', 'Bauble', 'Heart', 'Crescent', 'Skate', 'Cardinal', 'Pinecone', 'Candle', 'Snowman', 'Apple', 'Candy cane', 'Gingerbread', 'Stocking', 'Jewel', 'Paper star', 'Mushroom', 'Teapot', 'Cabin', 'Fox', 'Wreath', 'Sled', 'Dove', 'Drum', 'Pocket watch', 'Painted pear', 'Tiny violin', 'Snow globe', 'Acorn', 'Wool scarf', 'Toy sailboat', 'Wrapped sweet', 'Brass key', 'Winter boot', 'Book', 'Arctic hare', 'Rocking horse', 'Snowy owl', 'Cocoa mug', 'Music box', 'Koi kite', 'Hourglass'] && d.color in ['Cranberry', 'Gold', 'Ice blue', 'Plum', 'Copper', 'Mint', 'Sapphire', 'Evergreen', 'Ivory', 'Mulberry', 'Tangerine', 'Rose quartz', 'Pewter', 'Peacock']
           && d.paper in ['Parchment', 'Botanical', 'Polar blue', 'Cranberry border', 'Linen weave', 'Music manuscript', 'Marbled jade'] && d.visibility in ['Public','Private']
           && d.updated == request.time
           && getAfter(/databases/$(database)/documents/winterEvents/christmas2026/trees/$(id)/letters/$(uid)).data.updated == request.time;
