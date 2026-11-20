@@ -126,10 +126,10 @@ dialog:has(.letter-book),dialog:has(.workshop){width:min(94vw,68rem);padding:cla
 #tree-pages:not([hidden]){position:fixed;z-index:2;left:50%;bottom:4.6rem;transform:translateX(-50%);display:flex;align-items:center;gap:.7rem;padding:.22rem;border:0;background:var(--paper);border-radius:2rem;box-shadow:0 .2rem 1rem #122b221c;font-size:.85rem}
 #tree-pages[hidden]{display:none}#tree-pages button{border:0;background:none;border-radius:50%;padding:.42rem .7rem}
 .immersive .grove-head .season{display:block;font-size:.64rem;letter-spacing:.09em;color:#416654;margin:0}.hanging:focus-visible{outline:1px dashed #f7ddb0}
-body.in-gallery{background-color:var(--paper);background-image:url(./gallery-hills.svg),url(./paper-grain.png),linear-gradient(155deg,#c1d7cd66,transparent 65%);background-position:center bottom,0 0,center;background-size:max(100vw,65rem) auto,192px,cover;background-repeat:no-repeat,repeat,no-repeat;background-attachment:fixed}
-[data-theme=dark] body.in-gallery{background-image:linear-gradient(#102d3280,#102d328c),url(./gallery-hills.svg),url(./paper-grain.png);background-size:cover,max(100vw,65rem) auto,192px;background-position:center,center bottom,0 0;background-repeat:no-repeat,no-repeat,repeat}
+body.in-gallery{background-color:var(--paper);background-image:url(./assets/gallery-hills.svg),url(./assets/paper-grain.png),linear-gradient(155deg,#c1d7cd66,transparent 65%);background-position:center bottom,0 0,center;background-size:max(100vw,65rem) auto,192px,cover;background-repeat:no-repeat,repeat,no-repeat;background-attachment:fixed}
+[data-theme=dark] body.in-gallery{background-image:linear-gradient(#102d3280,#102d328c),url(./assets/gallery-hills.svg),url(./assets/paper-grain.png);background-size:cover,max(100vw,65rem) auto,192px;background-position:center,center bottom,0 0;background-repeat:no-repeat,no-repeat,repeat}
 .directory .tree-grid{padding-bottom:8rem}.directory>h1{margin-bottom:1rem}.directory #back-tree{display:inline-block;margin-top:1rem}
-.letter-book .stationery{background-image:url(./paper-grain.png),linear-gradient(110deg,#ffffff25 0%,transparent 43%,#9c79321a 100%);background-color:var(--paper-color);border-radius:3px 6px 4px 5px}
+.letter-book .stationery{background-image:url(./assets/paper-grain.png),linear-gradient(110deg,#ffffff25 0%,transparent 43%,#9c79321a 100%);background-color:var(--paper-color);border-radius:3px 6px 4px 5px}
 .letter-book{position:relative;min-width:0}.letter-book .letter-text,.immersive .letter-book textarea{box-sizing:border-box;min-height:0;height:clamp(19rem,53dvh,37rem);max-width:100%;overflow:auto;field-sizing:fixed;line-height:1.6;tab-size:4;word-break:normal;overflow-wrap:anywhere}
 .letter-book .letter-measure{position:absolute;top:0;left:0;visibility:hidden;pointer-events:none;box-sizing:border-box;padding:0;margin:0;border:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal;tab-size:4;line-height:1.6}
 svg[data-setting="Harbor lights"]{--day-sky:#a6c3cb;--night-sky:#243647}svg[data-setting="Solstice mill"]{--day-sky:#d8c4ab;--night-sky:#3f3f52}
@@ -139,17 +139,17 @@ svg[data-setting="Harbor lights"]{--day-sky:#a6c3cb;--night-sky:#243647}svg[data
 
 /* Texture belongs to the sheet and its sample; the text itself stays on bare paper. */
 .letter-book .stationery,[data-stock]{
-  background-image:url(./paper-grain.png),var(--pattern,linear-gradient(110deg,#fffc 0%,transparent 22%,#c99e5c12 82%,#aa763020));
+  background-image:url(./assets/paper-grain.png),var(--pattern,linear-gradient(110deg,#fffc 0%,transparent 22%,#c99e5c12 82%,#aa763020));
   background-size:192px,var(--tile,100% 100%);background-color:var(--paper-color,#fff5df)
 }
-[data-paper="Botanical"],[data-stock="Botanical"]{--pattern:url(./paper-botanical.svg);--tile:128px;--paper-color:#e9eedf}
-[data-paper="Polar blue"],[data-stock="Polar blue"]{--pattern:url(./paper-polar.svg);--tile:116px;--paper-color:#e3f0f2}
-[data-paper="Cranberry border"],[data-stock="Cranberry border"]{--pattern:url(./paper-berry.svg);--tile:148px;--paper-color:#faeae0}
-[data-paper="Music manuscript"],[data-stock="Music manuscript"]{--pattern:url(./paper-music.svg);--tile:145px;--paper-color:#f7efd9}
-[data-paper="Marbled jade"],[data-stock="Marbled jade"]{--pattern:url(./paper-marbled.svg);--tile:162px;--paper-color:#e0ece0}
+[data-paper="Botanical"],[data-stock="Botanical"]{--pattern:url(./assets/paper-botanical.svg);--tile:128px;--paper-color:#e9eedf}
+[data-paper="Polar blue"],[data-stock="Polar blue"]{--pattern:url(./assets/paper-polar.svg);--tile:116px;--paper-color:#e3f0f2}
+[data-paper="Cranberry border"],[data-stock="Cranberry border"]{--pattern:url(./assets/paper-berry.svg);--tile:148px;--paper-color:#faeae0}
+[data-paper="Music manuscript"],[data-stock="Music manuscript"]{--pattern:url(./assets/paper-music.svg);--tile:145px;--paper-color:#f7efd9}
+[data-paper="Marbled jade"],[data-stock="Marbled jade"]{--pattern:url(./assets/paper-marbled.svg);--tile:162px;--paper-color:#e0ece0}
 [data-paper="Linen weave"],[data-stock="Linen weave"]{--pattern:repeating-conic-gradient(#9377551f 0 25%,transparent 0 50%);--tile:4px 5px;--paper-color:#f6ecd6}
 .letter-book .stationery[data-paper="Linen weave"]{--paper-color:#f6ecd6}.letter-book .stationery[data-paper="Music manuscript"]{--paper-color:#f7efd9}.letter-book .stationery[data-paper="Marbled jade"]{--paper-color:#e0ece0}
-.workshop label [data-stock],.workshop input:checked+[data-stock]{color:#32483c;background-color:var(--paper-color,#fff5df);background-image:url(./paper-grain.png),var(--pattern,none);padding:.38rem .75rem}.workshop input:checked+[data-stock]{box-shadow:inset 0 0 0 2px #46715c}
+.workshop label [data-stock],.workshop input:checked+[data-stock]{color:#32483c;background-color:var(--paper-color,#fff5df);background-image:url(./assets/paper-grain.png),var(--pattern,none);padding:.38rem .75rem}.workshop input:checked+[data-stock]{box-shadow:inset 0 0 0 2px #46715c}
 .immersive .letter-book textarea.letter-text:focus{outline:0;border:0;box-shadow:none;background:transparent;caret-color:#983e43}
 .letter-book .stationery:focus-within .letter-seal{border-color:#a6534b;background:#fff9e482}
 .letter-book .letter-text::selection{background:#d6e4cd;color:#223d33}

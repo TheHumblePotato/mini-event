@@ -1,16 +1,18 @@
 # Nerd Mini Events
 
-The homepage is the Christmas 2026 starter. Edit the announcement in `index.html` and the seasonal styles in `christmas/style.css`. Add Christmas activity pages and assets in `christmas/` and link them from the homepage.
+The [homepage](index.html) opens the current Christmas mini event and links to four archived events. GitHub Pages serves the site directly from the repository.
+
+| Location | Contents |
+| --- | --- |
+| [christmas/](christmas/) | Deco My Tree page, styles and UI entry point. Scene rendering lives in `scene/`, menus and letters in `screens/`, school-account and Firestore code in `data/`, and textures in `assets/`. |
+| [past/](past/) | Playable archived events, including their original pages and required assets. |
+| [_dev/christmas/](_dev/christmas/) | Project brief, local preview accounts, tests and the standalone Christmas rules fragment. |
+| [_dev/past/](_dev/past/) | Archived design notes, tests, playtest pages, art experiments and the Halloween backend. |
+| [firestore.rules](firestore.rules) | Complete rules file for the shared Firebase project. |
 
 ## Local preview
 
-With Node.js 22 or newer, run `npm start` and open http://127.0.0.1:4173/. The Past events links open each archived event.
-
-## Archive and tooling
-
-Each folder in `past/` contains one previous event. Midnight Arcade’s source, artwork, design notes and tests live together in `past/halloween 2026/`. Run `npm test` from the repository root to check its game logic.
-
-The root preview server and Firebase configuration still support Midnight Arcade. Its cloud functions live in `functions/`. The predeploy script copies the archived progression logic into that package.
+With Node.js 22 or newer, run `npm start` from the repository root and open [the local preview](http://127.0.0.1:4173/). Run `npm run test:christmas` for the current event or `npm test` to include the archived game suite. The [Midnight Arcade development notes](_dev/past/halloween-2026/README.md) cover the archived backend and browser playtests.
 
 ## Play Christmas 2026
 

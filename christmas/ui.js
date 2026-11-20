@@ -1,10 +1,10 @@
-import {letter} from './letter.js';
-import {workshop} from './workshop.js';
-import {scene} from './art.js';
-import {schoolName} from './model.js';
-import {treeStyleFields} from './tree-styles.js';
-import {showGallery} from './gallery.js';
-import {showPostcard} from './postcard.js';
+import {letter} from './screens/letter.js';
+import {workshop} from './screens/workshop.js';
+import {scene} from './scene/art.js';
+import {schoolName} from './data/model.js';
+import {treeStyleFields} from './screens/tree-styles.js';
+import {showGallery} from './screens/gallery.js';
+import {showPostcard} from './screens/postcard.js';
 const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 const local=['localhost','127.0.0.1'].includes(location.hostname);
@@ -130,7 +130,7 @@ async function render(){
 }
 async function start(){
   if(demo){
-    const {accounts,demoCall}=await import('./preview.js');
+    const {accounts,demoCall}=await import('../_dev/christmas/preview.js');
     const email=sessionStorage.getItem('winter-actor')||accounts[0].email;
     $('account').hidden=true;
     $('preview').innerHTML='<label>Local preview account<select></select></label>';
@@ -142,7 +142,7 @@ async function start(){
     if(!home)await render();
     return;
   }
-  const cloud=await import('./cloud.js');call=cloud.call;
+  const cloud=await import('./data/cloud.js');call=cloud.call;
   $('account').onclick=()=>cloud.toggle().catch(e=>status(e.message));
   let initial=true;
   cloud.watch(async user=>{

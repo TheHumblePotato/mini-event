@@ -1,10 +1,10 @@
 // Game data
 const games = [
-    { day: 1, title: "Pumpkin Jump", date: "Monday", url: "https://thehumblepotato.github.io/mini-event/day_1.html" },
-    { day: 2, title: "Fruitoween", date: "Tuesday", url: "https://thehumblepotato.github.io/mini-event/day_2.html" },
-    { day: 3, title: "Spooky Crossy Road", date: "Wednesday", url: "https://thehumblepotato.github.io/mini-event/day_3.html" },
-    { day: 4, title: "Stock Candies", date: "Thursday", url: "https://thehumblepotato.github.io/mini-event/day_4.html" },
-    { day: 5, title: "Grave Digger", date: "Friday", url: "https://thehumblepotato.github.io/mini-event/day_5.html" }
+    { day: 1, title: "Pumpkin Jump", date: "Monday", url: "day_1.html" },
+    { day: 2, title: "Fruitoween", date: "Tuesday", url: "day_2.html" },
+    { day: 3, title: "Spooky Crossy Road", date: "Wednesday", url: "day_3.html" },
+    { day: 4, title: "Stock Candies", date: "Thursday", url: "day_4.html" },
+    { day: 5, title: "Grave Digger", date: "Friday", url: "day_5.html" }
 ];
 
 // Scary images for jumpscares (using scary SVG images)

@@ -1,14 +1,12 @@
 {
-  "name": "midnight-arcade-2026",
+  "name": "nerd-mini-events",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.mjs",
-    "test": "node --test \"past/halloween 2026/tests/*.test.mjs\" christmas/tests/*.test.mjs",
-    "test:christmas:rules": "node christmas/tests/firestore-emulator.mjs"
-  },
-  "dependencies": {
-    "three": "0.180.0"
+    "start": "node _dev/server.mjs",
+    "test": "node --test \"_dev/christmas/tests/*.test.mjs\" \"_dev/past/halloween-2026/tests/*.test.mjs\"",
+    "test:christmas": "node --test \"_dev/christmas/tests/*.test.mjs\"",
+    "test:christmas:rules": "node _dev/christmas/tests/firestore-emulator.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",

@@ -1,9 +1,9 @@
 {
   "firestore": { "rules": "firestore.rules" },
-  "functions": [{ "source": "functions", "codebase": "halloween2026", "predeploy": ["node sync-functions.mjs"] }],
+  "functions": [{ "source": "_dev/past/halloween-2026/functions", "codebase": "halloween2026", "predeploy": ["node _dev/past/halloween-2026/sync-functions.mjs"] }],
   "hosting": {
     "public": ".",
-    "ignore": ["firebase.json", ".*", "node_modules/**", "functions/**", "**/tests/**", "**/*.md", "server.mjs", "sync-functions.mjs", "firestore.rules.fragment", "firestore.rules", "package*.json"],
+    "ignore": ["firebase.json", ".*", "_dev/**", "node_modules/**", "**/*.md", "firestore.rules", "package*.json"],
     "headers": [{"source":"**/*.js","headers":[{"key":"Cache-Control","value":"no-cache"}]}]
   }
 }
