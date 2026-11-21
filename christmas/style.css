@@ -120,7 +120,29 @@ dialog:has(.letter-book),dialog:has(.workshop){width:min(94vw,68rem);padding:cla
 .letter-book .letter-text,.immersive .letter-book textarea{min-height:clamp(9rem,24vh,16rem);width:calc(100% - 5rem);margin:1rem 0 .8rem 5rem;font:clamp(1.04rem,1.6vw,1.26rem)/1.65 Georgia,serif}
 .letter-book .stationery footer{clear:both;color:var(--corner);font-size:1rem}.page-turns{justify-content:center;border:0;margin:.65rem 0;gap:.65rem}.page-turns[hidden]{display:none}.page-turns span{font-size:.85rem}
 .immersive .page-turns button{background:var(--panel);color:var(--ink);border:1px solid var(--edge);font-size:.85rem}
-.workshop fieldset:has(input[name=kind]){display:grid;grid-template-columns:repeat(auto-fill,minmax(6.2rem,1fr))}.workshop label:has(input[name=kind]) span{flex-direction:column;padding:.4rem .2rem;font-size:.82rem}.workshop label:has(input[name=kind]) svg{height:2rem;width:2rem}
+.workshop fieldset[data-choices]{display:grid;align-items:stretch;gap:.4rem}
+.workshop [data-choices=kind]{--slots:24;--span:3;grid-template-columns:repeat(var(--slots),minmax(0,1fr))}
+.workshop [data-choices=kind] label{grid-column:span var(--span)}
+.workshop [data-choices=kind]:not(.filtered) .featured-ornament{grid-column:span calc(var(--slots)/3)}
+.workshop [data-choices=color]{grid-template-columns:repeat(6,minmax(0,1fr))}
+.workshop [data-choices=paper]{grid-template-columns:repeat(5,minmax(0,1fr))}
+.workshop [data-choices=visibility]{grid-template-columns:repeat(2,minmax(0,1fr))}
+.workshop fieldset[data-choices] label{display:flex;min-width:0;margin:0}
+.workshop fieldset[data-choices] label[hidden]{display:none}
+.workshop fieldset[data-choices] label span{width:100%;box-sizing:border-box;justify-content:center;text-align:center;line-height:1.2;min-height:2.4rem}
+.workshop [data-choices=kind] label span{flex-direction:column;padding:.45rem .18rem;font: .83rem/1.2 Georgia,serif;gap:.22rem}
+.workshop [data-choices=kind] label svg{height:2.35rem;width:2.35rem}
+.workshop [data-choices=kind]:not(.filtered) .featured-ornament svg{height:3.3rem;width:3.3rem}
+.workshop .dismiss-hint{font-size:.86rem;margin:.55rem 0;color:var(--ink)}
+.workshop .workbench{height:6.1rem}
+[data-theme=dark] .workshop.deep-ink [data-choices=kind] label svg{
+  background:radial-gradient(ellipse,#c5c4ac 0%,#b5baa087 48%,transparent 73%)
+}
+.workshop.deep-ink .workbench{background:radial-gradient(ellipse at center,#b1bba4,#718e7b 35%,#2b5147 85%)}
+.workshop>footer{position:sticky;bottom:0;z-index:1;margin:.8rem 0 0;padding:.6rem .2rem .15rem;background:var(--paper);border-top:1px solid var(--edge);box-shadow:0 1.65rem var(--paper)}
+@media(max-width:880px){.workshop [data-choices=kind]{--slots:12;--span:2}.workshop [data-choices=color]{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.workshop [data-choices=kind]{--span:3}.workshop [data-choices=paper]{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:460px){.workshop [data-choices=kind]{--span:4}.workshop [data-choices=color] label span{font-size:.76rem;padding-inline:.15rem}}
 @media(max-width:560px){.letter-book .letter-seal{float:none;margin:.7rem auto}.letter-book .letter-text,.immersive .letter-book textarea{margin:.65rem 0;width:100%}.page-turns{gap:.3rem}.page-turns button{padding:.35rem .45rem}}
 
 #tree-pages:not([hidden]){position:fixed;z-index:2;left:50%;bottom:4.6rem;transform:translateX(-50%);display:flex;align-items:center;gap:.7rem;padding:.22rem;border:0;background:var(--paper);border-radius:2rem;box-shadow:0 .2rem 1rem #122b221c;font-size:.85rem}
@@ -178,7 +200,7 @@ svg[data-setting="Glasshouse garden"]{--day-sky:#aecbc1;--night-sky:#243c40}svg[
 .workshop label[hidden]{display:none}.letter-book .stationery{color-scheme:light}
 
 .tree-style-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.3rem .65rem}
-.tree-style-fields label:first-child,.tree-style-fields label:last-child{grid-column:1/-1}
+.tree-style-fields label:last-child{grid-column:1/-1}
 .tree-style-fields select{min-width:0}
 .gallery-tools{display:flex;flex-wrap:wrap;gap:.7rem 1rem;align-items:end;max-width:40rem}
 .gallery-tools label{flex:1 1 10rem;margin:0;font-size:.9rem;font-weight:600}
@@ -237,6 +259,23 @@ svg[data-setting="Summit observatory"]{--day-sky:#dfc3bc;--night-sky:#30324e}
 #tree-loading[hidden]{display:none}
 .immersive:has(>#tree-loading:not([hidden]))>:is(.scene-tools,header,main,#winter-menu){visibility:hidden}
 .loading-stitches{width:1.7rem;height:1.7rem;border:2px dashed currentColor;border-right-color:transparent;border-radius:50%}
+.loading-mark{display:grid;justify-items:center;gap:.8rem;animation:wait-for-tree .16s step-end both}
+@keyframes wait-for-tree{from{visibility:hidden}to{visibility:visible}}
+.thread-focus{opacity:0;pointer-events:none}
+.hanging:focus-visible{outline:none}.hanging:focus-visible .thread-focus{opacity:1}
+.workshop label:has(input[name=kind]:focus-visible) span{outline-offset:2px}
+@media(prefers-reduced-motion:no-preference){
+  #scene .clapper{animation:none;transform:rotate(calc(var(--angle,0deg)*-.86))}
+  #scene .violin-bow{transform-origin:7.5px -10px;transform:rotate(calc(var(--angle,0deg)*-.14))}
+  #scene .ribbon-tails{transform-origin:0 -2px;transform:rotate(calc(var(--angle,0deg)*-.28))}
+  #scene .gift-tag{transform-origin:1.4px -3.7px;transform:rotate(calc(var(--angle,0deg)*-.65))}
+  #scene .lantern-wick,.workbench .lantern-wick{transform-origin:0 5px;animation:wick-draw 3.8s var(--motion-delay,0s) ease-in-out infinite}
+  .workshop [data-choices=kind] label svg{transition:transform .16s ease-out}
+  .workshop [data-choices=kind] label:is(:hover,:focus-within) svg{transform:translateY(-1px) rotate(-4deg)}
+  .workshop .workbench>svg{transform-origin:50% 11%;animation:thread-settle .55s ease-out}
+  @keyframes wick-draw{0%,39%,70%,100%{transform:scale(1)}26%{transform:skewX(4deg) scaleY(.9)}52%{transform:skewX(-6deg) scaleY(1.08)}}
+  @keyframes thread-settle{0%{transform:scale(1.12) rotate(-8deg)}39%{transform:scale(1.12) rotate(3deg)}72%{transform:scale(1.12) rotate(-1.2deg)}100%{transform:scale(1.12)}}
+}
 
 .letter-book .stationery[data-paper="Airmail"],[data-stock="Airmail"]{
   --paper-color:#fbf4e8;--ink-rule:#9ba9ad;--corner:#5f7684;--pattern:repeating-linear-gradient(3deg,transparent 0 4px,#88775b09 4px 5px);--tile:100% 17px

@@ -20,7 +20,7 @@ Explain visibility when the owner chooses it. A public tree appears in the schoo
 
 New trees start public. The gallery shows a thumbnail, the owner’s signed display name and the ornament count. Visitors can search for a friend by name or sort by name or ornament count.
 
-Owners can preview a coordinated style such as Harbor pilot or Polar night while planting or restyling their tree. A preset changes its species, landscape, weather and topper together. Each choice can then be adjusted individually. From the tree menu, visitors can save a PNG postcard showing that page of branches in the current light, with the owner’s name and a winter postmark.
+Owners choose the species, landscape, weather and topper individually. Closing the style sheet saves their changes. From the tree menu, visitors can save a PNG postcard showing that page of branches in the current light, with the owner’s name and a winter postmark.
 
 4. Leaving an ornament
 Visitors choose an illustrated ornament and finish. The tree assigns its hanging point and opens another page of branches when full. Keep ornaments keyboard accessible and their positions consistent across screen sizes. The rocking horse rocks on its runners, the snowy owl blinks, and the cocoa mug gives off a curl of steam.

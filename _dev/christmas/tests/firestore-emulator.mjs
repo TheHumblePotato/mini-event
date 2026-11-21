@@ -28,6 +28,7 @@ for(const released of [false,true]){
     assert.deepEqual(await reader.call('gallery'),[]);
     const first=await guest.call('view',{id});
     assert.equal(first.released,released);assert.equal(first.total,0);
+    assert.equal((await guest.call('view',{id,page:Number.MAX_SAFE_INTEGER})).page,1);
     const treePath='winterEvents/christmas2026/trees/'+id;
     const direct=(actor,path)=>sdk.getDocFromServer(sdk.doc(actor.db,path));
     await assertFails(direct(account('outside','x@example.org'),treePath));
@@ -61,11 +62,15 @@ for(const released of [false,true]){
         });
         await batch.commit();
       });
+      const opening=await guest.call('view',{id});
+      assert.equal(opening.pages,4);assert.equal(opening.cards.length,12);
+      assert.equal(opening.mine.message,card.message);
       const second=await guest.call('view',{id,page:2});
       assert.equal(second.cards.length,12);assert.equal(second.mine.message,card.message);
       assert.equal((await guest.call('view',{id,page:3})).cards[0].name,'Guest 24');
       assert.equal((await guest.call('view',{id,page:2})).cards[0].name,'Guest 12');
       assert.equal((await guest.call('view',{id,page:4})).cards[0].name,'Alex Smith');
+      assert.equal((await guest.call('view',{id,page:Number.MAX_SAFE_INTEGER})).cards[0].name,'Alex Smith');
     }
     const seek=account('exception','carolynj30@lakesideschool.org');
     const winterStyle={...choices,species:'European larch',setting:'Heron marsh',weather:'Light pillars',star:'Tin swallow'};

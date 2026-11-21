@@ -118,6 +118,16 @@ export function winterAir(){
   return {
     camera(x,y){cameraX=x;cameraY=y;},
     set(value){if(mode===value&&width)return;mode=value in weatherProfiles?value:'Clear';size();wake();},
+    shakeBranch(x,y,dx){
+      if(!['Snowfall','Flurries','Snowstorm','Feather snow','Graupel','Hoarfrost'].includes(mode))return;
+      for(let i=0;i<4&&powder.length<180;i++){
+        const spread=Math.random();
+        powder.push({sprite:i===0?soft:clump,x:x-cameraX+(spread-.5)*15,y:y-cameraY+2,
+          vx:Math.max(-36,Math.min(36,dx*.7))+(spread-.5)*16,vy:3+spread*10,gravity:88+spread*75,
+          age:0,duration:.43+spread*.32,size:i===0?8:2+spread*3,growth:i===0?.65:-.3,opacity:.88});
+      }
+      wake();
+    },
     brush(x,y,dx,dy){
       const force=Math.min(1,Math.hypot(dx,dy)/22);
       for(let i=0;i<5+force*9&&powder.length<180;i++){

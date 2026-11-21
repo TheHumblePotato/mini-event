@@ -1,6 +1,6 @@
 import {scene} from '../scene/art.js';
 
-export function showGallery(content, trees, treeUrl) {
+export async function showGallery(content, loadTrees, treeUrl) {
   content.innerHTML = `<section class="directory">
     <a id="back-tree">← My tree</a><h1>Public trees</h1>
     <div class="gallery-tools">
@@ -16,11 +16,16 @@ export function showGallery(content, trees, treeUrl) {
   const tools = content.querySelector('.gallery-tools');
   const search = tools.querySelector('input'), order = tools.querySelector('select');
   const empty = content.querySelector('.gallery-empty'), grid = content.querySelector('.tree-grid');
+  tools.hidden = true;
+  empty.textContent = 'Loading trees…';
+  let trees;
+  try { trees = await loadTrees(); }
+  catch (error) { empty.textContent = 'The gallery could not be loaded.'; throw error; }
   if (!trees.length) {
-    tools.hidden = true;
     empty.textContent = 'The gallery is quiet. Plant a public tree to join it.';
     return;
   }
+  tools.hidden = false;
   const cards = trees.map(tree => {
     const link = document.createElement('a');
     link.href = treeUrl({id:tree.id});

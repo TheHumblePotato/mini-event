@@ -21,6 +21,9 @@ function openMenu(open){
 }
 openMenu(false);
 toggle.onclick=()=>openMenu(menu.hidden);
+document.addEventListener('pointerdown',event=>{
+  if(!menu.hidden&&!menu.contains(event.target)&&!toggle.contains(event.target))openMenu(false);
+});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!menu.hidden){openMenu(false);toggle.focus();}});
 document.querySelector('#expand').onclick=async()=>{
   try{if(document.fullscreenElement)await document.exitFullscreen();else await body.requestFullscreen();}
@@ -28,7 +31,7 @@ document.querySelector('#expand').onclick=async()=>{
 };
 
 const motion=matchMedia('(prefers-reduced-motion: reduce)');
-let previous=null,lastPuff=0,frame=0,lastFrame=0;
+let previous=null,lastPuff=0,lastShed=0,frame=0,lastFrame=0;
 const springs=new Map();
 function nudge(element,impulse,limit,property){
   const state=springs.get(element)||{angle:0,speed:0,limit,property};
@@ -73,7 +76,8 @@ function pan(x,y){
 }
 function move(){
   pointerFrame=0;
-  const event=pending;
+  const event=pending,brushed=pendingCharm;
+  pendingCharm=null;
   const svg=event.target.closest('#scene>svg');
   if(!svg){previous=null;return;}
   const now=performance.now(),x=event.clientX,y=event.clientY;
@@ -83,9 +87,11 @@ function move(){
   const dx=x-from.x,dy=y-from.y;
   const crown=event.target.closest('.crown');
   if(crown)nudge(crown,dx*.06,1.1,'bend');
-  const hanging=event.target.closest('.hanging')||pendingCharm;
+  const hanging=event.target.closest('.hanging')||brushed;
   if(hanging)nudge(hanging.querySelector('.charm'),-dx*2,24,'--angle');
-  pendingCharm=null;
+  else if(crown&&now-lastShed>190&&Math.abs(dx)+Math.abs(dy)>6&&event.target.closest('.boughs')){
+    air.shakeBranch(x,y,dx);lastShed=now;
+  }
   if(event.target.closest('.near-ground')&&now-lastPuff>35){air.brush(x,y,dx,dy);lastPuff=now;}
 }
 let pendingCharm=null;
@@ -96,8 +102,10 @@ body.addEventListener('pointermove',event=>{
 },{passive:true});
 document.documentElement.addEventListener('pointerleave',()=>{cancelAnimationFrame(pointerFrame);pointerFrame=0;pendingCharm=null;previous=null;pan(0,0);});
 // Fit the full tree vertically while cropping the surrounding landscape on phones.
+let fittedScene=null;
 function fit(){
-  const active=document.querySelector('#scene>svg');
+  const active=document.getElementById('scene')?.firstElementChild??null;
+  fittedScene=active;
 
   layers=active?['.horizon','.village','.ground-plane'].map((selector,i)=>[active.querySelector(selector),[.15,.43,1][i]]):[];
   air.set(active?.dataset.weather||'Clear');
@@ -111,10 +119,18 @@ function fit(){
     active.setAttribute('preserveAspectRatio','xMidYMid meet');
   }
 }
-new MutationObserver(records=>{if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1 && (n.matches('#scene,svg') || n.querySelector('#scene,svg')))))fit();}).observe(document.querySelector('#content'),{childList:true,subtree:true});
+new MutationObserver(()=>{
+  if((document.getElementById('scene')?.firstElementChild??null)!==fittedScene)fit();
+}).observe(document.querySelector('#content'),{childList:true,subtree:true});
 window.addEventListener('resize',fit);fit();
 motion.addEventListener('change',()=>{
   if(!motion.matches)return;
+  cancelAnimationFrame(frame);frame=0;
+  for(const [node,state] of springs){
+    if(state.property==='bend')node.removeAttribute('transform');else node.style.removeProperty(state.property);
+  }
+  springs.clear();
+  cancelAnimationFrame(pointerFrame);pointerFrame=0;pendingCharm=null;
   cancelAnimationFrame(cameraFrame);cameraFrame=0;cameraX=0;cameraY=0;targetX=0;targetY=0;
   previous=null;project();
 });

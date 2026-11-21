@@ -21,6 +21,10 @@ export function createTreeStore(db,sdk){
   }
   // Keep one page of cursors so forward and back need only a 12-ornament read.
   let cursor=null;
+  function remember(tree,uid,paging,docs){
+    cursor=docs.length?{uid,tree:tree.id,total:paging.total,page:paging.page,first:docs[0],last:docs.at(-1)}:null;
+    return {paging,docs};
+  }
   async function branchPage(tree,uid,paging){
     const ordered=query(collection(tree,'ornaments'),orderBy('created'));
     if(cursor?.total!==paging.total)cursor=null;
@@ -36,31 +40,52 @@ export function createTreeStore(db,sdk){
       pageQuery=query(ordered,startAfter(skipped.docs.at(-1)),limit(ornamentsPerTreePage));
     }
     const batch=await getDocsFromServer(pageQuery);
-    cursor=batch.size?{uid,tree:tree.id,total:paging.total,page:paging.page,first:batch.docs[0],last:batch.docs.at(-1)}:null;
-    return batch.docs;
+    return remember(tree,uid,paging,batch.docs);
   }
-  async function visit(tree,uid,page){
-    const [snapshot,count,released]=await Promise.all([
-      getDocFromServer(tree),getCountFromServer(collection(tree,'ornaments')),christmasMorning()
+  async function branches(tree,uid,page){
+    const ornaments=collection(tree,'ornaments');
+    const last=page===Number.MAX_SAFE_INTEGER;
+    if(page===1||last){
+      const pageLimit=last?limitToLast(ornamentsPerTreePage+1):limit(ornamentsPerTreePage+1);
+      const batch=await getDocsFromServer(query(ornaments,orderBy('created'),pageLimit));
+      // The extra branch tells us whether a count query is necessary.
+      if(batch.size<=ornamentsPerTreePage)return remember(tree,uid,treePage(batch.size,page),batch.docs);
+      const total=(await getCountFromServer(ornaments)).data().count;
+      const paging=treePage(total,page);
+      // For a full last page another sender can hang an ornament between the
+      // lookahead and the count. Read its actual tail against the new total.
+      if(last)return branchPage(tree,uid,paging);
+      return remember(tree,uid,paging,batch.docs.slice(0,ornamentsPerTreePage));
+    }
+    const count=await getCountFromServer(ornaments);
+    return branchPage(tree,uid,treePage(count.data().count,page));
+  }
+  async function visit(tree,uid,page=1){
+    const [snapshot,{paging,docs},released]=await Promise.all([
+      getDocFromServer(tree),branches(tree,uid,page),christmasMorning()
     ]);
     if(!snapshot.exists())throw Error('Tree not found.');
     const data=snapshot.data(),owner=data.owner===uid;
-    const paging=treePage(count.data().count,page);
-    const [batch,personal]=await Promise.all([
-      branchPage(tree,uid,paging),getDocFromServer(doc(tree,'ornaments',uid))
-    ]);
-    const note=id=>getDocFromServer(doc(tree,'letters',id)).then(item=>item.data()?.message??null);
-    const myText=personal.exists()?await note(uid):null;
-    const cards=await Promise.all(batch.map(async item=>{
+    const onPage=docs.find(item=>item.id===uid);
+    const notes=new Map();
+    function note(id){
+      if(!notes.has(id))notes.set(id,getDocFromServer(doc(tree,'letters',id)).then(item=>item.data()?.message??null));
+      return notes.get(id);
+    }
+    async function ownCard(){
+      const personal=onPage??(paging.pages>1&&!owner?await getDocFromServer(doc(tree,'ornaments',uid)):null);
+      return personal?.exists()?{...personal.data(),message:await note(uid)}:null;
+    }
+    const [mine,cards]=await Promise.all([ownCard(),Promise.all(docs.map(async item=>{
       const card=item.data();
       let message=null;
       if(released&&(owner||card.visibility==='Public')){
-        try{message=item.id===uid?myText:await note(item.id);}
+        try{message=await note(item.id);}
         catch(error){if(error.code!=='permission-denied')throw error;} // Visibility may change after loading the branches.
       }
       return {...card,message};
-    }));
-    return {...data,owner,released,...paging,cards,mine:personal.exists()?{...personal.data(),message:myText}:null};
+    }))]);
+    return {...data,owner,released,...paging,cards,mine};
   }
   async function run(user,action,input){
     const name=schoolName(user?.email);

@@ -5,10 +5,9 @@ import {schoolName} from './data/model.js';
 import {treeStyleFields} from './screens/tree-styles.js';
 import {showGallery} from './screens/gallery.js';
 import {showPostcard} from './screens/postcard.js';
+import {local,demo,connection} from './data/session.js';
 const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
-const local=['localhost','127.0.0.1'].includes(location.hostname);
-const demo=local && params.has('demo');
 const home=!$('content');
 const treeUrl=(args={})=>{
   const url=new URL(home?'christmas/tree.html':'tree.html',location.href);
@@ -34,40 +33,52 @@ if(local && !demo){
 const status=text=>{$('status').textContent=text;};
 function submit(form,fn){
   form.onsubmit=async event=>{
-    event.preventDefault();const button=form.querySelector('button');button.disabled=true;
-    try{await fn(Object.fromEntries(new FormData(form)));}catch(e){status(e.message);}finally{button.disabled=false;}
+    event.preventDefault();if(form.inert)return;
+    form.inert=true;
+    try{await fn(Object.fromEntries(new FormData(form)));}catch(e){status(e.message);}finally{form.inert=false;}
   };
 }
-let call,signature;
-let currentPage=1, revision=0;
+let call,signature,accountKey;
+let currentPage=1, revision=0, ownId;
 function loading(active){
   if(home)return;
   $('tree-loading').hidden=!active;
   $('content').setAttribute('aria-busy',String(active));
 }
-async function render(){
+async function render(page=currentPage){
   const request=++revision;
-  loading(true);
-  try{await renderPage(request);}finally{if(request===revision)loading(false);}
+  const content=$('content');
+  if(!content.firstElementChild)loading(true);
+  content.inert=true;
+  content.setAttribute('aria-busy','true');
+  try{await renderPage(request,page);}finally{if(request===revision){loading(false);content.inert=false;}}
 }
-async function renderPage(request){
+async function renderPage(request,page){
   const content=$('content');
   if(params.has('gallery')){
-    const trees=await call('gallery');
-    if(request!==revision)return;
     document.body.classList.add('in-gallery');
-    showGallery(content,trees,treeUrl);
-    status('');return;
+    $('tree-loading').hidden=true;
+    content.inert=false;
+    await showGallery(content,()=>call('gallery'),treeUrl);
+    if(request===revision)status('');
+    return;
   }
-  const id=params.has('id')?params.get('id'):await call('mine');
+  const id=params.has('id')?params.get('id'):(ownId??=await call('mine'));
   if(request!==revision)return;
   if(!id){
     content.innerHTML='<div class="layout"><div class="art" id="scene"></div><form><h2>Plant your tree</h2><div class="tree-style-fields"></div><p>Public trees appear in the school gallery. Choose Private to share yours by link.</p><button>Plant tree</button></form></div>';
     const form=content.querySelector('form');
     treeStyleFields(form,defaults,$('scene'));status('');
-    submit(form,async values=>location.assign(treeUrl({id:await call('create',values)})));return;
+    let changed=false;
+    form.onchange=()=>{changed=true;};
+    $('scene').onclick=()=>{if(changed)form.requestSubmit();};
+    submit(form,async values=>{
+      const id=await call('create',values);
+      params.set('id',id);history.replaceState(null,'',treeUrl({id}));
+      await render(1);
+    });return;
   }
-  const tree=await call('view',{id,page:currentPage});
+  const tree=await call('view',{id,page});
   if(request!==revision)return;
   currentPage=tree.page;
   content.innerHTML='<article class="grove"><header class="grove-head"><div><h2 id="treeName"></h2></div><button id="copy">Copy tree link</button></header><div class="art landscape" id="scene"></div><footer><span id="reveal"></span></footer></article><div class="branch-head"><h2>On the branches</h2><div id="actions"></div></div><nav id="tree-pages" aria-label="Tree pages" hidden></nav><dialog id="letter"><button type="button" class="close" aria-label="Close">×</button><div id="sheet"></div></dialog>';
@@ -76,13 +87,26 @@ async function renderPage(request){
   $('reveal').textContent=tree.released?'Christmas notes are open':days+' days until Christmas';
   $('scene').innerHTML=scene(tree,true);
   const dialog=$('letter'), sheet=$('sheet');
-  dialog.querySelector('.close').onclick=()=>dialog.close();
-  dialog.onclick=e=>{if(e.target===dialog)dialog.close();};
+  const close=()=>dialog.close();
+  let dismiss=close,pressedBackdrop=false;
+  function outside(event){
+    const box=dialog.getBoundingClientRect();
+    return event.target===dialog&&(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom);
+  }
+  dialog.onpointerdown=e=>{pressedBackdrop=outside(e);};
+  dialog.onclick=e=>{if(pressedBackdrop&&outside(e))dismiss();pressedBackdrop=false;};
+  dialog.oncancel=e=>{e.preventDefault();dismiss();};
+  dialog.querySelector('.close').onclick=()=>dismiss();
+  dialog.onclose=()=>{
+    if(dialog.returnValue==='draft')status('Unfinished ornament saved in this tab.');
+    dialog.returnValue='';
+  };
   const postcard=$('postcard');
   postcard.hidden=false;
   postcard.onclick=()=>{
     if($('panelToggle').getAttribute('aria-expanded')==='true')$('panelToggle').click();
     $('panelToggle').focus();
+    dismiss=close;
     showPostcard(dialog,$('scene').querySelector('svg'),tree);
   };
   $('copy').onclick=async()=>{const url=treeUrl({id});try{await navigator.clipboard.writeText(url);status('Tree link copied.');}catch{status(url);}};
@@ -92,10 +116,11 @@ async function renderPage(request){
     nav.querySelector('span').textContent='Tree '+tree.page+' / '+tree.pages;
     for(const [i,button] of [...nav.querySelectorAll('button')].entries()){
       const dest=tree.page+(i?1:-1);button.disabled=dest<1||dest>tree.pages;
-      button.onclick=async()=>{currentPage=dest;try{await render();}catch(e){status(e.message);}};
+      button.onclick=async()=>{try{await render(dest);}catch(e){status(e.message);}};
     }
   }
   function read(index){
+    dismiss=close;
     const card=tree.cards[index];
     const message=card.message??(tree.released?'A private Christmas note.':'Sealed until December 25. Come back on Christmas morning to open this note.');
     sheet.replaceChildren(letter({...card,message}));
@@ -114,15 +139,18 @@ async function renderPage(request){
     edit.onclick=()=>{
       sheet.innerHTML='<form><h2>Style your tree</h2><div class="tree-style-fields"></div><p role="status"></p><button>Save</button></form>';
       const form=sheet.querySelector('form');
-      treeStyleFields(form,tree,$('scene'));
-      const originalScene=$('scene');
-      const discardPreview=()=>{originalScene.innerHTML=scene(tree,true);};
-      dialog.addEventListener('close',discardPreview,{once:true});
+      const preview=treeStyleFields(form,tree,$('scene'));
+      dismiss=()=>form.requestSubmit();
       dialog.setAttribute('aria-label','Style your tree');dialog.showModal();
       submit(form,async values=>{
-        try{await call('customize',{id,...values});}catch(e){form.querySelector('p').textContent=e.message;return;}
-        dialog.removeEventListener('close',discardPreview);
-        dialog.close();await render();
+        if(Object.keys(values).some(key=>values[key]!==tree[key])){
+          preview();
+          form.querySelector('p').textContent='Saving tree…';
+          try{await call('customize',{id,...values});}catch(e){form.querySelector('p').textContent=e.message;return;}
+          Object.assign(tree,values,{name:signature});
+          $('treeName').textContent=signature+'’s tree';
+        }
+        dialog.close();
       });
     };
   }
@@ -130,17 +158,20 @@ async function renderPage(request){
     const compose=document.createElement('button');
     compose.className='primary';compose.textContent=tree.mine?'Edit your ornament':'Hang an ornament';
     $('actions').append(compose);
-    compose.onclick=()=>workshop(dialog,tree.mine,signature,async values=>{
+    compose.onclick=()=>{status('');dismiss=workshop(dialog,tree.mine,signature,'winter-draft/'+accountKey+'/'+id,async values=>{
       await call('hang',{id,...values});
-      if(!tree.mine)currentPage=Number.MAX_SAFE_INTEGER;
-      dialog.close();await render();status('Your signed ornament is on the tree.');
-    });
+      dialog.close();
+      try{await render(tree.mine?currentPage:Number.MAX_SAFE_INTEGER);status('Your signed ornament is on the tree.');}
+      catch{status('Ornament saved. Reload to see the updated branches.');}
+    });};
   }
   status('');
 }
 async function start(){
+  const {backend,error}=await connection;
+  if(error)throw error;
   if(demo){
-    const {accounts,demoCall}=await import('../_dev/christmas/preview.js');
+    const {accounts,demoCall}=backend;
     const email=sessionStorage.getItem('winter-actor')||accounts[0].email;
     $('account').hidden=true;
     $('preview').innerHTML='<label>Local preview account<select></select></label>';
@@ -148,11 +179,12 @@ async function start(){
     for(const person of accounts)select.add(new Option(person.name,person.email));
     select.value=email;select.onchange=()=>{sessionStorage.setItem('winter-actor',select.value);location.reload();};
     signature=schoolName(email);
+    accountKey=email;
     call=(action,input)=>demoCall(email,action,input);
     if(!home)await render();
     return;
   }
-  const cloud=await import('./data/cloud.js');call=cloud.call;
+  const cloud=backend;call=cloud.call;
   $('account').onclick=()=>cloud.toggle().catch(e=>status(e.message));
   let initial=true;
   cloud.watch(async user=>{
@@ -162,6 +194,7 @@ async function start(){
       if(!user){loading(false);document.querySelector('#panelToggle')?.click();status('Sign in with your Lakeside school account to visit trees.');return;}
       if(!schoolName(user.email)){loading(false);status('Switch to your Lakeside school account.');return;}
       signature=schoolName(user.email);
+      accountKey=user.uid;
       try{await render();}catch(e){status(e.message);}
     }
   });
