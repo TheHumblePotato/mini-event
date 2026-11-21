@@ -112,7 +112,8 @@ test('letter layout never exceeds its measured fit or splits surrogate pairs',as
 
 test('every catalog selection has artwork and passes the shared validators',async()=>{
   const {options,treeSettings,makeCard}=await import('../../../christmas/data/model.js');
-  const {ornamentIcon}=await import('../../../christmas/scene/art.js');
+  const {ornamentIcon,palette}=await import('../../../christmas/scene/art.js');
+  assert.equal(new Set(options.color.map(color=>palette[color])).size,options.color.length);
   for(const setting of options.setting)for(const species of options.species){
     const choices=treeSettings({setting,species,weather:'Ice halo',star:'Compass rose',visibility:'Private'});
     assert.doesNotMatch(scene(choices,true),/undefined|NaN/);
@@ -120,5 +121,17 @@ test('every catalog selection has artwork and passes the shared validators',asyn
   for(const kind of options.kind)for(const color of options.color){
     const card=makeCard({kind,color,visibility:'Private',paper:'Music manuscript',message:'Snow day'},'Alex S.');
     assert.doesNotMatch(ornamentIcon(card.kind,card.color),/undefined/);
+  }
+});
+
+test('larch and stone pine keep all twelve hanging points on their illustrated branches',async()=>{
+  const {larchSpurs,stonePineBoughs}=await import('../../../christmas/scene/ink-trees.js');
+  const cards=Array.from({length:12},()=>({kind:'Thread spool',color:'Lampblack'}));
+  for(const [species,branches] of [['European larch',larchSpurs],['Stone pine',stonePineBoughs]]){
+    const tree={species,setting:'Heron marsh',star:'Tin swallow',weather:'Hoarfrost'};
+    assert.doesNotMatch(scene(tree,true),/class="hanging"/);
+    const rendered=scene({...tree,cards},true);
+    const placements=[...rendered.matchAll(/class="hanging"[^>]* transform="translate\(([-\d.]+) ([-\d.]+)\)"/g)];
+    assert.deepEqual(placements.map(([,x,y])=>[Number(x)-200,Number(y)-12]),branches);
   }
 });

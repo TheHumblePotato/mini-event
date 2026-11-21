@@ -18,9 +18,9 @@ dialog[open]{animation:unfold .18s ease-out}@keyframes drift{0%{transform:transl
 
 /* The scene stays in view while the workshop or navigation is open. */
 .immersive{margin:0;padding:0;max-width:none;min-height:100dvh;background:#a8c4c4}
-.immersive #ambient,.immersive #scene{position:fixed;inset:0;width:100%;height:100%;max-width:none;z-index:0}
-.immersive #ambient svg,.immersive #scene svg{display:block;width:100%;height:100%;max-width:none;max-height:none;border-radius:0;background:#b4cac5}
-.immersive #ambient{pointer-events:none}.immersive .grove,.immersive .layout{border:0;margin:0;background:none;box-shadow:none}
+.immersive #scene{position:fixed;inset:0;width:100%;height:100%;max-width:none;z-index:0}
+.immersive #scene svg{display:block;width:100%;height:100%;max-width:none;max-height:none;border-radius:0;background:#b4cac5}
+.immersive .grove,.immersive .layout{border:0;margin:0;background:none;box-shadow:none}
 .immersive .grove-head{position:fixed;top:1rem;left:1rem;z-index:2;border:0;color:#173e37;background:#fff8e8df;border-radius:1.5rem;padding:.45rem .8rem;gap:.8rem}
 .immersive .grove-head h2{font-size:1.25rem;margin:0}.immersive .grove-head .season,.immersive .grove footer,.immersive .branch-head h2{display:none}
 .scene-tools{position:fixed;right:1rem;top:1rem;z-index:8;display:flex;gap:.4rem}.scene-tools button{border-radius:50%;width:2.7rem;height:2.7rem;padding:0;font-size:1.2rem}
@@ -170,7 +170,7 @@ svg[data-setting="Glasshouse garden"]{--day-sky:#aecbc1;--night-sky:#243c40}svg[
 @keyframes cable-ride{0%,3%{offset-distance:4%}97%,100%{offset-distance:96%}}
 @keyframes train-crossing{0%{transform:translateX(-430px);opacity:0}3%{opacity:1}97%{opacity:1}100%{transform:translateX(680px);opacity:0}}
 @keyframes engine-steam{from{transform:translate(0,0) scale(.5);opacity:.65}to{transform:translate(-18px,-12px) scale(1.8);opacity:0}}
-@keyframes skating-pass{0%{transform:translate(-24px,0) rotate(-3deg)}60%{transform:translate(9px,-3px) rotate(2deg)}100%{transform:translate(29px,1px) rotate(1deg)}}
+@keyframes skating-pass{0%{transform:translate(-24px,0) rotate(-4deg)}13%{transform:translate(-19px,-.6px) rotate(3deg)}42%{transform:translate(-3px,-2px) rotate(1deg)}53%{transform:translate(3px,-2px) rotate(-3.5deg)}86%{transform:translate(25px,0) rotate(1deg)}100%{transform:translate(29px,.5px) rotate(3deg)}}
 @keyframes clock-sweep{to{transform:rotate(360deg)}}
 }
 @media(forced-colors:active){.immersive .letter-book textarea.letter-text:focus-visible{outline:1px dashed Highlight}}
@@ -227,4 +227,62 @@ svg[data-setting="Summit observatory"]{--day-sky:#dfc3bc;--night-sky:#30324e}
   @keyframes armillary-orbit{0%,100%{transform:scaleX(1)}25%,75%{transform:scaleX(.18)}50%{transform:scaleX(-1)}}
   @keyframes pennant-ripple{to{transform:skewY(6deg) scaleX(.91)}}
   @keyframes glass-glow{0%,65%,100%{opacity:.12}75%{opacity:.95}}
+}
+
+#tree-loading{
+  position:fixed;inset:0;z-index:12;display:grid;place-content:center;justify-items:center;gap:1rem;
+  background:var(--paper,#f3ecdc) url(./assets/paper-grain.png);color:var(--ink,#32483d);
+  font:italic 1.1rem Georgia,serif
+}
+#tree-loading[hidden]{display:none}
+.immersive:has(>#tree-loading:not([hidden]))>:is(.scene-tools,header,main,#winter-menu){visibility:hidden}
+.loading-stitches{width:1.7rem;height:1.7rem;border:2px dashed currentColor;border-right-color:transparent;border-radius:50%}
+
+.letter-book .stationery[data-paper="Airmail"],[data-stock="Airmail"]{
+  --paper-color:#fbf4e8;--ink-rule:#9ba9ad;--corner:#5f7684;--pattern:repeating-linear-gradient(3deg,transparent 0 4px,#88775b09 4px 5px);--tile:100% 17px
+}
+.stationery[data-paper="Airmail"]::before,.workshop [data-stock="Airmail"]::before{
+  content:"";position:absolute;inset:8px auto 8px 8px;width:4px;pointer-events:none;
+  background:repeating-linear-gradient(145deg,#ab5653 0 6px,transparent 6px 11px,#637e94 11px 17px,transparent 17px 23px)
+}
+.workshop [data-stock="Airmail"]{position:relative}.workshop [data-stock="Airmail"]::before{inset:3px auto 3px 2px;width:3px}
+.letter-book .stationery[data-paper="Field notebook"],[data-stock="Field notebook"]{
+  --paper-color:#f2edcf;--ink-rule:#a7ac89;--corner:#6c7756;--pattern:linear-gradient(to top,#778c9750 1px,transparent 1px);--tile:100% 1.76rem
+}
+.stationery[data-paper="Field notebook"]::before{
+  content:"";position:absolute;inset:7px auto 7px clamp(.75rem,2.6vw,2.5rem);width:1px;background:#bd766c80;pointer-events:none
+}
+.letter-book .stationery[data-paper="Tide chart"],[data-stock="Tide chart"]{
+  --paper-color:#e3efeb;--ink-rule:#91a9a6;--corner:#4b7378;--pattern:url(./assets/paper-tide-chart.svg);--tile:180px
+}
+.workshop [data-stock="Field notebook"]{--tile:100% .55rem}.workshop [data-stock="Tide chart"]{--tile:88px}
+
+svg[data-setting="Heron marsh"]{--day-sky:#bcc9b7;--night-sky:#293e43}
+svg[data-setting="Bookbindery lane"]{--day-sky:#d9c4ae;--night-sky:#373c51}
+[data-theme=dark] .cirrus{opacity:.15}
+[data-theme=dark] .powder{fill:#cbd6d1}
+[data-theme=dark] .ink-shadow{fill:#afc1bb}
+@media(prefers-reduced-motion:no-preference){
+  .loading-stitches{animation:stitch-turn 2.4s linear infinite}
+  #scene .cirrus{animation:high-cloud 33s ease-in-out infinite alternate}
+  #scene .sails{animation:mill-turn 33s linear infinite}
+  #scene .heron-neck{transform-origin:4px -9px;animation:heron-watch 13s ease-in-out infinite}
+  #scene .rush-heads{animation:reed-wind 7s ease-in-out infinite}
+  #scene .marsh-current{animation:water-lines 8s ease-in-out infinite alternate}
+  #scene .bindery-sign{animation:sign-swing 9s ease-in-out infinite}
+  #scene .wind-sock{transform-origin:0 -16px;animation:sock-lift 6s ease-in-out infinite}
+  #scene .larch-leader{transform-origin:0 85px;animation:reed-wind 8s -2s ease-in-out infinite}
+  .spool-end{transform-origin:4px 4px;animation:sign-swing 6.5s ease-in-out infinite}
+  .accordion-folds{animation:bellows 7.8s ease-in-out infinite}
+  .tin-swallow{animation:sign-swing 11s ease-in-out infinite}
+  #scene .hanging :is(.spool-end,.accordion-folds,.owl-eyes,.koi-tail,.toy-rocker,.glint,.cocoa-steam){animation-delay:var(--motion-delay,0s)}
+  @keyframes stitch-turn{to{transform:rotate(1turn)}}
+  @keyframes mill-turn{to{transform:rotate(1turn)}}
+  @keyframes high-cloud{to{transform:translate(11px,-.7px)}}
+  @keyframes heron-watch{0%,26%,45%,90%,100%{transform:rotate(0)}34%,39%{transform:rotate(13deg)}65%,74%{transform:rotate(-5deg)}}
+  @keyframes reed-wind{0%,56%,100%{transform:rotate(0)}18%{transform:rotate(3deg)}34%{transform:rotate(-.8deg)}75%{transform:rotate(1.4deg)}}
+  @keyframes water-lines{to{transform:translate(4px,.25px);opacity:.62}}
+  @keyframes sign-swing{0%,48%,100%{transform:rotate(0)}14%{transform:rotate(3deg)}29%{transform:rotate(-1.5deg)}70%{transform:rotate(-2deg)}}
+  @keyframes sock-lift{0%,100%{transform:skewY(1deg)}35%,43%{transform:skewY(-6deg)}66%{transform:skewY(-2deg)}}
+  @keyframes bellows{0%,32%,68%,100%{transform:scaleX(1)}48%{transform:scaleX(.9)}}
 }

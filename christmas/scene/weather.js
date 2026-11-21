@@ -18,7 +18,7 @@ function crystal(ctx){
   ctx.stroke();
 }
 const weatherProfiles={
-  'Graupel':[185,173,26], 'Light pillars':[0,0,0],
+  'Graupel':[185,173,26], 'Light pillars':[0,0,0], 'Hoarfrost':[0,0,0],
   'Ice halo':[0,0,0], 'Spindrift':[205,0,178], 'Sleet':[290,205,45], 'Feather snow':[120,24,5], 'Clear':[0,0,0], 'Lake mist':[0,0,0], 'Diamond dust':[160,13,4],
   'Snowfall':[240,54,10], 'Flurries':[340,76,43], 'Snowstorm':[720,132,118]
 };

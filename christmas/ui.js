@@ -40,17 +40,27 @@ function submit(form,fn){
 }
 let call,signature;
 let currentPage=1, revision=0;
+function loading(active){
+  if(home)return;
+  $('tree-loading').hidden=!active;
+  $('content').setAttribute('aria-busy',String(active));
+}
 async function render(){
   const request=++revision;
+  loading(true);
+  try{await renderPage(request);}finally{if(request===revision)loading(false);}
+}
+async function renderPage(request){
   const content=$('content');
-  // Keep the previous scene visible while a page is loading.
   if(params.has('gallery')){
     const trees=await call('gallery');
+    if(request!==revision)return;
     document.body.classList.add('in-gallery');
     showGallery(content,trees,treeUrl);
     status('');return;
   }
   const id=params.has('id')?params.get('id'):await call('mine');
+  if(request!==revision)return;
   if(!id){
     content.innerHTML='<div class="layout"><div class="art" id="scene"></div><form><h2>Plant your tree</h2><div class="tree-style-fields"></div><p>Public trees appear in the school gallery. Choose Private to share yours by link.</p><button>Plant tree</button></form></div>';
     const form=content.querySelector('form');
@@ -149,14 +159,14 @@ async function start(){
     if(!initial){location.reload();return;} initial=false;
     $('account').textContent=user?'Sign out':'Sign in';
     if(!home){
-      if(!user){document.querySelector('#panelToggle')?.click();status('Sign in with your Lakeside school account to visit trees.');return;}
-      if(!schoolName(user.email)){status('Switch to your Lakeside school account.');return;}
+      if(!user){loading(false);document.querySelector('#panelToggle')?.click();status('Sign in with your Lakeside school account to visit trees.');return;}
+      if(!schoolName(user.email)){loading(false);status('Switch to your Lakeside school account.');return;}
       signature=schoolName(user.email);
       try{await render();}catch(e){status(e.message);}
     }
   });
 }
-start().catch(()=>status('School sign-in could not connect. Check your connection and reload.'));
+start().catch(error=>{loading(false);status(demo?error.message:'School sign-in could not connect. Check your connection and reload.');});
 
 
 

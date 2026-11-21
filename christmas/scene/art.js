@@ -23,7 +23,8 @@ const shapes={...keepsakes,...heirlooms,...winterKeepsakes,
 export const palette={
   Cranberry:'#c4474f',Gold:'#f1c351',Plum:'#986cbe',Copper:'#a36643',Mint:'#abe7bc','Ice blue':'#b0dcec',
   Sapphire:'#497bc9',Evergreen:'#43784c',Ivory:'#fff0d2',Mulberry:'#853766',Tangerine:'#fa8841',
-  'Rose quartz':'#eea6ba',Pewter:'#90949b',Peacock:'#258e91'
+  'Rose quartz':'#eea6ba',Pewter:'#90949b',Peacock:'#258e91',
+  Lampblack:'#39383c',Lichen:'#b1b959',Ultramarine:'#383d94','Lilac chalk':'#d8c9eb'
 };
 export function ornamentIcon(kind,color){
   return '<svg viewBox="-12 -15 24 27" aria-hidden="true" style="color:'+palette[color]+'" fill="currentColor"><path d="M0-13v8" stroke="#aa8956"/>'+loop+shapes[kind]+'</svg>';
@@ -32,7 +33,7 @@ export function scene(tree, animatedWeather=false) {
   const narrow=tree.species==='Cypress';
   const spruce=tree.species==='Spruce';
 
-  const flakes=animatedWeather||['Clear','Ice halo','Lake mist','Light pillars'].includes(tree.weather)?'':Array.from({length:tree.weather==='Flurries'?115:65},()=>{
+  const flakes=animatedWeather||['Clear','Ice halo','Lake mist','Light pillars','Hoarfrost'].includes(tree.weather)?'':Array.from({length:tree.weather==='Flurries'?115:65},()=>{
     const r=Math.random(),x=Math.random()*1100-350;
     const duration=(tree.weather==='Flurries'?8:14)+(1-r)*10;
     return '<ellipse cx="'+x+'" cy="-20" rx="'+(.22+r*.68)+'" ry="'+(.33+r*.74)+'" style="--fall:'+duration+'s;--phase:-'+Math.random()*duration+'s;--drift:'+(tree.weather==='Flurries'?45+r*45:4+r*14)+'px;opacity:'+(.32+r*.53)+'" fill="#fffaf0"/>';
@@ -43,13 +44,13 @@ export function scene(tree, animatedWeather=false) {
     const hanger=winterHangers(tree.species)?.[i%slots.length];
     const x=200+(hanger ? hanger[0] : offset*(narrow?.62:spruce?.82:1));
     const y=hanger ? hanger[1]+12 : tree.species==='Scots pine'?level*.89+9:level;
-    return '<g class="hanging" role="button" tabindex="0" aria-label="Open '+card.kind+' ornament" data-card="'+i+'" transform="translate('+x+' '+y+')" color="'+palette[card.color]+'" fill="currentColor"><circle r="12" fill="transparent"/><g class="charm"><path d="M0-12v7" stroke="#fff0c2"/>'+loop+shapes[card.kind]+'</g></g>';
+    return '<g class="hanging" role="button" tabindex="0" aria-label="Open '+card.kind+' ornament" data-card="'+i+'" style="--motion-delay:-'+(i*1.73)+'s" transform="translate('+x+' '+y+')" color="'+palette[card.color]+'" fill="currentColor"><circle r="12" fill="transparent"/><g class="charm"><path d="M0-12v7" stroke="#fff0c2"/>'+loop+shapes[card.kind]+'</g></g>';
   }).join('');
   const star=treeTopper(tree.star);
   const {distance,middle,ground}=panorama(tree.setting,tree.weather);
   return `<svg data-setting="${tree.setting}" data-weather="${tree.weather}" role="${animatedWeather?'group':'img'}" aria-label="Decorated winter tree" viewBox="-90 0 580 310">
     <g class="horizon">${distance}</g><g class="village">${middle}</g>
-    <g class="ground-plane"><g class="near-ground">${ground}<ellipse cx="200" cy="278" rx="76" ry="5" fill="#b6cabe"/></g>
+    <g class="ground-plane"><g class="near-ground">${ground}<path class="ink-shadow" fill="#c1d0c5" d="m139 280 27-5 33-2 25 2 29 1 12 2-32 1-16 3-36-1-27 1z"/><path fill="#a5bbaf" d="m178 279 12-3 18-1 17 3-22 2z"/></g>
       <g class="crown">${foliage(tree.species)}${star}${ornaments}</g></g>
     <g class="snow" pointer-events="none">${flakes}</g></svg>`;
 }

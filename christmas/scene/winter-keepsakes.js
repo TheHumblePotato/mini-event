@@ -1,4 +1,20 @@
 export const winterKeepsakes = {
+  'Accordion': `<g transform="rotate(-9)"><path d="M-10-6h4v13h-4zM5-6h5V7H5z"/>
+    <g class="accordion-folds"><path fill="#aa8065" d="m-6-5 2 1 2-1 2 1 2-1 3 1V6L3 5 1 6l-2-1-2 1-3-1z"/><path fill="none" stroke="#664e47" stroke-width=".75" d="m-4-4 .3 9m2-10 .4 11M1-4v9m2-10 .5 10"/></g>
+    <path fill="#ebdfbb" d="M6-4h2.6v9H6z"/><path stroke="#554c42" stroke-width=".7" d="M6-2h2m-2 2h2m-2 3h2"/><path stroke="#e6c591" stroke-width="1" d="M-9-2h1m-1 2h1m-1 2h1"/></g>`,
+  'Clove pomander': `<path fill="#c27a42" d="M-7-4q2-4 7-3 7-1 8 5 2 8-6 11-8 2-10-5-1-5 1-8z"/>
+    <path d="M-2-7h3l1 15-2 1z"/><path fill="none" stroke="#704f37" stroke-width="1.5" stroke-linecap="round" d="m-5-3 .1 .1m-1 2.5 .1 .1m.4 2.8 .1 .1m1 2.4 .1 .1m7-8 .1 .1m2 2 .1 .1m.4 3 .1 .1m-1 3 .1 .1"/>
+    <path fill="#9aa274" d="M0-7q2-4 7-3-2 4-7 3z"/><path d="M0-7q-6-5-6-2-1 2 6 2zm.5 0q5-6 6-4 2 2-6 4z"/>`,
+  'Thread spool': `<g transform="rotate(12)"><path fill="#b78c60" d="M-6-7q6-4 12 0v2l-1 1v9l1 1v2q-6 3-12 0V6l1-1v-9l-1-1z"/>
+    <path d="M-5-5q5 1 10 0V5Q0 7-5 5z"/><path fill="none" stroke="#f3deba" stroke-width=".55" opacity=".78" d="m-4-3 8 1m-8 0 8 1m-8 .2 8 1.2m-8 .4 8 1m-8 .7 8 .6"/>
+    <path fill="none" stroke="currentColor" stroke-width="1" class="spool-end" d="M4 4q6 0 3 4-1 2 3 2"/><ellipse cy="-7" rx="3.8" ry="1" fill="#d4b491"/><path d="M-1-7h2" stroke="#795c49"/></g>`,
+  'Tram car': `<path fill="none" stroke="#a68a65" stroke-width=".9" d="M-3-8l4-3 4 3-3 2"/><path d="M-9-5q0-2 2-2H7q2 0 2 2v10L7 7H-7l-2-2z"/>
+    <path fill="#e7c38a" d="M-7-4h3.5v4H-7zm5 0h4v4h-4zm5 0h4v4H3z"/><path fill="#f3deaf" d="M-8 2H8v1H-8z"/>
+    <path fill="#5f594e" d="M-7-8H7l2 1H-9zM-7 7H7v1H-7z"/><g fill="#685849"><circle cx="-5" cy="8" r="1.4"/><circle cx="5" cy="8" r="1.4"/></g>
+    <path fill="#f7e7bd" d="M-2 4h4v1h-4z"/>`,
+  'Fountain pen nib': `<g transform="rotate(16)"><path d="M-3-9h6l.5 4h-7z"/><path fill="#d5b17b" stroke="#947451" stroke-width=".65" d="M-3.5-5h7l2 6L0 11-5.5 1z"/>
+    <path fill="#f2d7a2" d="M-3-4h1L-3 1 0 8-4.5 1z"/><path stroke="#6b6456" stroke-width=".7" d="M0 1v9"/><circle r="1.1" fill="#655c4c"/>
+    <path fill="none" stroke="#977d59" stroke-width=".6" d="m-2-3 2 1 2-1m-5 3 1 2m5-2-1 2"/></g>`,
   'Rocking horse': `<g class="toy-rocker">
     <path fill="#79553e" d="m-8 4 3-6-3 1q-3 1-3 5 2-2 3-1z"/>
     <path d="M-7-2q3 1 6 0L2-6l1-4 2 2 2-1 2 4 2 2-2 2-4-2-1 4 2 5-2 1-3-4h-4l-2 4-2-1 2-5z"/>
@@ -27,6 +43,13 @@ export const winterKeepsakes = {
 };
 
 export const winterToppers = {
+  'Tin swallow': `<g class="tin-swallow"><path fill="#657e82" d="M-17 3q8 0 12-3l-4-11q8 5 12 9l5-4 5 1-2 2-4 1Q5 5-1 6l-8-1-8 6 4-8z"/>
+    <path fill="#b8c8bd" d="m-9-11 11 9-3 1zM-7 3q7-1 12-5-2 5-8 6z"/><path fill="#cd9b60" d="m11-5 6 .6-5 1z"/>
+    <circle cx="9.6" cy="-4" r=".65" fill="#344843"/><path fill="none" stroke="#dae0cb" stroke-width=".6" d="m-2-5 4 4m-6 4 6-2"/></g>
+    <path fill="none" stroke="#a9895c" d="M0 5v8m-2-1h4"/>`,
+  'Straw wheel': `<g fill="none" stroke-linecap="square">${[0,45,90,135].map(angle=>`<g transform="rotate(${angle})"><path stroke="#b99352" stroke-width="2.2" d="M0-14V14"/><path stroke="#f1d49b" stroke-width=".8" d="M-1-12v24m2-25v24"/></g>`).join('')}
+    <path stroke="#b68048" stroke-width="1.3" d="m0-10 7 3 3 7-3 7-7 3-7-3-3-7 3-7z"/>
+    <path stroke="#d8b376" d="m0-7 5 2 2 5-2 5-5 2-5-2-2-5 2-5z"/></g><circle r="2.8" fill="#a25d48"/><path stroke="#e7c58c" d="m-1-1 2 2m-2 0 2-2"/>`,
   'Armillary sphere': `<path fill="#ae825a" d="m-5 11 4-2V4h2v5l4 2v2H-5z"/><circle r="10" fill="none" stroke="#cba96b" stroke-width="1.6"/>
     <ellipse rx="12" ry="3.8" transform="rotate(-34)" fill="none" stroke="#f2d58e" stroke-width="1.8"/>
     <g class="armillary-ring"><ellipse rx="4.8" ry="10" fill="none" stroke="#97b6b3" stroke-width="1.2"/></g>

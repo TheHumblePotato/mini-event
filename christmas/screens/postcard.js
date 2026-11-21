@@ -13,7 +13,7 @@ function framedScene(live) {
     const node = originals[index];
     const style = getComputedStyle(node);
     for (const property of ['opacity','display','filter']) copy.style.setProperty(property, style.getPropertyValue(property));
-    if (node.matches('.sky, .moon')) {
+    if (node.matches('.sky, .moon, .powder, .ink-shadow')) {
       for (const property of ['fill','stroke','stroke-width']) copy.style.setProperty(property, style.getPropertyValue(property));
     }
     // Center the tree in the print regardless of pointer position. Keep the

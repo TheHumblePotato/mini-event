@@ -1,3 +1,5 @@
+import {marsh,bindery} from './marsh-and-bindery.js';
+
 let pillarInstance = 0;
 export function lightPillars() {
   const id = 'ice-column-' + ++pillarInstance;
@@ -15,6 +17,8 @@ export function lightPillars() {
 // Each landscape has its own skyline, middle distance and snowbank detailing.
 // The foreground shares the coordinate system of the tree's roots.
 export const landscapes = {
+  'Heron marsh': marsh,
+  'Bookbindery lane': bindery,
   'Tidepool cove': {
     distance: `<path fill="#869eaa" d="M-2100 151h2012l58-24 38 5 41-34 46 9 39 27 62 16 82-4 40-26 33-3 33-21 46 13 49 28 80 13h1900v99H-2100z"/>
       <path fill="#618b93" d="M-2100 151q1250-4 2210 0t2290 0v155h-4500z"/>

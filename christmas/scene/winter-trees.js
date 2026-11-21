@@ -1,8 +1,12 @@
+import {larchSpurs,stonePineBoughs} from './ink-trees.js';
+
 // Each point is both a branch junction and a possible hanging point.
 // Coordinates are relative to the center of the tree, with roots at y=278.
 const birchForks = [[0,84],[-22,107],[23,105],[-41,136],[6,131],[44,143],[-60,166],[-20,177],[31,176],[62,196],[-51,216],[6,220]];
 const puzzleForks = [[0,86],[-18,105],[21,110],[-37,133],[4,143],[39,148],[-51,172],[-16,186],[33,181],[60,212],[-57,218],[8,228]];
 export function winterHangers(species) {
+  if (species === 'European larch') return larchSpurs;
+  if (species === 'Stone pine') return stonePineBoughs;
   if (species === 'Paper birch') return birchForks;
   if (species === 'Monkey puzzle') return puzzleForks;
 }

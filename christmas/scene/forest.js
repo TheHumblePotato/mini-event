@@ -9,19 +9,22 @@ function pineOutline(x,y,h,w,seed){
     }
     points.push(...(side===1?edge.reverse():edge));
   }
-  return 'M'+x.toFixed(1)+' '+(y-h).toFixed(1)+'L'+points.map(([a,b])=>a.toFixed(1)+' '+b.toFixed(1)).join(' ')+'Z';
+  return 'M'+(x+Math.sin(seed*1.8)*w*.23).toFixed(1)+' '+(y-h).toFixed(1)+'L'+points.map(([a,b])=>a.toFixed(1)+' '+b.toFixed(1)).join(' ')+'Z';
 }
+let cachedForest;
 export function distantForest(){
-  return [0,1].map(layer=>{
+  if(cachedForest)return cachedForest;
+  cachedForest=[0,1].map(layer=>{
     let outline='';
     const spacing=layer?10:7;
     for(let i=0;i<850/spacing;i++){
-      const x=-200+i*spacing+Math.sin(i*7)*3;
-      const y=182+Math.sin(x*.017)*7+layer*7,h=12+(.5+.5*Math.sin(i*13.77))*19+layer*5;
+      const x=-200+i*spacing+Math.sin(i*7)*3+Math.sin(i*.48)*4;
+      const y=182+Math.sin(x*.017)*7+layer*7,h=12+(.5+.5*Math.sin(i*13.77))*15+Math.sin(i*.27)*5+layer*5;
       outline+=pineOutline(x,y,h,h*(.19+.04*Math.cos(i)),i);
     }
     return '<path fill="'+(layer?'#527a72':'#74928a')+'" d="'+outline+'"/>';
   }).join('');
+  return cachedForest;
 }
 export function woodland(){
   let trunks='',silhouettes='',tips='',needles='',birches='';

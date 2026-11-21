@@ -1,5 +1,5 @@
 import {winterAir} from './weather.js';
-import {scene} from './art.js';
+
 const body=document.body;
 const menu=document.createElement('aside');
 menu.id='winter-menu';
@@ -26,7 +26,7 @@ document.querySelector('#expand').onclick=async()=>{
   try{if(document.fullscreenElement)await document.exitFullscreen();else await body.requestFullscreen();}
   catch{document.querySelector('#status').textContent='Fullscreen is unavailable in this browser.';}
 };
-document.querySelector('#ambient').innerHTML=scene({species:'Fir',setting:'Courtyard',weather:'Clear',star:'None'},true);
+
 const motion=matchMedia('(prefers-reduced-motion: reduce)');
 let previous=null,lastPuff=0,frame=0,lastFrame=0;
 const springs=new Map();
@@ -98,7 +98,7 @@ document.documentElement.addEventListener('pointerleave',()=>{cancelAnimationFra
 // Fit the full tree vertically while cropping the surrounding landscape on phones.
 function fit(){
   const active=document.querySelector('#scene>svg');
-  document.querySelector('#ambient').hidden=!!active || location.search.includes('gallery');
+
   layers=active?['.horizon','.village','.ground-plane'].map((selector,i)=>[active.querySelector(selector),[.15,.43,1][i]]):[];
   air.set(active?.dataset.weather||'Clear');
   const ratio=innerWidth/innerHeight;
@@ -106,9 +106,9 @@ function fit(){
   const height=width/ratio;
   sceneScale=innerWidth/width;
   project();
-  for(const svg of document.querySelectorAll('#scene>svg,#ambient>svg')){
-    svg.setAttribute('viewBox',[200-width/2,(310-height)/2,width,height].join(' '));
-    svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+  if(active){
+    active.setAttribute('viewBox',[200-width/2,(310-height)/2,width,height].join(' '));
+    active.setAttribute('preserveAspectRatio','xMidYMid meet');
   }
 }
 new MutationObserver(records=>{if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1 && (n.matches('#scene,svg') || n.querySelector('#scene,svg')))))fit();}).observe(document.querySelector('#content'),{childList:true,subtree:true});
